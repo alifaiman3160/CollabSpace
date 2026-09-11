@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>
+body{margin:0;background:#ffffff;-webkit-font-smoothing:antialiased}
+a{color:#111114;text-decoration:none}a:hover{color:#4a5bd0}
+</style></helmet>
+<div style="display:flex;align-items:stretch;min-height:100vh;background:#ffffff;color:#111114;font-family:'Plus Jakarta Sans',Helvetica,system-ui,sans-serif">
+
+  <aside style="flex:0 0 222px;width:222px;background:#c3cff9;display:flex;flex-direction:column;position:sticky;top:0;align-self:flex-start;height:100vh;box-sizing:border-box;border-radius:0 26px 26px 0;padding:22px 14px 18px">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 8px 22px">
+      <div style="width:34px;height:34px;flex:none;border-radius:11px;background:#111114;display:flex;align-items:center;justify-content:center">
+        <svg width="18" height="18" viewBox="0 0 20 20"><rect x="3.2" y="4" width="3.4" height="12" rx="1.3" fill="#c3cff9"></rect><rect x="8.3" y="4" width="3.4" height="8" rx="1.3" fill="#ffffff"></rect><rect x="13.4" y="4" width="3.4" height="10" rx="1.3" fill="#8fa4f0"></rect></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0;min-width:0">
+        <span style="font-size:15.5px;font-weight:800;letter-spacing:-0.03em;color:#111114">CollabSpace</span>
+        <span style="font-size:10px;font-weight:600;letter-spacing:0.02em;color:rgba(17,17,20,.48)">Student Portal</span>
+      </div>
+    </div>
+
+    <nav style="flex:1 1 auto;display:flex;flex-direction:column;gap:4px;overflow-y:auto">
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.6" y="2.6" width="6.2" height="6.2" rx="1.6"></rect><rect x="11.2" y="2.6" width="6.2" height="6.2" rx="1.6"></rect><rect x="2.6" y="11.2" width="6.2" height="6.2" rx="1.6"></rect><rect x="11.2" y="11.2" width="6.2" height="6.2" rx="1.6"></rect></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.4" y="5.8" width="15.2" height="11.4" rx="2.4"></rect><path d="M7 5.8V4.6A1.4 1.4 0 0 1 8.4 3.2h3.2A1.4 1.4 0 0 1 13 4.6v1.2M2.4 10.4h15.2"></path></svg>
+        <span>My Workspace</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;background:#111114;color:#ffffff;font-size:13.5px;font-weight:700;text-decoration:none;box-shadow:0 6px 16px rgba(17,17,20,.22)" style-hover="background:#1d1d24">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.6" y="3" width="4" height="14" rx="1.4"></rect><rect x="8" y="3" width="4" height="9" rx="1.4"></rect><rect x="13.4" y="3" width="4" height="11.6" rx="1.4"></rect></svg>
+        <span>Task Board</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11.6 2.8H6.3A1.8 1.8 0 0 0 4.5 4.6v10.8a1.8 1.8 0 0 0 1.8 1.8h7.4a1.8 1.8 0 0 0 1.8-1.8V6.5z"></path><path d="M11.6 2.8v3.7h3.9M7.6 11h4.8M7.6 13.6h3.2"></path></svg>
+        <span>Documents</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17.2 11.6a1.8 1.8 0 0 1-1.8 1.8H7.7L4.4 16.2v-2.8a1.8 1.8 0 0 1-1.7-1.8V5.8A1.8 1.8 0 0 1 4.5 4h10.9a1.8 1.8 0 0 1 1.8 1.8z"></path><path d="M6.6 7.6h6.8M6.6 10.2h4.4"></path></svg>
+        <span>Group Chat</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.1 13.4H4.9s1.3-1.4 1.3-4.6a3.8 3.8 0 0 1 7.6 0c0 3.2 1.3 4.6 1.3 4.6z"></path><path d="M8.4 16a1.7 1.7 0 0 0 3.2 0"></path></svg>
+        <span style="flex:1 1 auto">Notifications</span>
+        <span style="flex:none;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:999px;background:#e0453a;color:#ffffff;font-size:10.5px;font-weight:700;display:flex;align-items:center;justify-content:center">7</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10" cy="7.3" r="2.9"></circle><path d="M4.7 16.6a5.6 5.6 0 0 1 10.6 0"></path></svg>
+        <span>User Account</span>
+      </a>
+    </nav>
+
+    <div style="flex:none;margin-top:14px;background:rgba(255,255,255,.55);border-radius:18px;padding:13px 14px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <div style="width:33px;height:33px;flex:none;border-radius:999px;background:#111114;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700">AB</div>
+        <div style="display:flex;flex-direction:column;min-width:0;gap:1px">
+          <span style="font-size:12.5px;font-weight:700;color:#111114;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ahmad Bin Ali</span>
+          <span style="font-size:10.5px;color:rgba(17,17,20,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ahmad@student.com</span>
+        </div>
+      </div>
+      <a href="#" style="display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:rgba(17,17,20,.55);text-decoration:none" style-hover="color:#111114">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16.5H5.2a1.7 1.7 0 0 1-1.7-1.7V5.2A1.7 1.7 0 0 1 5.2 3.5H8"></path><path d="M12.6 13.2 15.8 10l-3.2-3.2M15.8 10H7.6"></path></svg>
+        <span>Sign out</span>
+      </a>
+    </div>
+  </aside>
+
+  <main style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#ffffff">
+
+    <header style="flex:none;padding:24px 28px 18px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between">
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+        <h1 style="margin:0;font-size:30px;line-height:1.1;font-weight:800;letter-spacing:-0.035em;color:#111114">Task Board</h1>
+        <span style="font-size:13px;color:#75757f">Group 1 · BCS3323 Software Engineering — 7 tasks this sprint.</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex:none">
+        <label style="display:flex;align-items:center;gap:9px;height:44px;padding:0 18px;border-radius:999px;background:#f2f2f5;min-width:230px">
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="#8b8b95" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="9" r="5.6"></circle><path d="M13.4 13.4 17 17"></path></svg>
+          <input type="text" placeholder="Search tasks or members" style="border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:#111114;width:100%" />
+        </label>
+        <button type="button" style="position:relative;width:44px;height:44px;flex:none;border:none;border-radius:999px;background:#f2f2f5;color:#111114;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#e8e8ee">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.1 13.4H4.9s1.3-1.4 1.3-4.6a3.8 3.8 0 0 1 7.6 0c0 3.2 1.3 4.6 1.3 4.6z"></path><path d="M8.4 16a1.7 1.7 0 0 0 3.2 0"></path></svg>
+          <span style="position:absolute;top:9px;right:11px;width:7px;height:7px;border-radius:999px;background:#e0453a;border:1.5px solid #f2f2f5"></span>
+        </button>
+        <div style="width:44px;height:44px;flex:none;border-radius:999px;background:#c3cff9;color:#111114;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">AB</div>
+      </div>
+    </header>
+
+    <div style="flex:none;padding:0 28px 18px">
+      <div style="background:#c3cff9;border-radius:24px;padding:22px 26px;display:flex;flex-wrap:wrap;gap:26px;align-items:center;justify-content:space-between">
+        <div style="display:flex;flex-direction:column;gap:12px;flex:1 1 320px;min-width:260px">
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <span style="font-size:11.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(17,17,20,.55)">Group progress</span>
+            <span style="font-size:12.5px;font-weight:600;color:#3f2f2f">·  {{ overdueCount }} overdue</span>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:10px">
+            <span style="font-size:42px;line-height:1;font-weight:800;letter-spacing:-0.04em;color:#111114">{{ percentLabel }}</span>
+            <span style="font-size:13px;font-weight:600;color:rgba(17,17,20,.6);padding-bottom:5px">{{ progressLabel }}</span>
+          </div>
+          <div style="display:flex;height:9px;border-radius:999px;background:rgba(255,255,255,.6);overflow:hidden;max-width:460px">
+            <div style="width:{{ doneWidth }};background:#111114;transition:width .3s ease"></div>
+            <div style="width:{{ doingWidth }};background:rgba(17,17,20,.32);transition:width .3s ease"></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;font-size:12px;font-weight:600;color:rgba(17,17,20,.68)">
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:#111114"></span>{{ doneCount }} done</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:rgba(17,17,20,.32)"></span>{{ doingCount }} in progress</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.85)"></span>{{ todoCount }} to do</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:16px;flex:none">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+            <button type="button" style="width:52px;height:52px;border:none;border-radius:999px;background:#111114;color:#ffffff;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#2a2a33">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4.6v10.8M4.6 10h10.8"></path></svg>
+            </button>
+            <span style="font-size:11.5px;font-weight:600;color:#111114">New task</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+            <button type="button" style="width:52px;height:52px;border:none;border-radius:999px;background:#111114;color:#ffffff;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#2a2a33">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="7.2" r="2.8"></circle><path d="M4.8 16.4a5.4 5.4 0 0 1 10.4 0"></path><path d="M15.4 4.4h3.2M17 2.8v3.2"></path></svg>
+            </button>
+            <span style="font-size:11.5px;font-weight:600;color:#111114">Assign</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+            <button type="button" style="width:52px;height:52px;border:none;border-radius:999px;background:#111114;color:#ffffff;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#2a2a33">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4.4" width="14" height="12.6" rx="2.4"></rect><path d="M3 8.4h14M7 2.8v3M13 2.8v3"></path></svg>
+            </button>
+            <span style="font-size:11.5px;font-weight:600;color:#111114">Deadlines</span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+            <button type="button" style="width:52px;height:52px;border:none;border-radius:999px;background:#111114;color:#ffffff;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#2a2a33">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3.4 5.4h13.2L11.4 11.2v4.4l-2.8-1.7v-2.7z"></path></svg>
+            </button>
+            <span style="font-size:11.5px;font-weight:600;color:#111114">Filter</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1 1 auto;padding:4px 28px 36px;overflow-x:auto">
+      <div style="display:flex;gap:16px;align-items:flex-start;min-width:min-content">
+        <sc-for list="{{ columns }}" as="col" hint-placeholder-count="3">
+          <section style="flex:1 1 0;min-width:290px;max-width:400px;background:{{ col.wellBg }};border:1px solid #e3e3ea;border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:13px;transition:background .18s ease" onDragOver="{{ col.onDragOver }}" onDragLeave="{{ col.onDragLeave }}" onDrop="{{ col.onDrop }}">
+            <div style="display:flex;align-items:center;gap:9px;padding:2px 4px 0">
+              <h2 style="margin:0;font-size:16px;font-weight:800;letter-spacing:-0.025em;color:#111114">{{ col.title }}</h2>
+              <span style="min-width:24px;height:22px;padding:0 7px;box-sizing:border-box;border-radius:999px;background:#ffffff;color:#5c5c66;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ col.count }}</span>
+              <span style="flex:1 1 auto"></span>
+              <button type="button" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:none;border-radius:999px;background:#ffffff;color:#111114;cursor:pointer" style-hover="background:#111114;color:#ffffff">
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4.8v10.4M4.8 10h10.4"></path></svg>
+              </button>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:11px">
+              <sc-for list="{{ col.tasks }}" as="t" hint-placeholder-count="2">
+                <article draggable="true" onDragStart="{{ t.onDragStart }}" onDragEnd="{{ t.onDragEnd }}" style="position:relative;overflow:hidden;background:#ffffff;border-radius:18px;padding:15px;display:flex;flex-direction:column;gap:11px;cursor:grab;box-shadow:0 1px 2px rgba(17,17,20,.05)" style-hover="box-shadow:0 8px 22px rgba(17,17,20,.1)">
+                  <sc-if value="{{ t.showEdge }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#e0453a"></div>
+                  </sc-if>
+
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                    <span style="flex:none;white-space:nowrap;padding:4.5px 11px;border-radius:999px;background:{{ t.statusBg }};color:{{ t.statusFg }};font-size:11px;font-weight:700;letter-spacing:0.01em">{{ t.statusLabel }}</span>
+                    <sc-if value="{{ t.overdue }}" hint-placeholder-val="{{ false }}">
+                      <span style="flex:none;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;padding:4.5px 11px;border-radius:999px;background:#fdeae8;color:#b7291f;font-size:11px;font-weight:700">
+                        <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10" cy="10" r="7.3"></circle><path d="M10 6.4v4.2M10 13.5h0.01"></path></svg>
+                        Overdue
+                      </span>
+                    </sc-if>
+                  </div>
+
+                  <h3 style="margin:0;font-size:15px;line-height:1.35;font-weight:700;letter-spacing:-0.015em;color:#111114;text-wrap:pretty">{{ t.title }}</h3>
+
+                  <sc-if value="{{ t.showSub }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="height:6px;border-radius:999px;background:#f0f0f4;overflow:hidden">
+                        <div style="height:6px;width:{{ t.subWidth }};border-radius:999px;background:#8fa4f0"></div>
+                      </div>
+                      <span style="font-size:11px;font-weight:600;color:#8b8b95">{{ t.subLabel }} subtasks done</span>
+                    </div>
+                  </sc-if>
+
+                  <div style="display:flex;align-items:center;gap:9px;row-gap:7px;flex-wrap:wrap;justify-content:space-between">
+                    <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                      <div style="width:27px;height:27px;flex:none;border-radius:999px;background:#c3cff9;color:#111114;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">{{ t.initials }}</div>
+                      <span style="font-size:12.5px;font-weight:600;color:#4d4d57;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.member }}</span>
+                    </div>
+                    <span style="flex:none;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:{{ t.dateWeight }};color:{{ t.dateColor }}">
+                      <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2.8" y="4.4" width="14.4" height="12.8" rx="2.4"></rect><path d="M2.8 8.4h14.4M6.8 2.6v3M13.2 2.6v3"></path></svg>
+                      {{ t.dateLabel }}
+                    </span>
+                  </div>
+
+                  <sc-if value="{{ showCardMeta }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;align-items:center;gap:16px;padding-top:11px;border-top:1px solid #f1f1f4;color:#9a9aa4">
+                      <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600">
+                        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11.4a1.8 1.8 0 0 1-1.8 1.8H7.6L4.3 16v-2.8a1.8 1.8 0 0 1-1.8-1.8V5.7a1.8 1.8 0 0 1 1.8-1.8h10.9A1.8 1.8 0 0 1 17 5.7z"></path></svg>
+                        {{ t.comments }}
+                      </span>
+                      <span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600">
+                        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11.6 2.9H6.3A1.8 1.8 0 0 0 4.5 4.7v10.6a1.8 1.8 0 0 0 1.8 1.8h7.4a1.8 1.8 0 0 0 1.8-1.8V6.5z"></path><path d="M11.6 2.9v3.6h3.9"></path></svg>
+                        {{ t.files }}
+                      </span>
+                    </div>
+                  </sc-if>
+                </article>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ col.empty }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#ffffff;border-radius:18px;padding:30px 22px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:11px">
+                <div style="width:52px;height:52px;border-radius:999px;background:#c3cff9;color:#111114;display:flex;align-items:center;justify-content:center">
+                  <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 10.6l3.4 3.4 9.4-9"></path></svg>
+                </div>
+                <span style="font-size:15px;font-weight:800;letter-spacing:-0.02em;color:#111114">{{ col.emptyTitle }}</span>
+                <span style="font-size:12.5px;line-height:1.5;color:#75757f;max-width:210px">{{ col.emptyBody }}</span>
+                <button type="button" style="margin-top:3px;height:36px;padding:0 16px;border:none;border-radius:999px;background:#111114;color:#ffffff;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="background:#2a2a33">{{ col.emptyCta }}</button>
+              </div>
+            </sc-if>
+          </section>
+        </sc-for>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showCardMeta&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Cards&quot;},&quot;showSubtaskProgress&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Cards&quot;},&quot;overdueEdgeAccent&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Cards&quot;}}">
+const TODAY = new Date(2026, 8, 8);
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const TASKS = [
+  {id:"t1", title:"Introduction & problem statement (Ch. 1)", member:"Ahmad Bin Ali", initials:"AB", due:[2026,3,20], status:"doing", sub:[2,5], comments:6, files:2},
+  {id:"t2", title:"Design ERD for the ride-booking module", member:"Wei Liang", initials:"WL", due:[2026,8,4], status:"todo", comments:3, files:1},
+  {id:"t3", title:"Draft SRS Ch. 3 — functional requirements", member:"Nurul Aina", initials:"NA", due:[2026,8,12], status:"doing", sub:[4,7], comments:9, files:4},
+  {id:"t4", title:"Build task board UI in the prototype", member:"Wei Liang", initials:"WL", due:[2026,8,15], status:"doing", sub:[1,4], comments:2, files:0},
+  {id:"t5", title:"Set up MySQL schema & seed test data", member:"Siti Nabila", initials:"SN", due:[2026,8,18], status:"todo", comments:1, files:3},
+  {id:"t6", title:"Write test cases for the login flow", member:"Ahmad Bin Ali", initials:"AB", due:[2026,8,22], status:"todo", comments:0, files:1},
+  {id:"t7", title:"Prepare Week 12 demo slides", member:"Nurul Aina", initials:"NA", due:[2026,8,26], status:"todo", comments:4, files:2}
+];
+const COLS = [
+  {key:"todo", title:"To Do", label:"To Do", bg:"#f2f2f5", fg:"#5c5c66",
+   emptyTitle:"Nothing queued up", emptyBody:"New work for Group 1 lands here first.", emptyCta:"Add a task"},
+  {key:"doing", title:"In Progress", label:"In Progress", bg:"#e7ebfc", fg:"#3d4a8f",
+   emptyTitle:"No one has started", emptyBody:"Drag a card here when a member picks it up.", emptyCta:"Start a task"},
+  {key:"done", title:"Done", label:"Completed", bg:"#e6f4ec", fg:"#1b6b45",
+   emptyTitle:"Nothing finished yet", emptyBody:"Drop a card here once your group submits it — the progress bar moves for everyone.", emptyCta:"Mark a task done"}
+];
+
+class Component extends DCLogic {
+  state = { moved: {}, dragOver: null };
+  statusOf(t) { return this.state.moved[t.id] || t.status; }
+
+  renderVals() {
+    const showMeta = this.props.showCardMeta ?? true;
+    const showSubs = this.props.showSubtaskProgress ?? true;
+    const showEdge = this.props.overdueEdgeAccent ?? true;
+    const counts = {todo:0, doing:0, done:0};
+    let overdueCount = 0;
+
+    const columns = COLS.map(c => {
+      const tasks = TASKS.filter(t => this.statusOf(t) === c.key).map(t => {
+        const d = new Date(t.due[0], t.due[1], t.due[2]);
+        const overdue = c.key !== "done" && d < TODAY;
+        if (overdue) overdueCount++;
+        const pct = t.sub ? Math.round(t.sub[0] / t.sub[1] * 100) : 0;
+        return {
+          ...t,
+          statusLabel: c.label, statusBg: c.bg, statusFg: c.fg,
+          overdue, showEdge: overdue && showEdge,
+          dateLabel: t.due[2] + " " + MONTHS[t.due[1]] + (t.due[0] === TODAY.getFullYear() ? "" : " " + t.due[0]),
+          dateColor: overdue ? "#b7291f" : "#75757f",
+          dateWeight: overdue ? "700" : "600",
+          showSub: showSubs && !!t.sub && c.key !== "done",
+          subWidth: pct + "%",
+          subLabel: t.sub ? t.sub[0] + "/" + t.sub[1] : "",
+          onDragStart: () => { this.dragId = t.id; },
+          onDragEnd: () => { this.dragId = null; }
+        };
+      });
+      counts[c.key] = tasks.length;
+      const over = this.state.dragOver === c.key;
+      return {
+        ...c, tasks, count: tasks.length, empty: tasks.length === 0,
+        wellBg: over ? "#c3cff9" : "#f7f7fa",
+        onDragOver: (e) => { e.preventDefault(); if (this.state.dragOver !== c.key) this.setState({dragOver: c.key}); },
+        onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) this.setState({dragOver: null}); },
+        onDrop: (e) => {
+          e.preventDefault();
+          const id = this.dragId;
+          this.setState(s => ({ dragOver: null, moved: id ? {...s.moved, [id]: c.key} : s.moved }));
+        }
+      };
+    });
+
+    const total = TASKS.length;
+    return {
+      columns, showCardMeta: showMeta,
+      todoCount: counts.todo, doingCount: counts.doing, doneCount: counts.done, overdueCount,
+      doneWidth: Math.round(counts.done / total * 100) + "%",
+      doingWidth: Math.round(counts.doing / total * 100) + "%",
+      percentLabel: Math.round(counts.done / total * 100) + "%",
+      progressLabel: counts.done + " of " + total + " tasks complete"
+    };
+  }
+}
+</script>
+</body>
+</html>

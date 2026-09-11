@@ -1,0 +1,125 @@
+@import 'tailwindcss';
+
+/* CollabSpace design tokens live in tailwind.config.js (see DESIGN-NOTES.md). */
+@config '../../tailwind.config.js';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Plus Jakarta Sans', 'Helvetica', system-ui, sans-serif;
+}
+
+@layer base {
+    html {
+        -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+        background: #ffffff;
+        color: #111114;
+        font-family: 'Plus Jakarta Sans', 'Helvetica', system-ui, sans-serif;
+    }
+
+    /* Nothing square — inputs pick up the pill radius by default. */
+    ::placeholder {
+        color: #8b8b95;
+    }
+
+    /* Keep Alpine-toggled elements hidden until Alpine boots. */
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+/*
+ * Table density.
+ *
+ * Set once here rather than repeated as padding utilities on every cell in
+ * every page, so row height is a single decision instead of two dozen. Pages
+ * should write bare <td> and <th>; the component owns the box.
+ *
+ * The selector is more specific than a Tailwind utility, so a stray px-6 on a
+ * cell cannot quietly reintroduce the old spacing — apart from a deliberate
+ * !important escape, which the empty-state row uses to get more air.
+ */
+@layer components {
+    .data-table th,
+    .data-table td {
+        padding: 0.6875rem 1.25rem;   /* 11px 20px */
+        vertical-align: middle;
+    }
+
+    .data-table thead th {
+        padding-top: 0.625rem;
+        padding-bottom: 0.625rem;
+    }
+}
+
+/*
+ * Document bodies.
+ *
+ * Tailwind's preflight strips list markers and heading sizes, which is right
+ * everywhere else in the app but wrong inside a document — these are the only
+ * tags DocumentSanitizer allows, styled once so the editor and the read-only
+ * views look identical.
+ */
+@layer components {
+    .doc-body h2 {
+        font-size: 21px;
+        line-height: 1.25;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 1.4em 0 0.5em;
+    }
+
+    .doc-body h3 {
+        font-size: 16.5px;
+        line-height: 1.3;
+        font-weight: 700;
+        margin: 1.2em 0 0.4em;
+    }
+
+    .doc-body h2:first-child,
+    .doc-body h3:first-child,
+    .doc-body p:first-child {
+        margin-top: 0;
+    }
+
+    .doc-body p {
+        margin: 0 0 0.9em;
+    }
+
+    .doc-body ul,
+    .doc-body ol {
+        margin: 0 0 0.9em;
+        padding-left: 1.5em;
+    }
+
+    .doc-body ul { list-style: disc; }
+    .doc-body ol { list-style: decimal; }
+    .doc-body li { margin: 0.2em 0; }
+
+    .doc-body blockquote {
+        margin: 0 0 0.9em;
+        padding: 0.2em 0 0.2em 1em;
+        border-left: 3px solid #ececf2;
+        color: #4d4d57;
+    }
+
+    .doc-body a {
+        color: #4a5bd0;
+        text-decoration: underline;
+    }
+
+    .doc-body strong, .doc-body b { font-weight: 700; }
+    .doc-body em, .doc-body i { font-style: italic; }
+    .doc-body u { text-decoration: underline; }
+
+    .doc-body:empty::before {
+        content: attr(data-placeholder);
+        color: #a3a3ad;
+    }
+}

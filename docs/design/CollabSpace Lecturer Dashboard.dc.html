@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>
+body{margin:0;background:#ffffff;-webkit-font-smoothing:antialiased}
+a{color:#111114;text-decoration:none}a:hover{color:#4a5bd0}
+</style></helmet>
+<div style="display:flex;align-items:stretch;min-height:100vh;background:#ffffff;color:#111114;font-family:'Plus Jakarta Sans',Helvetica,system-ui,sans-serif">
+
+  <aside style="flex:0 0 222px;width:222px;background:#c3cff9;display:flex;flex-direction:column;position:sticky;top:0;align-self:flex-start;height:100vh;box-sizing:border-box;border-radius:0 26px 26px 0;padding:22px 14px 18px">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 8px 22px">
+      <div style="width:34px;height:34px;flex:none;border-radius:11px;background:#111114;display:flex;align-items:center;justify-content:center">
+        <svg width="18" height="18" viewBox="0 0 20 20"><rect x="3.2" y="4" width="3.4" height="12" rx="1.3" fill="#c3cff9"></rect><rect x="8.3" y="4" width="3.4" height="8" rx="1.3" fill="#ffffff"></rect><rect x="13.4" y="4" width="3.4" height="10" rx="1.3" fill="#8fa4f0"></rect></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0;min-width:0">
+        <span style="font-size:15.5px;font-weight:800;letter-spacing:-0.03em;color:#111114">CollabSpace</span>
+        <span style="font-size:10px;font-weight:600;letter-spacing:0.02em;color:rgba(17,17,20,.48)">Lecturer Portal</span>
+      </div>
+    </div>
+
+    <nav style="flex:1 1 auto;display:flex;flex-direction:column;gap:4px;overflow-y:auto">
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;background:#111114;color:#ffffff;font-size:13.5px;font-weight:700;text-decoration:none;box-shadow:0 6px 16px rgba(17,17,20,.22)" style-hover="background:#1d1d24">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.6" y="2.6" width="6.2" height="6.2" rx="1.6"></rect><rect x="11.2" y="2.6" width="6.2" height="6.2" rx="1.6"></rect><rect x="2.6" y="11.2" width="6.2" height="6.2" rx="1.6"></rect><rect x="11.2" y="11.2" width="6.2" height="6.2" rx="1.6"></rect></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5.4 4 3.4v11.2l6 2 6-2V3.4l-6 2z"></path><path d="M10 5.4v11.2"></path></svg>
+        <span>My Subjects</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7.4" cy="7.2" r="2.6"></circle><circle cx="13.6" cy="8.4" r="2.1"></circle><path d="M2.8 15.6a4.7 4.7 0 0 1 9.2 0M13.2 12.4a4 4 0 0 1 4 3.2"></path></svg>
+        <span>Groups</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.4V9.8M8.4 16.4V4.6M13.8 16.4v-4.8"></path><path d="M2.6 6.6 8 2.9l3.6 2.4 5-3"></path></svg>
+        <span>Monitor Progress</span>
+      </a>
+      <a href="CollabSpace Contribution Reports.dc.html" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11.6 2.8H6.3A1.8 1.8 0 0 0 4.5 4.6v10.8a1.8 1.8 0 0 0 1.8 1.8h7.4a1.8 1.8 0 0 0 1.8-1.8V6.5z"></path><path d="M11.6 2.8v3.7h3.9M7.6 13.6V10M10 13.6v-1.8M12.4 13.6v-3"></path></svg>
+        <span style="white-space:nowrap">Contribution Reports</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10" cy="7.3" r="2.9"></circle><path d="M4.7 16.6a5.6 5.6 0 0 1 10.6 0"></path></svg>
+        <span>Students</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.8 3.4 6.2l6.6 3.4 6.6-3.4z"></path><path d="M3.4 10.4 10 13.8l6.6-3.4M3.4 14l6.6 3.4 6.6-3.4"></path></svg>
+        <span>User Account</span>
+      </a>
+    </nav>
+
+    <div style="flex:none;margin-top:14px;background:rgba(255,255,255,.55);border-radius:18px;padding:13px 14px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <div style="width:33px;height:33px;flex:none;border-radius:999px;background:#111114;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700">DA</div>
+        <div style="display:flex;flex-direction:column;min-width:0;gap:1px">
+          <span style="font-size:12.5px;font-weight:700;color:#111114;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Dr. Ahmad Lecturer</span>
+          <span style="font-size:10.5px;color:rgba(17,17,20,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">lecturer@collabspace.com</span>
+        </div>
+      </div>
+      <a href="#" style="display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:rgba(17,17,20,.55);text-decoration:none" style-hover="color:#111114">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16.5H5.2a1.7 1.7 0 0 1-1.7-1.7V5.2A1.7 1.7 0 0 1 5.2 3.5H8"></path><path d="M12.6 13.2 15.8 10l-3.2-3.2M15.8 10H7.6"></path></svg>
+        <span>Sign out</span>
+      </a>
+    </div>
+  </aside>
+
+  <main style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#ffffff">
+
+    <header style="flex:none;padding:24px 28px 18px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between">
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+        <h1 style="margin:0;font-size:30px;line-height:1.1;font-weight:800;letter-spacing:-0.035em;color:#111114">Good morning, Dr. Ahmad</h1>
+        <span style="font-size:13px;color:#75757f">Semester 1 · Week 10 of 14 — two groups need your attention today.</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex:none">
+        <label style="display:flex;align-items:center;gap:9px;height:44px;padding:0 18px;border-radius:999px;background:#f2f2f5;min-width:220px">
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="#8b8b95" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="9" r="5.6"></circle><path d="M13.4 13.4 17 17"></path></svg>
+          <input type="text" placeholder="Search group, student or subject" style="border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:#111114;width:100%" />
+        </label>
+        <button type="button" style="position:relative;width:44px;height:44px;flex:none;border:none;border-radius:999px;background:#f2f2f5;color:#111114;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#e8e8ee">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15.1 13.4H4.9s1.3-1.4 1.3-4.6a3.8 3.8 0 0 1 7.6 0c0 3.2 1.3 4.6 1.3 4.6z"></path><path d="M8.4 16a1.7 1.7 0 0 0 3.2 0"></path></svg>
+          <span style="position:absolute;top:9px;right:11px;width:7px;height:7px;border-radius:999px;background:#e0453a;border:1.5px solid #f2f2f5"></span>
+        </button>
+        <div style="width:44px;height:44px;flex:none;border-radius:999px;background:#c3cff9;color:#111114;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">DA</div>
+      </div>
+    </header>
+
+    <div style="flex:1 1 auto;padding:0 28px 36px;display:flex;flex-direction:column;gap:18px">
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;align-items:stretch">
+
+        <div style="background:#c3cff9;border-radius:24px;padding:24px 26px;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <span style="font-size:11.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:rgba(17,17,20,.55)">Cohort completion</span>
+            <span style="padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.7);font-size:11px;font-weight:700;color:#111114">Sem 1 · Week 10</span>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+            <span style="font-size:52px;line-height:.95;font-weight:800;letter-spacing:-0.045em;color:#111114">{{ cohortPct }}</span>
+            <span style="font-size:13.5px;font-weight:600;color:rgba(17,17,20,.62);padding-bottom:7px">{{ cohortLabel }}</span>
+          </div>
+          <div style="display:flex;height:9px;border-radius:999px;background:rgba(255,255,255,.6);overflow:hidden">
+            <div style="width:{{ cohortDoneWidth }};background:#111114"></div>
+            <div style="width:{{ cohortOpenWidth }};background:rgba(17,17,20,.32)"></div>
+          </div>
+          <div style="display:flex;gap:18px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+              <button type="button" style="width:52px;height:52px;border:none;border-radius:999px;background:#111114;color:#ffffff;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#2a2a33">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="7.2" r="2.8"></circle><path d="M4.8 16.4a5.4 5.4 0 0 1 10.4 0"></path><path d="M15.4 4.4h3.2M17 2.8v3.2"></path></svg>
+              </button>
+              <span style="font-size:11.5px;font-weight:600;color:#111114">New group</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+              <button type="button" style="width:52px;height:52px;border:none;border-radius:999px;background:#111114;color:#ffffff;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#2a2a33">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.4V9.8M8.4 16.4V4.6M13.8 16.4v-4.8"></path><path d="M2.6 6.6 8 2.9l3.6 2.4 5-3"></path></svg>
+              </button>
+              <span style="font-size:11.5px;font-weight:600;color:#111114">Monitor</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+              <button type="button" style="width:52px;height:52px;border:none;border-radius:999px;background:#111114;color:#ffffff;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#2a2a33">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.4v8.8M6.6 8.8 10 12.2l3.4-3.4M4 15.6h12"></path></svg>
+              </button>
+              <span style="font-size:11.5px;font-weight:600;color:#111114">Export</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+              <button type="button" style="width:52px;height:52px;border:none;border-radius:999px;background:#111114;color:#ffffff;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#2a2a33">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.2 11.6a1.8 1.8 0 0 1-1.8 1.8H7.7L4.4 16.2v-2.8a1.8 1.8 0 0 1-1.7-1.8V5.8A1.8 1.8 0 0 1 4.5 4h10.9a1.8 1.8 0 0 1 1.8 1.8z"></path></svg>
+              </button>
+              <span style="font-size:11.5px;font-weight:600;color:#111114">Announce</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:stretch">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="5">
+            <div style="flex:1 1 132px;min-width:128px;background:{{ s.bg }};border-radius:24px;padding:18px;display:flex;flex-direction:column;justify-content:space-between;gap:14px">
+              <div style="width:34px;height:34px;border-radius:12px;background:{{ s.iconBg }};color:{{ s.iconFg }};display:flex;align-items:center;justify-content:center">{{ s.icon }}</div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:11px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:{{ s.labelFg }}">{{ s.label }}</span>
+                <span style="font-size:30px;line-height:1.05;font-weight:800;letter-spacing:-0.04em;color:{{ s.valueFg }}">{{ s.value }}</span>
+              </div>
+              <span style="font-size:11.5px;font-weight:600;color:{{ s.metaFg }}">{{ s.meta }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <section style="display:flex;flex-direction:column;gap:13px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <h2 style="margin:0;font-size:21px;font-weight:800;letter-spacing:-0.03em;color:#111114">All groups overview</h2>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="display:flex;background:#f2f2f5;border-radius:999px;padding:3px">
+              <button type="button" onClick="{{ setAll }}" style="height:32px;padding:0 15px;border:none;border-radius:999px;background:{{ allBg }};color:{{ allFg }};font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer">All</button>
+              <button type="button" onClick="{{ setAttention }}" style="height:32px;padding:0 15px;border:none;border-radius:999px;background:{{ attBg }};color:{{ attFg }};font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer">Needs attention</button>
+            </div>
+            <button type="button" style="flex:none;white-space:nowrap;height:38px;padding:0 16px;border:none;border-radius:999px;background:#111114;color:#ffffff;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="background:#2a2a33">Manage groups</button>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+            <article style="position:relative;overflow:hidden;background:#f7f7fa;border-radius:22px;padding:18px 20px;display:flex;flex-wrap:wrap;gap:18px;align-items:center">
+              <sc-if value="{{ g.alert }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:#e0453a"></div>
+              </sc-if>
+
+              <div style="display:flex;align-items:center;gap:13px;flex:1 1 230px;min-width:210px">
+                <div style="width:44px;height:44px;flex:none;border-radius:15px;background:{{ g.badgeBg }};color:{{ g.badgeFg }};display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:800">{{ g.short }}</div>
+                <div style="display:flex;flex-direction:column;gap:5px;min-width:0">
+                  <span style="font-size:16px;font-weight:800;letter-spacing:-0.025em;color:#111114">{{ g.name }}</span>
+                  <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                    <span style="flex:none;white-space:nowrap;padding:3.5px 10px;border-radius:999px;background:#e7ebfc;color:#3d4a8f;font-size:10.5px;font-weight:700">{{ g.code }}</span>
+                    <span style="font-size:12px;font-weight:600;color:#75757f">{{ g.subject }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="flex:1 1 130px;min-width:120px;display:flex;flex-direction:column;gap:5px">
+                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95">Members</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="display:flex">
+                    <sc-for list="{{ g.avatars }}" as="a" hint-placeholder-count="4">
+                      <div style="width:26px;height:26px;border-radius:999px;background:#c3cff9;border:2px solid #f7f7fa;color:#111114;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;margin-left:{{ a.shift }}">{{ a.initials }}</div>
+                    </sc-for>
+                  </div>
+                  <span style="font-size:12px;font-weight:600;color:#75757f;white-space:nowrap">{{ g.memberLabel }}</span>
+                </div>
+              </div>
+
+              <div style="flex:2 1 200px;min-width:180px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+                  <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95">Task progress</span>
+                  <span style="font-size:13px;font-weight:800;letter-spacing:-0.02em;color:{{ g.pctColor }}">{{ g.pct }}</span>
+                </div>
+                <div style="height:10px;border-radius:999px;background:#eceaf2;overflow:hidden">
+                  <div style="height:10px;width:{{ g.width }};border-radius:999px;background:{{ g.barColor }}"></div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                  <span style="font-size:11.5px;font-weight:600;color:#75757f">{{ g.taskLabel }}</span>
+                  <sc-if value="{{ g.alert }}" hint-placeholder-val="{{ false }}">
+                    <span style="flex:none;white-space:nowrap;padding:3px 9px;border-radius:999px;background:#fdeae8;color:#b7291f;font-size:10.5px;font-weight:700">{{ g.alertLabel }}</span>
+                  </sc-if>
+                </div>
+              </div>
+
+              <div style="flex:none;display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+                <a href="CollabSpace Contribution Reports.dc.html" style="flex:none;white-space:nowrap;height:38px;padding:0 15px;border-radius:999px;background:#ffffff;color:#111114;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;text-decoration:none" style-hover="background:#ececf2">Report</a>
+                <button type="button" style="flex:none;white-space:nowrap;height:38px;padding:0 16px;border:none;border-radius:999px;background:#111114;color:#ffffff;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="background:#2a2a33">Monitor</button>
+              </div>
+            </article>
+          </sc-for>
+
+          <sc-if value="{{ noGroups }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#f7f7fa;border-radius:22px;padding:36px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:11px">
+              <div style="width:52px;height:52px;border-radius:999px;background:#c8e6d5;color:#1b6b45;display:flex;align-items:center;justify-content:center">
+                <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 10.6l3.4 3.4 9.4-9"></path></svg>
+              </div>
+              <span style="font-size:15px;font-weight:800;letter-spacing:-0.02em;color:#111114">Every group is on track</span>
+              <span style="font-size:12.5px;line-height:1.5;color:#75757f;max-width:250px">No overdue tasks and no free riders flagged this week. Switch back to All to see the full cohort.</span>
+              <button type="button" onClick="{{ setAll }}" style="margin-top:3px;height:36px;padding:0 16px;border:none;border-radius:999px;background:#111114;color:#ffffff;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="background:#2a2a33">Show all groups</button>
+            </div>
+          </sc-if>
+        </div>
+      </section>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;align-items:stretch">
+
+        <section style="display:flex;flex-direction:column;gap:13px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <h2 style="margin:0;font-size:21px;font-weight:800;letter-spacing:-0.03em;color:#111114">Needs your attention</h2>
+            <a href="CollabSpace Contribution Reports.dc.html" style="flex:none;white-space:nowrap;font-size:12.5px;font-weight:700;color:#4a5bd0;text-decoration:none">All reports</a>
+          </div>
+          <div style="flex:1 1 auto;display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3">
+              <article style="position:relative;overflow:hidden;background:{{ a.bg }};border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:13px">
+                <div style="width:38px;height:38px;flex:none;border-radius:13px;background:{{ a.iconBg }};color:{{ a.iconFg }};display:flex;align-items:center;justify-content:center">{{ a.icon }}</div>
+                <div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px">
+                  <span style="font-size:14px;line-height:1.3;font-weight:700;letter-spacing:-0.015em;color:{{ a.titleFg }};text-wrap:pretty">{{ a.title }}</span>
+                  <span style="font-size:12px;font-weight:600;color:{{ a.metaFg }}">{{ a.meta }}</span>
+                </div>
+                <span style="flex:none;white-space:nowrap;padding:5px 11px;border-radius:999px;background:{{ a.chipBg }};color:{{ a.chipFg }};font-size:10.5px;font-weight:700">{{ a.chip }}</span>
+              </article>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="display:flex;flex-direction:column;gap:13px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <h2 style="margin:0;font-size:21px;font-weight:800;letter-spacing:-0.03em;color:#111114">Submission deadlines</h2>
+            <a href="#" style="flex:none;white-space:nowrap;font-size:12.5px;font-weight:700;color:#4a5bd0;text-decoration:none">Calendar</a>
+          </div>
+          <div style="flex:1 1 auto;display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ deadlines }}" as="d" hint-placeholder-count="3">
+              <article style="background:#f7f7fa;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px" style-hover="background:#f2f2f5">
+                <div style="width:46px;flex:none;border-radius:14px;background:#ffffff;padding:7px 0;display:flex;flex-direction:column;align-items:center;gap:1px">
+                  <span style="font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#8b8b95">{{ d.mon }}</span>
+                  <span style="font-size:17px;font-weight:800;letter-spacing:-0.03em;color:#111114">{{ d.day }}</span>
+                </div>
+                <div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px">
+                  <span style="font-size:14px;line-height:1.3;font-weight:700;letter-spacing:-0.015em;color:#111114;text-wrap:pretty">{{ d.title }}</span>
+                  <span style="font-size:12px;font-weight:600;color:#75757f">{{ d.meta }}</span>
+                </div>
+                <span style="flex:none;white-space:nowrap;padding:5px 11px;border-radius:999px;background:{{ d.chipBg }};color:{{ d.chipFg }};font-size:11px;font-weight:700">{{ d.chip }}</span>
+              </article>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const GROUPS = [
+  {short:"G1", name:"Group 1", code:"BCS3323", subject:"Software Engineering",
+   members:["AB","NA","WL","SN"], done:1, total:3, alert:true, alertLabel:"2 overdue · 2 free riders"},
+  {short:"DL", name:"DELI", code:"BCSXXXX", subject:"Software Engineering Project",
+   members:["FZ","IK","MR","YT"], done:0, total:4, alert:true, alertLabel:"No activity yet"},
+  {short:"G4", name:"Group 4", code:"BCS2213", subject:"Human-Computer Interaction",
+   members:["HR","LZ","AK"], done:7, total:10, alert:false, alertLabel:""}
+];
+
+const ico = (size, w, paths) => React.createElement("svg", {
+  width: size, height: size, viewBox: "0 0 20 20", fill: "none",
+  stroke: "currentColor", strokeWidth: w, strokeLinecap: "round", strokeLinejoin: "round"
+}, paths.map((d, i) => React.createElement("path", {key: i, d})));
+
+const icoMixed = (size, w, children) => React.createElement("svg", {
+  width: size, height: size, viewBox: "0 0 20 20", fill: "none",
+  stroke: "currentColor", strokeWidth: w, strokeLinecap: "round", strokeLinejoin: "round"
+}, children);
+
+class Component extends DCLogic {
+  state = { filter: "all" };
+
+  renderVals() {
+    const attentionOnly = this.state.filter === "attention";
+    const visible = GROUPS.filter(g => !attentionOnly || g.alert);
+
+    const totalStudents = GROUPS.reduce((s, g) => s + g.members.length, 0);
+    const subjects = new Set(GROUPS.map(g => g.code)).size;
+    const doneAll = GROUPS.reduce((s, g) => s + g.done, 0);
+    const totalAll = GROUPS.reduce((s, g) => s + g.total, 0) || 1;
+    const overdueAll = 2;
+    const cohortDone = Math.round(doneAll / totalAll * 100);
+    const inProgress = Math.round((totalAll - doneAll) / totalAll * 100 * 0.6);
+
+    const iconSubjects = ico(17, 1.7, ["M10 5.4 4 3.4v11.2l6 2 6-2V3.4l-6 2z", "M10 5.4v11.2"]);
+    const iconGroups = icoMixed(17, 1.7, [
+      React.createElement("circle", {key:"a", cx:7.4, cy:7.2, r:2.6}),
+      React.createElement("circle", {key:"b", cx:13.6, cy:8.4, r:2.1}),
+      React.createElement("path", {key:"c", d:"M2.8 15.6a4.7 4.7 0 0 1 9.2 0M13.2 12.4a4 4 0 0 1 4 3.2"})
+    ]);
+    const iconStudents = icoMixed(17, 1.7, [
+      React.createElement("circle", {key:"a", cx:10, cy:7.3, r:2.9}),
+      React.createElement("path", {key:"b", d:"M4.7 16.6a5.6 5.6 0 0 1 10.6 0"})
+    ]);
+    const iconDone = icoMixed(17, 1.9, [
+      React.createElement("circle", {key:"a", cx:10, cy:10, r:7.3}),
+      React.createElement("path", {key:"b", d:"M6.6 10.3l2.4 2.4 4.4-4.8"})
+    ]);
+    const iconAlert = icoMixed(17, 2, [
+      React.createElement("circle", {key:"a", cx:10, cy:10, r:7.3}),
+      React.createElement("path", {key:"b", d:"M10 6.4v4.2M10 13.5h0.01"})
+    ]);
+    const iconClock = icoMixed(18, 1.9, [
+      React.createElement("circle", {key:"a", cx:10, cy:10, r:7.3}),
+      React.createElement("path", {key:"b", d:"M10 6.2V10l2.8 1.8"})
+    ]);
+    const iconInactive = icoMixed(18, 1.9, [
+      React.createElement("circle", {key:"a", cx:10, cy:10, r:7.3}),
+      React.createElement("path", {key:"b", d:"M5.4 14.6 14.6 5.4"})
+    ]);
+    const iconFreeRider = icoMixed(18, 2, [
+      React.createElement("circle", {key:"a", cx:10, cy:10, r:7.3}),
+      React.createElement("path", {key:"b", d:"M10 6.4v4.2M10 13.5h0.01"})
+    ]);
+
+    return {
+      cohortPct: cohortDone + "%",
+      cohortLabel: doneAll + " of " + totalAll + " tasks done · " + overdueAll + " overdue",
+      cohortDoneWidth: cohortDone + "%",
+      cohortOpenWidth: inProgress + "%",
+
+      stats: [
+        {icon: iconSubjects, label:"Subjects", value:String(subjects), meta:"Active this semester",
+         bg:"#f2f2f5", iconBg:"#ffffff", iconFg:"#4a5bd0", labelFg:"#8b8b95", valueFg:"#111114", metaFg:"#75757f"},
+        {icon: iconGroups, label:"Groups", value:String(GROUPS.length), meta:"Across all subjects",
+         bg:"#c3cff9", iconBg:"rgba(255,255,255,.7)", iconFg:"#111114", labelFg:"rgba(17,17,20,.55)", valueFg:"#111114", metaFg:"rgba(17,17,20,.6)"},
+        {icon: iconStudents, label:"Students", value:String(totalStudents), meta:"Enrolled in groups",
+         bg:"#f2f2f5", iconBg:"#ffffff", iconFg:"#4a5bd0", labelFg:"#8b8b95", valueFg:"#111114", metaFg:"#75757f"},
+        {icon: iconDone, label:"Completed", value:String(doneAll), meta:"Tasks across all groups",
+         bg:"#e6f4ec", iconBg:"#ffffff", iconFg:"#1b6b45", labelFg:"#5b8a72", valueFg:"#155c3b", metaFg:"#5b8a72"},
+        {icon: iconAlert, label:"Overdue", value:String(overdueAll), meta:"Need attention",
+         bg:"#fdeae8", iconBg:"#ffffff", iconFg:"#b7291f", labelFg:"#c47a72", valueFg:"#b7291f", metaFg:"#c47a72"}
+      ],
+
+      groups: visible.map(g => {
+        const pct = g.total ? Math.round(g.done / g.total * 100) : 0;
+        return {
+          short: g.short, name: g.name, code: g.code, subject: g.subject,
+          badgeBg: g.alert ? "#fdeae8" : "#c3cff9",
+          badgeFg: g.alert ? "#b7291f" : "#111114",
+          avatars: g.members.map((m, i) => ({initials: m, shift: i === 0 ? "0px" : "-8px"})),
+          memberLabel: g.members.length + " students",
+          pct: pct + "%", width: pct + "%",
+          barColor: g.alert ? "#e0453a" : "#111114",
+          pctColor: g.alert ? "#b7291f" : "#111114",
+          taskLabel: g.done + "/" + g.total + " tasks done",
+          alert: g.alert, alertLabel: g.alertLabel
+        };
+      }),
+      noGroups: visible.length === 0,
+
+      allBg: attentionOnly ? "transparent" : "#111114",
+      allFg: attentionOnly ? "#75757f" : "#ffffff",
+      attBg: attentionOnly ? "#111114" : "transparent",
+      attFg: attentionOnly ? "#ffffff" : "#75757f",
+      setAll: () => this.setState({filter: "all"}),
+      setAttention: () => this.setState({filter: "attention"}),
+
+      alerts: [
+        {icon: iconFreeRider, title:"Wei Liang and Siti Nabila have 0% contribution", meta:"Group 1 · BCS3323",
+         bg:"#fdeae8", iconBg:"#f7cdc8", iconFg:"#b7291f", titleFg:"#8f1f17", metaFg:"#b7635a",
+         chip:"Free rider", chipBg:"#f7cdc8", chipFg:"#8f1f17"},
+        {icon: iconClock, title:"Introduction & problem statement is 141 days overdue", meta:"Group 1 · Ahmad Bin Ali",
+         bg:"#f7f7fa", iconBg:"#ffffff", iconFg:"#b7291f", titleFg:"#111114", metaFg:"#75757f",
+         chip:"Overdue", chipBg:"#fdeae8", chipFg:"#b7291f"},
+        {icon: iconInactive, title:"DELI has not created any tasks yet", meta:"BCSXXXX · 4 students waiting",
+         bg:"#f7f7fa", iconBg:"#ffffff", iconFg:"#8b8b95", titleFg:"#111114", metaFg:"#75757f",
+         chip:"Inactive", chipBg:"#f2f2f5", chipFg:"#5c5c66"}
+      ],
+
+      deadlines: [
+        {mon:"Sep", day:"12", title:"SRS Ch. 3 — functional requirements", meta:"Group 1 · BCS3323", chip:"In 4 days", chipBg:"#fdeae8", chipFg:"#b7291f"},
+        {mon:"Sep", day:"18", title:"MySQL schema & seed test data", meta:"Group 1 · BCS3323", chip:"In 10 days", chipBg:"#f2f2f5", chipFg:"#5c5c66"},
+        {mon:"Sep", day:"26", title:"Week 12 demo presentation", meta:"All groups · BCS3323", chip:"In 18 days", chipBg:"#e7ebfc", chipFg:"#3d4a8f"},
+        {mon:"Oct", day:"14", title:"HCI case study report", meta:"Group 4 · BCS2213", chip:"Next month", chipBg:"#f2f2f5", chipFg:"#5c5c66"}
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

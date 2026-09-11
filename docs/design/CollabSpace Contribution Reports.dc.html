@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>
+body{margin:0;background:#ffffff;-webkit-font-smoothing:antialiased}
+a{color:#111114;text-decoration:none}a:hover{color:#4a5bd0}
+</style></helmet>
+<div style="display:flex;align-items:stretch;min-height:100vh;background:#ffffff;color:#111114;font-family:'Plus Jakarta Sans',Helvetica,system-ui,sans-serif">
+
+  <aside style="flex:0 0 222px;width:222px;background:#c3cff9;display:flex;flex-direction:column;position:sticky;top:0;align-self:flex-start;height:100vh;box-sizing:border-box;border-radius:0 26px 26px 0;padding:22px 14px 18px">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 8px 22px">
+      <div style="width:34px;height:34px;flex:none;border-radius:11px;background:#111114;display:flex;align-items:center;justify-content:center">
+        <svg width="18" height="18" viewBox="0 0 20 20"><rect x="3.2" y="4" width="3.4" height="12" rx="1.3" fill="#c3cff9"></rect><rect x="8.3" y="4" width="3.4" height="8" rx="1.3" fill="#ffffff"></rect><rect x="13.4" y="4" width="3.4" height="10" rx="1.3" fill="#8fa4f0"></rect></svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0;min-width:0">
+        <span style="font-size:15.5px;font-weight:800;letter-spacing:-0.03em;color:#111114">CollabSpace</span>
+        <span style="font-size:10px;font-weight:600;letter-spacing:0.02em;color:rgba(17,17,20,.48)">Lecturer Portal</span>
+      </div>
+    </div>
+
+    <nav style="flex:1 1 auto;display:flex;flex-direction:column;gap:4px;overflow-y:auto">
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="2.6" y="2.6" width="6.2" height="6.2" rx="1.6"></rect><rect x="11.2" y="2.6" width="6.2" height="6.2" rx="1.6"></rect><rect x="2.6" y="11.2" width="6.2" height="6.2" rx="1.6"></rect><rect x="11.2" y="11.2" width="6.2" height="6.2" rx="1.6"></rect></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5.4 4 3.4v11.2l6 2 6-2V3.4l-6 2z"></path><path d="M10 5.4v11.2"></path></svg>
+        <span>My Subjects</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7.4" cy="7.2" r="2.6"></circle><circle cx="13.6" cy="8.4" r="2.1"></circle><path d="M2.8 15.6a4.7 4.7 0 0 1 9.2 0M13.2 12.4a4 4 0 0 1 4 3.2"></path></svg>
+        <span>Groups</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16.4V9.8M8.4 16.4V4.6M13.8 16.4v-4.8"></path><path d="M2.6 6.6 8 2.9l3.6 2.4 5-3"></path></svg>
+        <span>Monitor Progress</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;background:#111114;color:#ffffff;font-size:13.5px;font-weight:700;text-decoration:none;box-shadow:0 6px 16px rgba(17,17,20,.22)" style-hover="background:#1d1d24">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11.6 2.8H6.3A1.8 1.8 0 0 0 4.5 4.6v10.8a1.8 1.8 0 0 0 1.8 1.8h7.4a1.8 1.8 0 0 0 1.8-1.8V6.5z"></path><path d="M11.6 2.8v3.7h3.9M7.6 13.6V10M10 13.6v-1.8M12.4 13.6v-3"></path></svg>
+        <span style="white-space:nowrap">Contribution Reports</span>
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:999px;color:rgba(17,17,20,.66);font-size:13.5px;font-weight:600;text-decoration:none" style-hover="background:rgba(255,255,255,.5);color:#111114">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10" cy="7.3" r="2.9"></circle><path d="M4.7 16.6a5.6 5.6 0 0 1 10.6 0"></path></svg>
+        <span>Students</span>
+      </a>
+    </nav>
+
+    <div style="flex:none;margin-top:14px;background:rgba(255,255,255,.55);border-radius:18px;padding:13px 14px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <div style="width:33px;height:33px;flex:none;border-radius:999px;background:#111114;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700">DA</div>
+        <div style="display:flex;flex-direction:column;min-width:0;gap:1px">
+          <span style="font-size:12.5px;font-weight:700;color:#111114;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Dr. Ahmad Lecturer</span>
+          <span style="font-size:10.5px;color:rgba(17,17,20,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">lecturer@collabspace.com</span>
+        </div>
+      </div>
+      <a href="#" style="display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:600;color:rgba(17,17,20,.55);text-decoration:none" style-hover="color:#111114">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16.5H5.2a1.7 1.7 0 0 1-1.7-1.7V5.2A1.7 1.7 0 0 1 5.2 3.5H8"></path><path d="M12.6 13.2 15.8 10l-3.2-3.2M15.8 10H7.6"></path></svg>
+        <span>Sign out</span>
+      </a>
+    </div>
+  </aside>
+
+  <main style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;background:#ffffff">
+
+    <header style="flex:none;padding:24px 28px 18px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between">
+      <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+        <h1 style="margin:0;font-size:30px;line-height:1.1;font-weight:800;letter-spacing:-0.035em;color:#111114">Contribution Reports</h1>
+        <span style="font-size:13px;color:#75757f">Who actually did the work — measured from board, chat and document activity.</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex:none">
+        <label style="display:flex;align-items:center;gap:9px;height:44px;padding:0 18px;border-radius:999px;background:#f2f2f5;min-width:210px">
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="#8b8b95" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="9" r="5.6"></circle><path d="M13.4 13.4 17 17"></path></svg>
+          <input type="text" placeholder="Search group or student" style="border:none;outline:none;background:transparent;font-family:inherit;font-size:13px;color:#111114;width:100%" />
+        </label>
+        <div style="width:44px;height:44px;flex:none;border-radius:999px;background:#c3cff9;color:#111114;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">DA</div>
+      </div>
+    </header>
+
+    <div style="flex:1 1 auto;padding:0 28px 36px;display:flex;flex-direction:column;gap:18px">
+
+      <section style="display:flex;flex-direction:column;gap:13px">
+        <h2 style="margin:0;font-size:21px;font-weight:800;letter-spacing:-0.03em;color:#111114">Select group</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+            <button type="button" onClick="{{ g.onSelect }}" style="flex:1 1 240px;min-width:230px;text-align:left;border:none;cursor:pointer;font-family:inherit;background:{{ g.cardBg }};border-radius:22px;padding:16px 18px;display:flex;align-items:center;gap:14px" style-hover="filter:brightness(.97)">
+              <div style="width:42px;height:42px;flex:none;border-radius:14px;background:{{ g.iconBg }};color:{{ g.iconFg }};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800">{{ g.short }}</div>
+              <div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:15px;font-weight:800;letter-spacing:-0.02em;color:#111114">{{ g.name }}</span>
+                <span style="font-size:12px;font-weight:600;color:{{ g.metaFg }}">{{ g.meta }}</span>
+              </div>
+              <sc-if value="{{ g.flagged }}" hint-placeholder-val="{{ false }}">
+                <span style="flex:none;white-space:nowrap;padding:5px 11px;border-radius:999px;background:#fdeae8;color:#b7291f;font-size:10.5px;font-weight:700">{{ g.flagLabel }}</span>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="background:#f7f7fa;border-radius:24px;padding:22px;display:flex;flex-direction:column;gap:22px">
+
+        <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between">
+          <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+            <span style="font-size:11.5px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:#8b8b95">{{ activeMeta }}</span>
+            <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-0.03em;color:#111114">Contribution report</h2>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex:none">
+            <button type="button" style="height:40px;padding:0 16px;border:none;border-radius:999px;background:#ffffff;color:#111114;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px" style-hover="background:#ececf2">
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="4.4" width="14" height="12.6" rx="2.4"></rect><path d="M3 8.4h14M7 2.8v3M13 2.8v3"></path></svg>
+              <span>Sprint 2</span>
+            </button>
+            <button type="button" style="height:40px;padding:0 17px;border:none;border-radius:999px;background:#111114;color:#ffffff;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px" style-hover="background:#2a2a33">
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.4v8.8M6.6 8.8 10 12.2l3.4-3.4M4 15.6h12"></path></svg>
+              <span>Export</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:12px">
+          <div style="flex:1 1 150px;min-width:140px;background:#c3cff9;border-radius:20px;padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:11.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:rgba(17,17,20,.55)">Group score</span>
+            <span style="font-size:28px;line-height:1;font-weight:800;letter-spacing:-0.04em;color:#111114">{{ totalScore }}</span>
+            <span style="font-size:11.5px;font-weight:600;color:rgba(17,17,20,.6)">activity points logged</span>
+          </div>
+          <div style="flex:1 1 150px;min-width:140px;background:#ffffff;border-radius:20px;padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:11.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95">Balance</span>
+            <span style="font-size:28px;line-height:1;font-weight:800;letter-spacing:-0.04em;color:#111114">{{ topShare }}</span>
+            <span style="font-size:11.5px;font-weight:600;color:#75757f">carried by {{ topName }}</span>
+          </div>
+          <div style="flex:1 1 150px;min-width:140px;background:#ffffff;border-radius:20px;padding:16px 18px;display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:11.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95">Flagged</span>
+            <span style="font-size:28px;line-height:1;font-weight:800;letter-spacing:-0.04em;color:{{ flagColor }}">{{ flagCount }}</span>
+            <span style="font-size:11.5px;font-weight:600;color:#75757f">below the 15% threshold</span>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ members }}" as="m" hint-placeholder-count="4">
+            <div style="background:#ffffff;border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:10px;flex:1 1 190px;min-width:170px">
+                <div style="width:34px;height:34px;flex:none;border-radius:999px;background:{{ m.avatarBg }};color:{{ m.avatarFg }};display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700">{{ m.initials }}</div>
+                <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                  <span style="font-size:14px;font-weight:700;letter-spacing:-0.015em;color:#111114">{{ m.name }}</span>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <span style="flex:none;white-space:nowrap;padding:3.5px 10px;border-radius:999px;background:{{ m.pillBg }};color:{{ m.pillFg }};font-size:10.5px;font-weight:700">{{ m.pill }}</span>
+                  </div>
+                </div>
+              </div>
+              <div style="flex:3 1 240px;min-width:180px;display:flex;align-items:center;gap:12px">
+                <div style="flex:1 1 auto;height:12px;border-radius:999px;background:#eceaf2;overflow:hidden">
+                  <div style="height:12px;width:{{ m.width }};border-radius:999px;background:{{ m.barColor }}"></div>
+                </div>
+                <span style="flex:none;white-space:nowrap;width:44px;text-align:right;font-size:14px;font-weight:800;letter-spacing:-0.02em;color:{{ m.pctColor }}">{{ m.pct }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <h3 style="margin:0;font-size:15px;font-weight:800;letter-spacing:-0.02em;color:#111114">Detailed breakdown</h3>
+          <div style="background:#ffffff;border-radius:20px;padding:6px 4px;overflow-x:auto">
+            <div style="min-width:660px;display:flex;flex-direction:column">
+              <div style="display:grid;grid-template-columns:1.7fr .8fr .8fr .8fr .8fr .8fr .7fr .9fr;gap:8px;padding:12px 16px;border-bottom:1px solid #f0f0f4">
+                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95">Member</span>
+                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95;text-align:right">Tasks done</span>
+                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95;text-align:right">Created</span>
+                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95;text-align:right">Messages</span>
+                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95;text-align:right">Files</span>
+                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95;text-align:right">Doc edits</span>
+                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95;text-align:right">Score</span>
+                <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:#8b8b95;text-align:right">Share</span>
+              </div>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4">
+                <div style="display:grid;grid-template-columns:1.7fr .8fr .8fr .8fr .8fr .8fr .7fr .9fr;gap:8px;padding:13px 16px;border-bottom:1px solid #f7f7fa;align-items:center">
+                  <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                    <span style="font-size:13.5px;font-weight:700;color:#111114">{{ r.name }}</span>
+                    <sc-if value="{{ r.flagged }}" hint-placeholder-val="{{ false }}">
+                      <span style="flex:none;white-space:nowrap;padding:3px 9px;border-radius:999px;background:#fdeae8;color:#b7291f;font-size:10px;font-weight:700">Free rider</span>
+                    </sc-if>
+                  </div>
+                  <span style="font-size:13px;font-weight:600;color:#4d4d57;text-align:right">{{ r.tasksDone }}</span>
+                  <span style="font-size:13px;font-weight:600;color:#4d4d57;text-align:right">{{ r.created }}</span>
+                  <span style="font-size:13px;font-weight:600;color:#4d4d57;text-align:right">{{ r.messages }}</span>
+                  <span style="font-size:13px;font-weight:600;color:#4d4d57;text-align:right">{{ r.files }}</span>
+                  <span style="font-size:13px;font-weight:600;color:#4d4d57;text-align:right">{{ r.docEdits }}</span>
+                  <span style="font-size:13px;font-weight:700;color:#111114;text-align:right">{{ r.score }}</span>
+                  <span style="font-size:13px;font-weight:800;color:{{ r.pctColor }};text-align:right">{{ r.pct }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasFreeRider }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#fdeae8;border-radius:20px;padding:16px 18px;display:flex;gap:13px;align-items:flex-start">
+            <div style="width:32px;height:32px;flex:none;border-radius:999px;background:#f7cdc8;color:#b7291f;display:flex;align-items:center;justify-content:center">
+              <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10" cy="10" r="7.3"></circle><path d="M10 6.4v4.2M10 13.5h0.01"></path></svg>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+              <span style="font-size:14px;font-weight:800;letter-spacing:-0.015em;color:#8f1f17">Free rider detected</span>
+              <span style="font-size:12.5px;line-height:1.5;color:#8f1f17;text-wrap:pretty">{{ freeRiderNote }}</span>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ noFreeRider }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#e6f4ec;border-radius:20px;padding:16px 18px;display:flex;gap:13px;align-items:flex-start">
+            <div style="width:32px;height:32px;flex:none;border-radius:999px;background:#c8e6d5;color:#1b6b45;display:flex;align-items:center;justify-content:center">
+              <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 10.6l3.4 3.4 7.4-8"></path></svg>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+              <span style="font-size:14px;font-weight:800;letter-spacing:-0.015em;color:#155c3b">Contribution looks balanced</span>
+              <span style="font-size:12.5px;line-height:1.5;color:#155c3b;text-wrap:pretty">Every member is above the 15% threshold for this sprint. No action needed before grading.</span>
+            </div>
+          </div>
+        </sc-if>
+
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;freeRiderThreshold&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:15,&quot;min&quot;:5,&quot;max&quot;:30,&quot;step&quot;:1,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Report&quot;}}">
+const GROUPS = [
+  {key:"g1", short:"G1", name:"Group 1", subject:"BCS3323", subjectName:"Software Engineering", flagged:true, flagLabel:"2 flagged",
+   rows:[
+     {name:"Ahmad Bin Ali", initials:"AB", tasksDone:"0/1", created:3, messages:10, files:1, docEdits:5, score:34},
+     {name:"Nurul Aina", initials:"NA", tasksDone:"1/1", created:0, messages:3, files:0, docEdits:1, score:11},
+     {name:"Wei Liang", initials:"WL", tasksDone:"0/1", created:0, messages:0, files:0, docEdits:0, score:0},
+     {name:"Siti Nabila", initials:"SN", tasksDone:"0/1", created:0, messages:0, files:0, docEdits:0, score:0}
+   ]},
+  {key:"g4", short:"G4", name:"Group 4", subject:"BCS2213", subjectName:"Human-Computer Interaction", flagged:false, flagLabel:"",
+   rows:[
+     {name:"Hafiz Rahman", initials:"HR", tasksDone:"3/4", created:5, messages:14, files:3, docEdits:6, score:41},
+     {name:"Lim Zi Xuan", initials:"LZ", tasksDone:"2/3", created:4, messages:11, files:2, docEdits:4, score:33},
+     {name:"Aisyah Karim", initials:"AK", tasksDone:"2/3", created:2, messages:9, files:2, docEdits:3, score:26}
+   ]}
+];
+
+class Component extends DCLogic {
+  state = { active: "g1" };
+
+  renderVals() {
+    const threshold = this.props.freeRiderThreshold ?? 15;
+    const active = GROUPS.find(g => g.key === this.state.active) || GROUPS[0];
+    const total = active.rows.reduce((s, r) => s + r.score, 0) || 1;
+
+    const scored = active.rows.map(r => {
+      const pctNum = Math.round(r.score / total * 100);
+      const flagged = pctNum < threshold;
+      return {...r, pctNum, flagged, pct: pctNum + "%"};
+    });
+    const top = scored.reduce((a, b) => (b.pctNum > a.pctNum ? b : a), scored[0]);
+    const flaggedCount = scored.filter(r => r.flagged).length;
+    const names = scored.filter(r => r.flagged).map(r => r.name);
+
+    return {
+      groups: GROUPS.map(g => {
+        const on = g.key === active.key;
+        return {
+          short: g.short, name: g.name, flagged: g.flagged, flagLabel: g.flagLabel,
+          meta: g.subject + " · " + g.subjectName,
+          cardBg: on ? "#c3cff9" : "#f7f7fa",
+          iconBg: on ? "#111114" : "#ffffff",
+          iconFg: on ? "#ffffff" : "#4a5bd0",
+          metaFg: on ? "rgba(17,17,20,.62)" : "#75757f",
+          onSelect: () => this.setState({active: g.key})
+        };
+      }),
+
+      activeMeta: active.subject + " — " + active.name + " · " + active.rows.length + " members",
+      totalScore: total,
+      topShare: top.pct,
+      topName: top.name.split(" ")[0],
+      flagCount: flaggedCount,
+      flagColor: flaggedCount ? "#b7291f" : "#1b6b45",
+
+      members: scored.map(r => ({
+        initials: r.initials, name: r.name,
+        width: Math.max(r.pctNum, 0) + "%",
+        pct: r.pct,
+        barColor: r.flagged ? "#e0453a" : "#111114",
+        pctColor: r.flagged ? "#b7291f" : "#111114",
+        avatarBg: r.flagged ? "#fdeae8" : "#c3cff9",
+        avatarFg: r.flagged ? "#b7291f" : "#111114",
+        pill: r.flagged ? "Free rider" : (r.pctNum >= 40 ? "Carrying the group" : "Contributing"),
+        pillBg: r.flagged ? "#fdeae8" : (r.pctNum >= 40 ? "#e7ebfc" : "#f2f2f5"),
+        pillFg: r.flagged ? "#b7291f" : (r.pctNum >= 40 ? "#3d4a8f" : "#5c5c66")
+      })),
+
+      rows: scored.map(r => ({
+        ...r,
+        pctColor: r.flagged ? "#b7291f" : "#1b6b45"
+      })),
+
+      hasFreeRider: flaggedCount > 0,
+      noFreeRider: flaggedCount === 0,
+      freeRiderNote: names.join(" and ") + " contributed less than " + threshold + "% of " + active.name + "'s activity score. Review the board and chat history before final grading."
+    };
+  }
+}
+</script>
+</body>
+</html>
