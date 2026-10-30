@@ -14,7 +14,7 @@
         ."and contribution history are kept.";
 @endphp
 
-    <div class="flex flex-col gap-7" x-data="{ confirm: null }">
+    <div class="mx-auto flex w-full max-w-xl flex-col gap-7" x-data="{ confirm: null }">
 
         <x-flash />
 

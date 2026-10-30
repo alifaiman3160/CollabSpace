@@ -1,32 +1,33 @@
 {{--
-    Session feedback for the admin screens. A freshly issued temporary password
-    is shown exactly once, here — it is never stored in plaintext, so if the
-    admin navigates away it can only be reissued, not recovered.
+    The fallback for a password that could not be emailed.
+
+    On the normal path this renders nothing. An issued password goes to its
+    owner by email and is never put on the administrator's screen: it belongs to
+    one person, and a secret on a screen is a secret in whatever is behind that
+    screen — a shoulder in a lab, a projector, a screenshot pasted into a report.
+    The administrator gets a plain success toast instead.
+
+    It appears only when the send failed, because then email is not a channel
+    and the administrator is the only remaining way for the password to reach
+    the person who needs it. Deliberately styled as a warning rather than as
+    good news, and deliberately not a toast: it must not disappear on a timer,
+    because it is shown exactly once and cannot be looked up again.
 --}}
-
-@if (session('status') && ! session('temporary_password'))
-    <div class="flex items-center gap-2.5 rounded-card bg-success-bg px-4 py-3 text-body font-semibold text-success-text">
-        <x-icon name="check" size="17" />
-        <span>{{ session('status') }}</span>
-    </div>
-@endif
-
-@if ($errors->has('status'))
-    <div class="flex items-center gap-2.5 rounded-card bg-danger-bg px-4 py-3 text-body font-semibold text-danger-text">
-        <x-icon name="alert" size="17" />
-        <span>{{ $errors->first('status') }}</span>
-    </div>
-@endif
-
 @if (session('temporary_password'))
-    <div class="flex flex-col gap-3 rounded-panel bg-periwinkle p-5" x-data="{ copied: false }">
-        <div class="flex flex-col gap-1">
-            <span class="text-label font-bold uppercase tracking-eyebrow text-ink/[.55]">Temporary password</span>
-            <p class="text-body font-medium text-ink/[.7]">
-                {{ session('status') }}
-                Give this to {{ session('temporary_password_for') }} directly — it is shown once and
-                cannot be looked up again. They must change it at first sign-in.
-            </p>
+    <div class="flex flex-col gap-3 rounded-panel border border-danger-line bg-danger-bg p-5" x-data="{ copied: false }">
+        <div class="flex items-start gap-3">
+            <span class="flex size-8 shrink-0 items-center justify-center rounded-pill bg-danger text-white">
+                <x-icon name="alert" size="16" class="[stroke-width:2.5]" />
+            </span>
+
+            <div class="flex min-w-0 flex-col gap-1">
+                <span class="text-label font-bold uppercase tracking-eyebrow text-danger-text">
+                    Email failed — hand this over yourself
+                </span>
+                <p class="text-body font-medium text-danger-text">
+                    {{ session('status') }}
+                </p>
+            </div>
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
@@ -37,6 +38,10 @@
                       x-on:click="navigator.clipboard.writeText($refs.secret.textContent.trim()).then(() => { copied = true; setTimeout(() => copied = false, 2000) })">
                 <span x-text="copied ? 'Copied' : 'Copy'">Copy</span>
             </x-button>
+
+            <span class="text-meta text-danger-text">
+                For {{ session('temporary_password_for') }}. They must change it at first sign-in.
+            </span>
         </div>
     </div>
 @endif

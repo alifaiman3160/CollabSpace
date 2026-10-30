@@ -61,11 +61,13 @@ return [
     |
     | Here you may specify the default timezone for your application, which
     | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | is Asia/Kuala_Lumpur because the people using this app are in Malaysia.
+    | Stored date-times carry no zone: they are written and read in this one
+    | (see docs/TIMEZONE.md before changing it on a database that has data).
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Kuala_Lumpur'),
 
     /*
     |--------------------------------------------------------------------------

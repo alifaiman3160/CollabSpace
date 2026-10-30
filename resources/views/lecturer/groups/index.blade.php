@@ -1,3 +1,14 @@
+@php
+    // Forming groups is per subject. With one chosen, or only one to choose from,
+    // it is a plain link; otherwise the header offers a short list to pick from.
+    $formationSubject = $subjectId
+        ? $subjects->firstWhere('id', $subjectId)
+        : ($subjects->count() === 1 ? $subjects->first() : null);
+
+    $oneHelp = 'Creates a single empty group. You place the members yourself.';
+    $autoHelp = 'Distributes unassigned students across several groups at once: balanced by CGPA, or imported from a form.';
+@endphp
+
 <x-layouts.app title="Groups — CollabSpace"
                heading="Groups"
                :subtitle="$groups->count().' '.Str::plural('group', $groups->count()).
@@ -5,8 +16,49 @@
 
     <x-slot:actions>
         @if ($subjects->isNotEmpty())
-            <x-button :href="route('lecturer.groups.create', $subjectId ? ['subject' => $subjectId] : [])" icon="plus">
-                New group
+            {{-- The two ways of making groups, side by side and always there:
+                 form them automatically, or create one by hand. The first used to
+                 vanish whenever no subject was chosen, which left a lecturer with
+                 several subjects thinking the feature did not exist. --}}
+            @if ($formationSubject)
+                <x-button variant="secondary" :href="route('lecturer.formation', $formationSubject)" icon="users"
+                          title="{{ $autoHelp }}">
+                    Auto-assign students
+                </x-button>
+            @else
+                <div class="relative"
+                     x-data="{ open: false }"
+                     x-on:click.outside="open = false"
+                     x-on:keydown.escape.window="open = false">
+                    <x-button variant="secondary" icon="users" x-on:click="open = ! open"
+                              title="{{ $autoHelp }}"
+                              aria-haspopup="true" x-bind:aria-expanded="open">
+                        Auto-assign students
+                    </x-button>
+
+                    <div x-show="open" x-cloak
+                         x-transition:enter="transition ease-motion duration-motion-slow"
+                         x-transition:enter-start="opacity-0 scale-[.96]"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         class="absolute right-0 z-30 mt-2 w-72 rounded-card border border-surface-strong bg-surface p-2 shadow-card">
+                        <p class="px-3 pb-1.5 pt-2 text-label font-bold uppercase tracking-eyebrow text-ink-300">
+                            For which subject?
+                        </p>
+
+                        @foreach ($subjects as $option)
+                            <a href="{{ route('lecturer.formation', $option) }}"
+                               class="flex flex-col rounded-[12px] px-3 py-2.5 interactive hover:bg-surface-hover">
+                                <span class="text-nav font-bold">{{ $option->code }}</span>
+                                <span class="truncate text-label text-ink-400">{{ $option->name }}</span>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <x-button :href="route('lecturer.groups.create', $subjectId ? ['subject' => $subjectId] : [])" icon="plus"
+                      title="{{ $oneHelp }}">
+                Add one group
             </x-button>
         @endif
     </x-slot:actions>
@@ -14,6 +66,20 @@
     <div class="flex flex-col gap-[18px]" x-data="{ confirm: null }">
 
         <x-flash />
+
+        @if ($subjects->isNotEmpty())
+            {{-- The two buttons above look alike to someone new, so say what each does. --}}
+            <dl class="grid gap-3 rounded-card border border-surface-line bg-surface-soft px-5 py-4 text-meta leading-[1.5] text-ink-400 md:grid-cols-2">
+                <div>
+                    <dt class="font-bold text-ink-600">Add one group</dt>
+                    <dd>{{ $oneHelp }}</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-ink-600">Auto-assign students</dt>
+                    <dd>{{ $autoHelp }}</dd>
+                </div>
+            </dl>
+        @endif
 
         @if ($subjects->isEmpty())
             <x-empty-state
@@ -27,14 +93,14 @@
             <div class="flex flex-wrap items-center gap-2">
                 <div class="flex flex-wrap rounded-pill bg-surface-muted p-[3px]">
                     <a href="{{ route('lecturer.groups') }}"
-                       class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold transition-colors
+                       class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold interactive
                               {{ $subjectId === null ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
                         All subjects
                     </a>
                     @foreach ($subjects as $subject)
                         <a href="{{ route('lecturer.groups', ['subject' => $subject->id]) }}"
                            title="{{ $subject->name }}"
-                           class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold transition-colors
+                           class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold interactive
                                   {{ $subjectId === $subject->id ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
                             {{ $subject->code }}
                         </a>
@@ -46,11 +112,17 @@
                 <x-empty-state
                     icon="folder"
                     title="No groups here yet"
-                    body="Create a group, then assign students to it from the group's own screen."
-                    cta="Create a group"
-                    :href="route('lecturer.groups.create', $subjectId ? ['subject' => $subjectId] : [])" />
+                    body="Create a group by hand and assign students to it, or let CollabSpace form them: balanced by CGPA, or imported from a Google Form where students chose their own."
+                    cta="Add one group"
+                    :href="route('lecturer.groups.create', $subjectId ? ['subject' => $subjectId] : [])">
+                    @if ($formationSubject)
+                        <x-button variant="secondary" :href="route('lecturer.formation', $formationSubject)" icon="users">
+                            Auto-assign students
+                        </x-button>
+                    @endif
+                </x-empty-state>
             @else
-                <x-data-table :headings="['Group', 'Subject', 'Members', 'Task progress', '']">
+                <x-data-table :headings="['Group', 'Subject', 'Members', 'Task progress', '']" min-width="860px">
                     @foreach ($groups as $group)
                         @php
                             // Built here, then passed through Js::from below. Blade compiles
@@ -74,46 +146,26 @@
                                 'every contribution record for this group',
                             ]));
                         @endphp
-                        <tr class="hover:bg-surface-soft">
-                            <td>
-                                <a href="{{ route('lecturer.groups.show', $group) }}"
-                                   class="text-nav font-bold hover:text-periwinkle-link">{{ $group->name }}</a>
-                            </td>
+                        <tr>
+                            <x-table.group-cells :group="$group" />
 
                             <td>
-                                <x-badge tone="info" :title="$group->subject->name">{{ $group->subject->code }}</x-badge>
-                            </td>
-
-                            <td class="whitespace-nowrap">
-                                <span class="text-meta font-semibold">
-                                    {{ $group->members_count }} / {{ $group->group_size }}
-                                </span>
-                                @if ($group->members_count >= $group->group_size)
-                                    <span class="ml-1.5"><x-badge tone="neutral">Full</x-badge></span>
-                                @endif
-                            </td>
-
-                            <td>
-                                <x-task-progress :done="$group->tasks_done"
-                                                 :total="$group->tasks_total"
-                                                 :overdue="$group->tasks_overdue" />
-                            </td>
-
-                            <td>
-                                <div class="flex flex-wrap items-center justify-end gap-2">
+                                <div class="flex items-center justify-end gap-1.5">
                                     <x-button :href="route('lecturer.groups.show', $group)"
                                               class="!px-4 !py-2 !text-meta">Manage</x-button>
 
-                                    <x-button variant="secondary" class="!px-4 !py-2 !text-meta !text-danger-text"
+                                    <x-table.quiet-action
+                                        aria-label="Delete {{ $group->name }}" icon="trash"
                                         x-on:click="confirm = {
                                             url: '{{ route('lecturer.groups.destroy', $group) }}',
                                             method: 'DELETE',
                                             title: 'Delete this group?',
                                             body: {{ Js::from($deleteBody) }},
                                             consequences: {{ Js::from($consequences) }},
+                                            confirmText: {{ Js::from($group->name) }},
                                             action: 'Delete group',
                                             tone: 'danger',
-                                        }">Delete</x-button>
+                                        }">Delete</x-table.quiet-action>
                                 </div>
                             </td>
                         </tr>

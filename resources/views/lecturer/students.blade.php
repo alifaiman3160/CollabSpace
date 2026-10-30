@@ -33,22 +33,19 @@
                 @endif
             </form>
 
-            <x-data-table :headings="['Student', 'Subject', 'Group', 'Contribution', 'Last active']"
+            <x-data-table :headings="['Student', 'Subject', ['CGPA', 'right'], ['Contribution', 'right'], 'Last active']"
                           :empty="$search !== ''
                               ? 'No students match that search.'
                               : 'No students have been assigned to your groups yet.'">
                 @foreach ($rows as $row)
-                    <tr class="hover:bg-surface-soft">
+                    <tr>
                         <td>
-                            <div class="flex items-center gap-3">
-                                <x-avatar :name="$row['user']->name" size="sm" />
-                                <span class="flex min-w-0 flex-col">
-                                    <span class="text-nav font-bold">{{ $row['user']->name }}</span>
-                                    <span class="truncate text-meta text-ink-400">
-                                        {{ $row['user']->matric_no ?? $row['user']->email }}
-                                    </span>
-                                </span>
-                            </div>
+                            <x-table.person :name="$row['user']->name">
+                                <span class="truncate">{{ $row['user']->matric_no ?? $row['user']->email }}</span>
+                                <span aria-hidden="true">·</span>
+                                <a href="{{ route('lecturer.progress.show', $row['group']) }}"
+                                   class="interactive rounded-md font-semibold text-periwinkle-link hover:underline">{{ $row['group']->name }}</a>
+                            </x-table.person>
                         </td>
 
                         <td>
@@ -57,26 +54,25 @@
                             </x-badge>
                         </td>
 
-                        <td>
-                            <a href="{{ route('lecturer.progress.show', $row['group']) }}"
-                               class="text-meta font-semibold text-periwinkle-link hover:underline">
-                                {{ $row['group']->name }}
-                            </a>
+                        <td class="num">
+                            @if ($row['user']->cgpa !== null)
+                                <span class="text-nav font-bold">{{ number_format((float) $row['user']->cgpa, 2) }}</span>
+                            @else
+                                {{-- A dash, never a zero: an unrecorded CGPA must not read as 0.00. --}}
+                                <span class="text-meta text-ink-300" title="No CGPA has been entered for this student" aria-label="No CGPA recorded">—</span>
+                            @endif
                         </td>
 
                         <td>
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span class="text-nav font-bold {{ $row['flagged'] ? 'text-danger-text' : '' }}">
-                                    {{ $row['score'] }} pts
-                                </span>
-                                <span class="text-meta text-ink-400">{{ round($row['share']) }}%</span>
+                            <x-table.score :score="$row['score']" :fill="$row['share']" :flagged="$row['flagged']" class="ml-auto">
+                                <span>{{ round($row['share']) }}%</span>
                                 @if ($row['flagged'])
-                                    <x-badge tone="danger"
+                                    <x-table.dot-pill tone="danger"
                                              title="Below {{ round($row['threshold'], 1) }} points, the low-participation threshold for this group">
                                         Low
-                                    </x-badge>
+                                    </x-table.dot-pill>
                                 @endif
-                            </div>
+                            </x-table.score>
                         </td>
 
                         <td class="whitespace-nowrap text-meta text-ink-400">
@@ -95,6 +91,11 @@
             <p class="text-label text-ink-400">
                 Contribution is the member's score within that group, from the activity log. A student in more
                 than one of your subjects appears once per group, because their standing is per group.
+            </p>
+
+            <p class="text-label text-ink-400">
+                CGPA is entered by hand by the administrator. CollabSpace is not connected to any academic
+                system, so treat it as a working figure that may be out of date, not as the official record.
             </p>
         @endif
     </div>

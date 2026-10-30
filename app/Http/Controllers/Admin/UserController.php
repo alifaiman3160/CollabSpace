@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Mail\AccountCreated;
+use App\Mail\TemporaryPasswordIssued;
 use App\Models\User;
+use App\Support\Notifier;
 use App\Support\TemporaryPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +17,8 @@ use Illuminate\View\View;
 
 class UserController extends Controller
 {
+    public function __construct(protected Notifier $notifier) {}
+
     public function index(Request $request): View
     {
         $search = trim((string) $request->query('search', ''));
@@ -63,23 +67,16 @@ class UserController extends Controller
         // password, to the address the account was created with. Failure to
         // send must not lose the account that was just created, so it is
         // reported rather than thrown.
-        $mailed = true;
+        $mailed = $this->deliver(
+            fn () => Mail::to($user->email)->send(new AccountCreated($user, $temporary, $request->user()?->name))
+        );
 
-        try {
-            Mail::to($user->email)->send(new AccountCreated($user, $temporary, $request->user()?->name));
-        } catch (\Throwable $e) {
-            $mailed = false;
-            report($e);
-        }
+        $this->notifier->accountCreated($user, $request->user());
 
-        // Still shown to the admin once, so the password can be passed on by
-        // hand if the email did not go out.
-        return redirect()->route('admin.users')
-            ->with('status', $mailed
-                ? "Account created for {$user->name}. The sign-in details have been emailed to {$user->email}."
-                : "Account created for {$user->name}, but the email could not be sent. Pass the password on directly.")
-            ->with('temporary_password', $temporary)
-            ->with('temporary_password_for', $user->name);
+        return redirect()->route('admin.users')->with(
+            $this->handover($user, $temporary, $mailed,
+                "Account created for {$user->name}. The sign-in details have been emailed to {$user->email}.")
+        );
     }
 
     public function edit(User $user): View
@@ -122,13 +119,15 @@ class UserController extends Controller
 
         $user->update(['is_active' => ! $user->is_active]);
 
+        $this->notifier->accountStatusChanged($user, $request->user());
+
         return back()->with('status', $user->is_active
             ? "{$user->name}'s account has been reactivated."
             : "{$user->name}'s account has been deactivated.");
     }
 
     /** Issues a fresh temporary password and forces a change at next sign-in. */
-    public function resetPassword(User $user): RedirectResponse
+    public function resetPassword(Request $request, User $user): RedirectResponse
     {
         $temporary = TemporaryPassword::generate();
 
@@ -137,9 +136,68 @@ class UserController extends Controller
             'must_change_password' => true,
         ])->save();
 
-        return back()
-            ->with('status', "A new temporary password was issued for {$user->name}.")
-            ->with('temporary_password', $temporary)
-            ->with('temporary_password_for', $user->name);
+        // This used to go nowhere: the old password stopped working and the new
+        // one existed only on the administrator's screen, so navigating away
+        // locked the account out. It goes to its owner now.
+        $mailed = $this->deliver(
+            fn () => Mail::to($user->email)->send(new TemporaryPasswordIssued($user, $temporary, $request->user()?->name))
+        );
+
+        $this->notifier->passwordIssued($user, $request->user());
+
+        return back()->with(
+            $this->handover($user, $temporary, $mailed,
+                "A new temporary password was issued for {$user->name} and emailed to {$user->email}.")
+        );
+    }
+
+    /**
+     * Sends something, reporting failure rather than throwing it.
+     *
+     * The account or the password change has already happened by the time this
+     * runs, and losing that to a mail server being down would be far worse than
+     * a message that did not arrive.
+     */
+    protected function deliver(\Closure $send): bool
+    {
+        try {
+            $send();
+
+            return true;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return false;
+        }
+    }
+
+    /**
+     * The flash payload for an issued password.
+     *
+     * On the normal path the administrator is told the email went out and
+     * nothing more. They do not see the password, and there is no reason they
+     * should: it belongs to one person, it reaches that person directly, and a
+     * secret on a screen is a secret in whatever is behind that screen —
+     * a shoulder, a projector in a lab, a screenshot in a report.
+     *
+     * The one exception is a failed send. Then the email is not a channel, and
+     * the administrator is the only remaining way for the password to reach its
+     * owner, so it is shown once with the failure stated plainly. Rare by
+     * design, and loud when it happens.
+     *
+     * @return array<string, mixed>
+     */
+    protected function handover(User $user, string $temporary, bool $mailed, string $sentMessage): array
+    {
+        if ($mailed) {
+            return ['status' => $sentMessage];
+        }
+
+        return [
+            'status' => "The password for {$user->name} could not be emailed to {$user->email}. "
+                .'Pass it on directly, then check the mail settings — it is shown here once and cannot be looked up again.',
+            'temporary_password' => $temporary,
+            'temporary_password_for' => $user->name,
+        ];
     }
 }

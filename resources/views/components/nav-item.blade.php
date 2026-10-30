@@ -15,13 +15,17 @@
         default => '#',
     };
 
-    $isActive = $active ?? ($href !== '#' && request()->fullUrlIs($href, $href.'/*'));
+    // Matched on the path alone. fullUrlIs() compared the query string too, so
+    // Groups lost its highlight on /lecturer/groups?subject=3 (a subject filter)
+    // and every other screen reached with ?page=, ?search= or ?role= did the same.
+    $path = trim((string) parse_url($href, PHP_URL_PATH), '/');
+    $isActive = $active ?? ($href !== '#' && $path !== '' && request()->is($path, $path.'/*'));
 @endphp
 
 <a href="{{ $href }}"
    @if($isActive) aria-current="page" @endif
    {{ $attributes->class([
-        'group flex items-center gap-3 rounded-pill px-[14px] py-[11px] text-nav transition-colors',
+        'group flex items-center gap-3 rounded-pill px-[14px] py-[11px] text-nav motion-colors',
         'bg-ink text-white font-bold shadow-raised' => $isActive,
         'font-semibold text-ink/[.66] hover:bg-white/50 hover:text-ink' => ! $isActive,
    ]) }}>

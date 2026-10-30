@@ -15,11 +15,9 @@
 
 <x-layouts.app title="Contribution report — CollabSpace"
                heading="Contribution reports"
-               subtitle="Who actually did the work — measured from board, chat and document activity.">
-
-    <x-slot:actions>
-        <x-button variant="secondary" :href="route('lecturer.reports')">All groups</x-button>
-    </x-slot:actions>
+               subtitle="Who actually did the work — measured from board, chat and document activity."
+               :back="route('lecturer.reports')"
+               back-label="All groups">
 
     <div class="flex flex-col gap-[18px]">
 
@@ -29,7 +27,7 @@
                 @foreach ($groups as $g)
                     <a href="{{ route('lecturer.reports.show', $g) }}"
                        title="{{ $g->subject->name }}"
-                       class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold transition-colors
+                       class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold interactive
                               {{ $g->is($group) ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
                         {{ $g->name }}
                     </a>
@@ -168,49 +166,42 @@
             <div class="flex flex-col gap-3">
                 <h3 class="text-lead font-extrabold tracking-[-0.02em]">Detailed breakdown</h3>
 
-                <div class="overflow-hidden rounded-[20px] border border-surface-line bg-surface shadow-subtle">
-                    <div class="overflow-x-auto">
-                    <table class="data-table w-full min-w-[660px] border-collapse text-left">
-                        <thead class="bg-surface-soft">
-                            <tr class="border-b border-surface-strong">
-                                <th class="text-tiny font-bold uppercase tracking-eyebrow text-ink-300">Member</th>
-                                @foreach (ContributionReport::METRICS as $metric)
-                                    <th class="text-right text-tiny font-bold uppercase tracking-eyebrow text-ink-300 whitespace-nowrap">
-                                        {{ $metric['label'] }}
-                                    </th>
-                                @endforeach
-                                <th class="text-right text-tiny font-bold uppercase tracking-eyebrow text-ink-300">Score</th>
-                                <th class="text-right text-tiny font-bold uppercase tracking-eyebrow text-ink-300">Share</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($members as $member)
-                                <tr class="border-b border-surface-line last:border-0">
-                                    <td>
-                                        <span class="flex flex-wrap items-center gap-2">
-                                            <span class="text-nav font-bold">{{ $member['user']->name }}</span>
-                                            @if ($member['flagged'])
-                                                <x-badge tone="danger">Free rider</x-badge>
-                                            @endif
-                                        </span>
-                                    </td>
+                @php
+                    $breakdownHeadings = [
+                        'Member',
+                        ...array_map(fn ($m) => [$m['label'], 'right'], array_values(ContributionReport::METRICS)),
+                        ['Score', 'right'],
+                        ['Share', 'right'],
+                    ];
+                @endphp
 
-                                    @foreach (array_keys(ContributionReport::METRICS) as $key)
-                                        <td class="text-right text-body font-semibold text-ink-600">
-                                            {{ $member['counts'][$key] }}
-                                        </td>
-                                    @endforeach
+                <x-data-table :headings="$breakdownHeadings" min-width="720px">
+                    @foreach ($members as $member)
+                        <tr>
+                            <td>
+                                <x-table.person :name="$member['user']->name">
+                                    @if ($member['flagged'])
+                                        <x-table.dot-pill tone="danger">Free rider</x-table.dot-pill>
+                                    @endif
+                                </x-table.person>
+                            </td>
 
-                                    <td class="text-right text-body font-bold">{{ $member['score'] }}</td>
-                                    <td class="text-right text-body font-extrabold {{ $member['flagged'] ? 'text-danger-text' : '' }}">
-                                        {{ round($member['share']) }}%
-                                    </td>
-                                </tr>
+                            @foreach (array_keys(ContributionReport::METRICS) as $key)
+                                <td class="num text-body font-semibold text-ink-600">{{ $member['counts'][$key] }}</td>
                             @endforeach
-                        </tbody>
-                    </table>
-                    </div>
-                </div>
+
+                            <td>
+                                <x-table.score :score="$member['score']" :unit="null"
+                                               :fill="$member['score'] > 0 ? max(2, $member['score'] / $peak * 100) : 0"
+                                               :flagged="$member['flagged']" class="ml-auto" />
+                            </td>
+
+                            <td class="num text-body font-extrabold {{ $member['flagged'] ? 'text-danger-text' : '' }}">
+                                {{ round($member['share']) }}%
+                            </td>
+                        </tr>
+                    @endforeach
+                </x-data-table>
 
                 <p class="text-label text-ink-400">
                     Counts come from the activity log, not from the task or message tables — the log is what

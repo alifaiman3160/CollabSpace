@@ -640,4 +640,78 @@ class GroupChatTest extends TestCase
             $html,
         );
     }
+
+    public function test_your_own_name_carries_your_colour_too(): void
+    {
+        // The name sits on the thread surface, not on the dark bubble, so the
+        // contrast rule above does not reach it. Flat ink there made you the
+        // one person in the group without a colour.
+        Message::create(['group_id' => $this->group->id, 'user_id' => $this->me->id, 'body' => 'My line']);
+
+        $tone = MemberColour::for($this->me->id);
+
+        $this->assertMatchesRegularExpression(
+            '/<span[^>]*'.preg_quote($tone['name'], '/').'[^>]*>\s*You\s*<\/span>/',
+            $this->board()->html(),
+        );
+    }
+
+    /*
+    | Image attachments
+    */
+
+    public function test_an_image_shows_no_filename_under_it(): void
+    {
+        // A picture says what it is. The random name a phone camera produces
+        // says nothing and pushed the bubble wider than the thumbnail.
+        Message::create([
+            'group_id' => $this->group->id,
+            'user_id' => $this->mate->id,
+            'file_path' => 'group-files/'.$this->group->id.'/'.str_repeat('a', 40).'.png',
+            'file_name' => 'IMG_20260101_123456.png',
+            'file_size' => 41267,
+        ]);
+
+        $html = $this->board()->html();
+
+        // Still reachable for screen readers and in the lightbox payload, but
+        // not printed as a caption in the thread.
+        $this->assertStringNotContainsString('41.3 KB', $html);
+        $this->assertStringContainsString('Open IMG_20260101_123456.png full size', $html);
+        $this->assertStringContainsString('lightbox = {', $html);
+    }
+
+    public function test_the_lightbox_still_names_the_file_and_its_size(): void
+    {
+        Message::create([
+            'group_id' => $this->group->id,
+            'user_id' => $this->mate->id,
+            'file_path' => 'group-files/'.$this->group->id.'/'.str_repeat('b', 40).'.png',
+            'file_name' => 'diagram.png',
+            'file_size' => 41267,
+        ]);
+
+        $html = $this->board()->html();
+
+        $this->assertStringContainsString("name: 'diagram.png'", $html);
+        $this->assertStringContainsString("size: '40.3 KB'", $html);
+        $this->assertStringContainsString('x-text="lightbox?.size"', $html);
+    }
+
+    public function test_a_non_image_file_still_shows_its_name(): void
+    {
+        // There is no preview to speak for it, so the card has to.
+        Message::create([
+            'group_id' => $this->group->id,
+            'user_id' => $this->mate->id,
+            'file_path' => 'group-files/'.$this->group->id.'/'.str_repeat('c', 40).'.pdf',
+            'file_name' => 'chapter-one.pdf',
+            'file_size' => 41267,
+        ]);
+
+        $html = $this->board()->html();
+
+        $this->assertStringContainsString('chapter-one.pdf', $html);
+        $this->assertStringContainsString('40.3 KB', $html);
+    }
 }

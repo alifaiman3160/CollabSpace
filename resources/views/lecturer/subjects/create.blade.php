@@ -2,7 +2,7 @@
                heading="Create subject"
                subtitle="Groups and students are added to the subject once it exists.">
 
-    <form method="POST" action="{{ route('lecturer.subjects.store') }}" class="flex flex-col gap-7">
+    <form method="POST" action="{{ route('lecturer.subjects.store') }}" class="mx-auto flex w-full max-w-xl flex-col gap-7">
         @csrf
 
         @include('lecturer.subjects._form', ['subject' => null])

@@ -16,22 +16,8 @@
         @else
             <x-data-table :headings="['Group', 'Subject', 'Members', 'Task progress', '']">
                 @foreach ($groups as $group)
-                    <tr class="hover:bg-surface-soft">
-                        <td>
-                            <a href="{{ route('lecturer.progress.show', $group) }}"
-                               class="text-nav font-bold hover:text-periwinkle-link">{{ $group->name }}</a>
-                        </td>
-                        <td>
-                            <x-badge tone="info" :title="$group->subject->name">{{ $group->subject->code }}</x-badge>
-                        </td>
-                        <td class="whitespace-nowrap text-meta font-semibold">
-                            {{ $group->members_count }} / {{ $group->group_size }}
-                        </td>
-                        <td>
-                            <x-task-progress :done="$group->tasks_done"
-                                             :total="$group->tasks_total"
-                                             :overdue="$group->tasks_overdue" />
-                        </td>
+                    <tr>
+                        <x-table.group-cells :group="$group" :href="route('lecturer.progress.show', $group)" />
                         <td>
                             <div class="flex justify-end">
                                 <x-button :href="route('lecturer.progress.show', $group)"

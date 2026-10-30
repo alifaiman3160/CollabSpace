@@ -28,7 +28,7 @@
                     <button type="submit"
                             name="role"
                             value="{{ $value }}"
-                            class="h-8 rounded-pill px-[15px] text-meta font-bold transition-colors
+                            class="h-8 rounded-pill px-[15px] text-meta font-bold interactive
                                    {{ $role === $value ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
                         {{ $label }}
                     </button>
@@ -40,7 +40,7 @@
             @endif
         </form>
 
-        <x-data-table :headings="['Name', 'Role', 'Matric no.', 'Status', 'Actions']"
+        <x-data-table :headings="['Name', 'Role', 'Matric no.', 'Status', 'Added', '']"
                       :empty="$search !== '' || $role
                           ? 'No accounts match that search.'
                           : 'No accounts have been created yet.'">
@@ -56,20 +56,14 @@
                         ."again until an administrator reactivates the account. Their groups, tasks "
                         ."and contribution history are kept.";
                 @endphp
-                <tr class="hover:bg-surface-soft">
+                <tr>
                     <td>
-                        <div class="flex items-center gap-3">
-                            <x-avatar :name="$user->name" size="sm" />
-                            <span class="flex min-w-0 flex-col">
-                                <span class="text-nav font-bold">
-                                    {{ $user->name }}
-                                    @if ($user->is(auth()->user()))
-                                        <span class="text-meta font-semibold text-ink-300">(you)</span>
-                                    @endif
-                                </span>
-                                <span class="truncate text-meta text-ink-400">{{ $user->email }}</span>
-                            </span>
-                        </div>
+                        <x-table.person :name="$user->name">
+                            <x-slot:suffix>
+                                @if ($user->is(auth()->user()))<span class="font-semibold text-ink-300">(you)</span>@endif
+                            </x-slot:suffix>
+                            <span class="truncate">{{ $user->email }}</span>
+                        </x-table.person>
                     </td>
 
                     <td><x-role-badge :role="$user->role" /></td>
@@ -82,43 +76,48 @@
                         </span>
                     </td>
 
-                    <td>
-                        <div class="flex flex-wrap items-center justify-end gap-2">
-                            <x-button variant="secondary" :href="route('admin.users.edit', $user)"
-                                      class="!px-4 !py-2 !text-meta">Edit</x-button>
+                    <td class="whitespace-nowrap text-meta text-ink-400" title="{{ $user->created_at->format('j F Y, g:ia') }}">
+                        {{ $user->created_at->diffForHumans() }}
+                    </td>
 
-                            {{-- Reset password: destructive, invalidates the current one. --}}
-                            <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
+                    <td>
+                        <x-table.row-actions>
+                            {{-- Reset password: invalidates the current one, but it is ordinary admin work. --}}
+                            <x-table.quiet-action tone="neutral" icon="lock"
                                 x-on:click="confirm = {
                                     url: '{{ route('admin.users.password', $user) }}',
                                     title: 'Reset this password?',
                                     body: {{ Js::from($resetBody) }},
                                     action: 'Reset password',
                                     tone: 'danger',
-                                }">Reset password</x-button>
+                                }">Reset password</x-table.quiet-action>
 
                             @if ($user->is(auth()->user()))
                                 {{-- An admin cannot lock themselves out. --}}
-                                <x-button variant="secondary" class="!px-4 !py-2 !text-meta" disabled
-                                          title="You cannot deactivate your own account">Deactivate</x-button>
+                                <x-table.quiet-action disabled title="You cannot deactivate your own account">Deactivate</x-table.quiet-action>
                             @elseif ($user->is_active)
-                                <x-button variant="secondary" class="!px-4 !py-2 !text-meta !text-danger-text"
+                                <x-table.quiet-action
                                     x-on:click="confirm = {
                                         url: '{{ route('admin.users.status', $user) }}',
                                         title: 'Deactivate this account?',
                                         body: {{ Js::from($deactivateBody) }},
                                         action: 'Deactivate',
                                         tone: 'danger',
-                                    }">Deactivate</x-button>
+                                    }">Deactivate</x-table.quiet-action>
                             @else
                                 {{-- Restorative, so it goes straight through. --}}
                                 <form method="POST" action="{{ route('admin.users.status', $user) }}">
                                     @csrf
                                     @method('PUT')
-                                    <x-button variant="secondary" type="submit" class="!px-4 !py-2 !text-meta">Activate</x-button>
+                                    <x-table.quiet-action type="submit" tone="neutral">Activate</x-table.quiet-action>
                                 </form>
                             @endif
-                        </div>
+
+                            <x-slot:primary>
+                                <x-button variant="secondary" :href="route('admin.users.edit', $user)"
+                                          class="!px-4 !py-2 !text-meta">Edit</x-button>
+                            </x-slot:primary>
+                        </x-table.row-actions>
                     </td>
                 </tr>
             @endforeach

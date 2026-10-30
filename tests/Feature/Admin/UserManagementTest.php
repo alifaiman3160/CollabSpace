@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Mail\AccountCreated;
+use App\Mail\TemporaryPasswordIssued;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class UserManagementTest extends TestCase
@@ -113,6 +116,8 @@ class UserManagementTest extends TestCase
 
     public function test_creating_a_student_issues_a_temporary_password(): void
     {
+        Mail::fake();
+
         $response = $this->actingAs($this->admin())->post(route('admin.users.store'), [
             'name' => 'Nurul Izzah',
             'email' => 'nurul@student.collabspace.test',
@@ -121,7 +126,10 @@ class UserManagementTest extends TestCase
         ]);
 
         $response->assertRedirect(route('admin.users'))
-            ->assertSessionHas('temporary_password');
+            // The password goes to its owner by email, not onto the
+            // administrator's screen — see AccountEmailTest.
+            ->assertSessionMissing('temporary_password')
+            ->assertSessionHas('status');
 
         $user = User::where('email', 'nurul@student.collabspace.test')->firstOrFail();
 
@@ -130,8 +138,8 @@ class UserManagementTest extends TestCase
         $this->assertTrue($user->must_change_password);
         $this->assertTrue($user->is_active);
 
-        // The password stored is the hash of the temporary one that was shown.
-        $this->assertTrue(Hash::check(session('temporary_password'), $user->password));
+        // The password stored is the hash of the one that was emailed.
+        Mail::assertSent(AccountCreated::class, fn (AccountCreated $mail) => Hash::check($mail->temporaryPassword, $user->password));
     }
 
     public function test_a_student_must_have_a_matric_number(): void
@@ -342,6 +350,8 @@ class UserManagementTest extends TestCase
 
     public function test_resetting_a_password_issues_a_new_temporary_one(): void
     {
+        Mail::fake();
+
         $user = User::factory()->create([
             'password' => 'the-old-password',
             'must_change_password' => false,
@@ -350,13 +360,16 @@ class UserManagementTest extends TestCase
 
         $this->actingAs($this->admin())
             ->put(route('admin.users.password', $user))
-            ->assertSessionHas('temporary_password');
+            ->assertSessionMissing('temporary_password')
+            ->assertSessionHas('status');
 
         $user->refresh();
 
         $this->assertNotSame($originalHash, $user->password);
         $this->assertFalse(Hash::check('the-old-password', $user->password));
-        $this->assertTrue(Hash::check(session('temporary_password'), $user->password));
         $this->assertTrue($user->must_change_password);
+
+        // The new one reaches its owner by email rather than the screen.
+        Mail::assertSent(TemporaryPasswordIssued::class, fn (TemporaryPasswordIssued $mail) => Hash::check($mail->temporaryPassword, $user->password));
     }
 }

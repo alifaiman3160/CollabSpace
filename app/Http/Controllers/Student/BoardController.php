@@ -17,7 +17,7 @@ class BoardController extends StudentController
         $groups = $this->myGroups();
 
         if ($groups->isEmpty()) {
-            return view('student.board', ['hasGroup' => false, 'group' => null]);
+            return view('student.board', ['hasGroup' => false, 'group' => null, 'groups' => $groups]);
         }
 
         return redirect()->route('student.board.show', $groups->first());
@@ -32,6 +32,10 @@ class BoardController extends StudentController
         return view('student.board', [
             'hasGroup' => true,
             'group' => $group->load('subject'),
+            // Without this the board had no switcher, so a student in two
+            // subjects could only ever reach the board of whichever group
+            // sorted first — the other one was unreachable from the sidebar.
+            'groups' => $this->myGroups(),
         ]);
     }
 }

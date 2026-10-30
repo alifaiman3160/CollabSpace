@@ -28,7 +28,7 @@ class GroupController extends LecturerController
         }
 
         $groups = $this->groups()
-            ->with('subject')
+            ->with(['subject', 'members:users.id,users.name'])
             ->when($subjectId, fn ($q) => $q->where('subject_id', $subjectId))
             ->withCount([
                 'groupMembers as members_count',
@@ -76,6 +76,11 @@ class GroupController extends LecturerController
             'name' => $request->string('name')->trim()->value(),
             // Falls back to the subject's default when the field is left alone.
             'group_size' => $request->integer('group_size') ?: $subject->group_size,
+            // Recorded, like the automatic modes, so that "manual" is a fact
+            // about the group and not just the absence of any other label.
+            'formation_method' => Group::FORMED_MANUAL,
+            'formed_by' => $request->user()->id,
+            'formed_at' => now(),
         ]);
 
         return redirect()->route('lecturer.groups.show', $group)

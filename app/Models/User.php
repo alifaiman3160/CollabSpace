@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Mail\PasswordResetLink;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Mail;
 
 class User extends Authenticatable
 {
@@ -27,6 +29,7 @@ class User extends Authenticatable
         'password',
         'role',
         'matric_no',
+        'cgpa',
         'must_change_password',
         'is_active',
     ];
@@ -39,6 +42,10 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        // Personal academic data, shown to lecturers on the screens built for
+        // it and nowhere else. Hiding it from serialisation means it cannot
+        // ride along in a JSON response or a Livewire payload by accident.
+        'cgpa',
     ];
 
     /**
@@ -53,7 +60,27 @@ class User extends Authenticatable
             'password' => 'hashed',
             'must_change_password' => 'boolean',
             'is_active' => 'boolean',
+            'cgpa' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Sends the CollabSpace reset email rather than Laravel's built-in one.
+     *
+     * The framework's default arrives as "Hello!" from an unnamed application,
+     * which for the one email a locked-out user has to trust is the wrong
+     * impression entirely. Overriding here rather than swapping the notification
+     * class keeps it beside the model that owns the address.
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        Mail::to($this->email)->send(new PasswordResetLink(
+            $this,
+            route('password.reset', ['token' => $token, 'email' => $this->email]),
+            // Read from config rather than restated, so the email cannot claim
+            // a lifetime the token does not have.
+            (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60),
+        ));
     }
 
     /*

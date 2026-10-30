@@ -76,7 +76,7 @@
             <div class="flex flex-col items-center gap-2">
                 <button type="button"
                         wire:click="toggleForm"
-                        class="flex size-[52px] items-center justify-center rounded-pill bg-ink text-white transition-colors hover:bg-ink-hover"
+                        class="flex size-[52px] items-center justify-center rounded-pill bg-ink text-white btn-motion hover:bg-ink-hover"
                         aria-label="{{ $showForm ? 'Close the new task form' : 'Add a task' }}">
                     <x-icon name="plus" size="20" class="[stroke-width:2]" />
                 </button>
@@ -92,10 +92,17 @@
         </div>
     </section>
 
-    {{-- Create task --}}
+    {{-- Create or edit a task — one form, because the fields are identical and
+         two of them would drift apart the first time one was changed. --}}
     @if ($showForm)
-        <form wire:submit="createTask" class="flex flex-col gap-5 rounded-panel border border-surface-line bg-surface shadow-subtle p-6">
-            <h2 class="text-h3 font-bold tracking-title">New task</h2>
+        <form wire:submit="saveTask" class="flex flex-col gap-5 rounded-panel border border-surface-line bg-surface shadow-subtle p-6">
+            <h2 class="text-h3 font-bold tracking-title">
+                @if ($editing)
+                    Edit “{{ Str::limit($editing->title, 48) }}”
+                @else
+                    New task
+                @endif
+            </h2>
 
             <div class="grid gap-5 sm:grid-cols-2">
                 <div class="flex flex-col gap-2 sm:col-span-2">
@@ -135,8 +142,14 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-3">
-                <x-button type="submit">Add task</x-button>
-                <x-button variant="secondary" type="button" wire:click="toggleForm">Cancel</x-button>
+                <x-button type="submit">{{ $editing ? 'Save changes' : 'Add task' }}</x-button>
+                <x-button variant="secondary" type="button" wire:click="cancelEdit">Cancel</x-button>
+
+                @if ($editing)
+                    <span class="text-meta text-ink-400">
+                        The column it sits in does not change — move it on the board instead.
+                    </span>
+                @endif
             </div>
         </form>
     @endif
@@ -163,12 +176,21 @@
 
                 <div class="flex flex-col gap-3">
                     @forelse ($tasks as $task)
+                        {{-- A card assigned to somebody else can still be picked
+                             up and dropped: the move is refused on the server
+                             and the reason is said out loud. Blocking the drag
+                             outright would leave people guessing why the card
+                             would not lift. --}}
+                        @php($mine = $task->assigned_to === null || $task->assigned_to === auth()->id())
                         <article
                             wire:key="task-{{ $task->id }}"
                             draggable="true"
                             x-on:dragstart="start({{ $task->id }}, $event)"
                             x-on:dragend="dragging = null; over = null"
                             :class="dragging === {{ $task->id }} ? 'opacity-50' : ''"
+                            @unless ($mine)
+                                title="Assigned to {{ $task->assignee->name }} — only they can move this card"
+                            @endunless
                             class="relative flex cursor-grab flex-col gap-3 overflow-hidden rounded-card bg-surface p-[15px] shadow-subtle transition-shadow hover:shadow-card active:cursor-grabbing">
 
                             @if ($task->isOverdue())
@@ -199,7 +221,16 @@
                                 <span class="flex min-w-0 items-center gap-2">
                                     @if ($task->assignee)
                                         <x-avatar :name="$task->assignee->name" size="sm" class="!size-[27px] !text-micro" />
-                                        <span class="truncate text-meta font-semibold text-ink-600">{{ $task->assignee->name }}</span>
+                                        <span class="truncate text-meta font-semibold text-ink-600">
+                                            {{ $mine ? 'You' : $task->assignee->name }}
+                                        </span>
+                                        @unless ($mine)
+                                            {{-- Says whose card it is before anyone tries to move it. --}}
+                                            <span class="flex shrink-0 items-center text-ink-300"
+                                                  aria-label="Only {{ $task->assignee->name }} can move this card">
+                                                <x-icon name="lock" size="12" />
+                                            </span>
+                                        @endunless
                                     @else
                                         <span class="flex size-[27px] items-center justify-center rounded-pill bg-surface-muted text-ink-300">
                                             <x-icon name="user" size="14" />
@@ -232,8 +263,15 @@
                                 </select>
 
                                 <button type="button"
+                                        wire:click="startEdit({{ $task->id }})"
+                                        class="flex size-9 shrink-0 items-center justify-center rounded-pill bg-surface-muted text-ink-400 interactive hover:bg-periwinkle-soft hover:text-periwinkle-link"
+                                        aria-label="Edit {{ $task->title }}">
+                                    <x-icon name="edit" size="15" />
+                                </button>
+
+                                <button type="button"
                                         wire:click="confirmDelete({{ $task->id }})"
-                                        class="flex size-9 shrink-0 items-center justify-center rounded-pill bg-surface-muted text-ink-400 transition-colors hover:bg-danger-bg hover:text-danger-text"
+                                        class="flex size-9 shrink-0 items-center justify-center rounded-pill bg-surface-muted text-ink-400 interactive hover:bg-danger-bg hover:text-danger-text"
                                         aria-label="Delete {{ $task->title }}">
                                     <x-icon name="trash" size="15" />
                                 </button>
@@ -276,7 +314,7 @@
                 <div class="mt-7 flex flex-wrap justify-end gap-3">
                     <x-button variant="secondary" wire:click="cancelDelete">Cancel</x-button>
                     <button type="button" wire:click="deleteTask"
-                            class="inline-flex items-center justify-center gap-2 rounded-pill bg-danger px-5 py-3 text-nav font-bold text-white transition-colors hover:bg-danger-deep">
+                            class="inline-flex items-center justify-center gap-2 rounded-pill bg-danger px-5 py-3 text-nav font-bold text-white btn-motion hover:bg-danger-deep">
                         Delete task
                     </button>
                 </div>

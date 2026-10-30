@@ -73,7 +73,7 @@ class DocumentController extends StudentController
             'groups' => $this->myGroups(),
             'group' => $group->load('subject'),
             'documents' => $group->documents()
-                ->with('lastEditor')
+                ->with(['lastEditor', 'creator'])
                 ->withCount('versions')
                 ->orderByDesc('updated_at')
                 ->get(),

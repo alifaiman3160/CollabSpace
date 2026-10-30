@@ -20,7 +20,18 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  */
 class DocumentSanitizer
 {
-    /** Tags the editor toolbar can produce. */
+    /**
+     * Tags the editor toolbar can produce.
+     *
+     * Everything here is something a button in <x-rich-text> emits. Nothing is
+     * allowed "just in case": an element nobody can create is an element
+     * nobody can review, and it only widens what a paste or a hand-written
+     * payload has to aim at.
+     *
+     * No img, no iframe, no video. The document is writing, not a page
+     * builder, and files belong in group chat where they are served through an
+     * authenticated route rather than embedded by URL.
+     */
     public const ALLOWED_TAGS = [
         'p', 'br',
         'strong', 'b', 'em', 'i', 'u', 's',
@@ -28,6 +39,25 @@ class DocumentSanitizer
         'ul', 'ol', 'li',
         'blockquote',
         'a',
+        // Carries the inline formatting: font, size, colour, highlight.
+        'span',
+        // A simple grid. No caption, no colgroup, no merged cells — the
+        // toolbar inserts a plain rectangle and that is all it has to accept.
+        'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    ];
+
+    /**
+     * Elements that may carry a style attribute.
+     *
+     * Every value inside it is rebuilt by StyleAttributeSanitizer, which is
+     * where the actual safety lives — this list only decides where a style may
+     * appear at all. Block elements need it for alignment and line spacing;
+     * span needs it for everything inline.
+     *
+     * @var list<string>
+     */
+    public const STYLEABLE_TAGS = [
+        'span', 'p', 'h2', 'h3', 'li', 'blockquote', 'table', 'tr', 'th', 'td',
     ];
 
     protected HtmlSanitizer $sanitizer;
@@ -46,11 +76,20 @@ class DocumentSanitizer
             ->defaultAction(HtmlSanitizerAction::Block);
 
         foreach (self::ALLOWED_TAGS as $tag) {
-            $config = $tag === 'a'
+            $attributes = match (true) {
                 // Links keep href only — no target, no on* handlers.
-                ? $config->allowElement('a', ['href'])
-                : $config->allowElement($tag, []);
+                $tag === 'a' => ['href'],
+                in_array($tag, self::STYLEABLE_TAGS, true) => ['style'],
+                default => [],
+            };
+
+            $config = $config->allowElement($tag, $attributes);
         }
+
+        // Every surviving style declaration is rebuilt by this, not filtered.
+        // Allowing the attribute above only decides where one may appear; what
+        // it is permitted to say is decided there.
+        $config = $config->withAttributeSanitizer(new StyleAttributeSanitizer());
 
         foreach (['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'template', 'noscript', 'svg', 'math'] as $dangerous) {
             $config = $config->dropElement($dangerous);

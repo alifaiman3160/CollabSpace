@@ -8,7 +8,7 @@
         <x-button variant="icon" aria-label="Notifications">
             <x-icon name="bell" />
         </x-button>
-        <x-button :href="route('lecturer.groups.create')" icon="plus">New group</x-button>
+        <x-button :href="route('lecturer.groups.create')" icon="plus">Add one group</x-button>
     </x-slot:actions>
 
     <div class="flex flex-col gap-[18px]">
@@ -55,32 +55,12 @@
             @else
                 <x-data-table :headings="['Group', 'Subject', 'Members', 'Task progress', '']">
                     @foreach ($groups as $group)
-                        <tr class="hover:bg-surface-soft">
-                            <td>
-                                <a href="{{ route('lecturer.groups.show', $group) }}"
-                                   class="text-nav font-bold hover:text-periwinkle-link">{{ $group->name }}</a>
-                            </td>
+                        <tr>
+                            <x-table.group-cells :group="$group" />
 
                             <td>
-                                <x-badge tone="info" :title="$group->subject->name">{{ $group->subject->code }}</x-badge>
-                            </td>
-
-                            <td class="whitespace-nowrap">
-                                <span class="text-meta font-semibold {{ $group->members_count >= $group->group_size ? 'text-ink-400' : 'text-ink' }}">
-                                    {{ $group->members_count }} / {{ $group->group_size }}
-                                </span>
-                            </td>
-
-                            <td>
-                                <x-task-progress :done="$group->tasks_done"
-                                                 :total="$group->tasks_total"
-                                                 :overdue="$group->tasks_overdue" />
-                            </td>
-
-                            <td>
-                                <div class="flex items-center justify-end gap-2">
-                                    <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
-                                              :href="route('lecturer.reports.show', $group)">Report</x-button>
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <x-table.quiet-action tone="neutral" :href="route('lecturer.reports.show', $group)">Report</x-table.quiet-action>
 
                                     {{-- Monitor is the read-only progress view; membership management lives
                                          on the Groups screen. --}}

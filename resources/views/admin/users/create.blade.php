@@ -2,7 +2,7 @@
                heading="Create user account"
                subtitle="A temporary password is generated on save and shown to you once.">
 
-    <form method="POST" action="{{ route('admin.users.store') }}" class="flex flex-col gap-7">
+    <form method="POST" action="{{ route('admin.users.store') }}" class="mx-auto flex w-full max-w-xl flex-col gap-7">
         @csrf
 
         @include('admin.users._form', ['user' => null])

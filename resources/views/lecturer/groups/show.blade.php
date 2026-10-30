@@ -1,12 +1,13 @@
+{{-- Back as a back link above the heading, not as a pill on the far right.
+     The layout has supported this since it was written, and a secondary button
+     off in the corner labelled "All SECJ3104 groups" read as a stray filter
+     rather than the way out of this screen. Returns to the list filtered to
+     this subject, which is the shelf this group was taken from. --}}
 <x-layouts.app title="{{ $group->name }} — CollabSpace"
                :heading="$group->name"
-               :subtitle="$group->subject->code.' — '.$group->subject->name">
-
-    <x-slot:actions>
-        <x-button variant="secondary" :href="route('lecturer.groups', ['subject' => $group->subject_id])">
-            All {{ $group->subject->code }} groups
-        </x-button>
-    </x-slot:actions>
+               :subtitle="$group->subject->code.' — '.$group->subject->name"
+               :back="route('lecturer.groups', ['subject' => $group->subject_id])"
+               :back-label="$group->subject->code.' groups'">
 
     @php
         $memberCount = $group->members->count();
@@ -16,6 +17,8 @@
     <div class="flex flex-col gap-[18px]" x-data="{ confirm: null }">
 
         <x-flash />
+
+        @include('lecturer.groups._formation', ['group' => $group])
 
         {{-- Overview --}}
         <section class="flex flex-wrap gap-3.5">
@@ -106,15 +109,11 @@
                             ."documents and messages in this group are kept, but they lose access to it "
                             ."and can then be assigned elsewhere in {$group->subject->code}.";
                     @endphp
-                    <tr class="hover:bg-surface-soft">
+                    <tr>
                         <td>
-                            <div class="flex items-center gap-3">
-                                <x-avatar :name="$member->name" size="sm" />
-                                <span class="flex min-w-0 flex-col">
-                                    <span class="text-nav font-bold">{{ $member->name }}</span>
-                                    <span class="truncate text-meta text-ink-400">{{ $member->email }}</span>
-                                </span>
-                            </div>
+                            <x-table.person :name="$member->name">
+                                <span class="truncate">{{ $member->email }}</span>
+                            </x-table.person>
                         </td>
 
                         <td class="text-meta font-semibold text-ink-400">{{ $member->matric_no ?? '—' }}</td>
@@ -125,7 +124,7 @@
 
                         <td>
                             <div class="flex justify-end">
-                                <x-button variant="secondary" class="!px-4 !py-2 !text-meta !text-danger-text"
+                                <x-table.quiet-action icon="trash" aria-label="Remove {{ $member->name }}"
                                     x-on:click="confirm = {
                                         url: '{{ route('lecturer.groups.members.destroy', [$group, $member]) }}',
                                         method: 'DELETE',
@@ -133,7 +132,7 @@
                                         body: {{ Js::from($removeBody) }},
                                         action: 'Remove',
                                         tone: 'danger',
-                                    }">Remove</x-button>
+                                    }">Remove</x-table.quiet-action>
                             </div>
                         </td>
                     </tr>

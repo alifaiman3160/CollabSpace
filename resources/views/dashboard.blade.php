@@ -66,7 +66,7 @@
 
     {{-- Floating add-task button --}}
     <a href="#" aria-label="Add task"
-       class="fixed bottom-8 right-8 inline-flex size-[52px] items-center justify-center rounded-pill bg-ink text-white shadow-button transition-colors hover:bg-ink-hover">
+       class="fixed bottom-8 right-8 inline-flex size-[52px] items-center justify-center rounded-pill bg-ink text-white shadow-button btn-motion hover:bg-ink-hover">
         <x-icon name="plus" size="20" />
     </a>
 </x-layouts.app>

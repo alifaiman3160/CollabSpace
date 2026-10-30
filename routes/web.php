@@ -5,7 +5,13 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Account\AccountController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\Lecturer\DashboardController as LecturerDashboardController;
+use App\Http\Controllers\Lecturer\BalancedFormationController;
+use App\Http\Controllers\Lecturer\DocumentController as LecturerDocumentController;
+use App\Http\Controllers\Lecturer\FormationController;
 use App\Http\Controllers\Lecturer\GroupController;
+use App\Http\Controllers\Lecturer\ImportFormationController;
+use App\Http\Controllers\Lecturer\MarkingController;
+use App\Http\Controllers\Lecturer\RubricController;
 use App\Http\Controllers\Lecturer\ProgressController;
 use App\Http\Controllers\Lecturer\ReportController;
 use App\Http\Controllers\Lecturer\StudentController as LecturerStudentController;
@@ -127,6 +133,12 @@ Route::middleware(['auth', 'password.changed', 'role:lecturer'])
         Route::get('progress', [ProgressController::class, 'index'])->name('progress');
         Route::get('progress/{group}', [ProgressController::class, 'show'])->name('progress.show');
 
+        // The group's documents, read-only. No write verbs here on purpose —
+        // a lecturer reads the group's writing, they do not edit it.
+        Route::get('groups/{group}/documents', [LecturerDocumentController::class, 'index'])->name('documents');
+        Route::get('documents/{document}', [LecturerDocumentController::class, 'show'])->name('documents.show');
+        Route::get('documents/{document}/v/{version}', [LecturerDocumentController::class, 'version'])->name('documents.version');
+
         // My Subjects
         Route::get('subjects', [SubjectController::class, 'index'])->name('subjects');
         Route::get('subjects/create', [SubjectController::class, 'create'])->name('subjects.create');
@@ -148,6 +160,60 @@ Route::middleware(['auth', 'password.changed', 'role:lecturer'])
         Route::delete('groups/{group}', [GroupController::class, 'destroy'])->name('groups.destroy');
         Route::post('groups/{group}/members', [GroupController::class, 'addMember'])->name('groups.members.store');
         Route::delete('groups/{group}/members/{user}', [GroupController::class, 'removeMember'])->name('groups.members.destroy');
+
+        /*
+        | Group formation. Two ways of forming groups for a subject, and a screen
+        | to choose between them. Nothing here writes a group until the one
+        | confirm route at the end of each flow, and every route resolves the
+        | subject through the signed-in lecturer's own subjects.
+        */
+        Route::get('subjects/{subject}/formation', [FormationController::class, 'index'])->name('formation');
+
+        // Mode 1: balanced allocation by CGPA
+        Route::post('subjects/{subject}/formation/balanced', [BalancedFormationController::class, 'preview'])->name('formation.balanced.preview');
+        Route::get('subjects/{subject}/formation/balanced/{token}', [BalancedFormationController::class, 'show'])->whereAlphaNumeric('token')->name('formation.balanced.show');
+        Route::post('subjects/{subject}/formation/balanced/{token}/regenerate', [BalancedFormationController::class, 'regenerate'])->whereAlphaNumeric('token')->name('formation.balanced.regenerate');
+        Route::post('subjects/{subject}/formation/balanced/{token}/confirm', [BalancedFormationController::class, 'confirm'])->whereAlphaNumeric('token')->name('formation.balanced.confirm');
+
+        // Mode 2: import self-selected groups from a Google Form CSV
+        Route::get('subjects/{subject}/formation/import', [ImportFormationController::class, 'create'])->name('formation.import');
+        Route::get('subjects/{subject}/formation/import/template', [ImportFormationController::class, 'template'])->name('formation.import.template');
+        Route::post('subjects/{subject}/formation/import', [ImportFormationController::class, 'store'])->name('formation.import.store');
+        Route::get('subjects/{subject}/formation/import/{token}/columns', [ImportFormationController::class, 'columns'])->whereAlphaNumeric('token')->name('formation.import.columns');
+        Route::post('subjects/{subject}/formation/import/{token}/columns', [ImportFormationController::class, 'mapColumns'])->whereAlphaNumeric('token')->name('formation.import.map');
+        Route::get('subjects/{subject}/formation/import/{token}', [ImportFormationController::class, 'review'])->whereAlphaNumeric('token')->name('formation.import.review');
+        Route::post('subjects/{subject}/formation/import/{token}', [ImportFormationController::class, 'decide'])->whereAlphaNumeric('token')->name('formation.import.decide');
+        Route::post('subjects/{subject}/formation/import/{token}/confirm', [ImportFormationController::class, 'confirm'])->whereAlphaNumeric('token')->name('formation.import.confirm');
+        Route::delete('subjects/{subject}/formation/import/{token}', [ImportFormationController::class, 'discard'])->whereAlphaNumeric('token')->name('formation.import.discard');
+
+        /*
+        | Marking rubrics. Upload an .xlsx, review what was read, then save it as
+        | the next version. Nothing is written until the review is confirmed.
+        */
+        Route::get('subjects/{subject}/rubrics', [RubricController::class, 'index'])->name('rubrics');
+        Route::post('subjects/{subject}/rubrics', [RubricController::class, 'store'])->name('rubrics.store');
+        Route::get('subjects/{subject}/rubrics/import/{token}', [RubricController::class, 'review'])->whereAlphaNumeric('token')->name('rubrics.review');
+        Route::post('subjects/{subject}/rubrics/import/{token}', [RubricController::class, 'confirm'])->whereAlphaNumeric('token')->name('rubrics.confirm');
+        Route::delete('subjects/{subject}/rubrics/import/{token}', [RubricController::class, 'discard'])->whereAlphaNumeric('token')->name('rubrics.discard');
+        Route::get('subjects/{subject}/rubrics/{rubric}', [RubricController::class, 'show'])->whereNumber('rubric')->name('rubrics.show');
+        /*
+        | Marking. Suggestions beside the lecturer's own choices, and an approval that
+        | freezes a student's marks. Nothing here is ever shown to a student.
+        */
+        Route::get('marking', [MarkingController::class, 'index'])->name('marking');
+        Route::get('marking/{rubric}/groups/{group}', [MarkingController::class, 'group'])->whereNumber(['rubric', 'group'])->name('marking.group');
+        Route::get('marking/{rubric}/groups/{group}/students/{student}', [MarkingController::class, 'student'])->whereNumber(['rubric', 'group', 'student'])->name('marking.student');
+        Route::post('marking/{rubric}/groups/{group}/students/{student}', [MarkingController::class, 'save'])->whereNumber(['rubric', 'group', 'student'])->name('marking.save');
+        Route::post('marking/{rubric}/groups/{group}/students/{student}/accept', [MarkingController::class, 'accept'])->whereNumber(['rubric', 'group', 'student'])->name('marking.accept');
+        Route::post('marking/{rubric}/groups/{group}/accept', [MarkingController::class, 'acceptAll'])->whereNumber(['rubric', 'group'])->name('marking.accept_all');
+        Route::post('marking/{rubric}/groups/{group}/students/{student}/approval', [MarkingController::class, 'approve'])->whereNumber(['rubric', 'group', 'student'])->name('marking.approve');
+        Route::delete('marking/{rubric}/groups/{group}/students/{student}/approval', [MarkingController::class, 'revoke'])->whereNumber(['rubric', 'group', 'student'])->name('marking.revoke');
+        // One student per request, so no request carries a whole group's provider calls.
+        Route::post('marking/{rubric}/groups/{group}/students/{student}/suggestion', [MarkingController::class, 'suggestOne'])->whereNumber(['rubric', 'group', 'student'])->name('marking.suggest');
+        Route::get('marking/{rubric}/groups/{group}/export', [MarkingController::class, 'export'])->whereNumber(['rubric', 'group'])->name('marking.export');
+
+        Route::put('subjects/{subject}/rubrics/{rubric}/evidence', [RubricController::class, 'updateEvidence'])->whereNumber('rubric')->name('rubrics.evidence');
+        Route::delete('subjects/{subject}/rubrics/{rubric}', [RubricController::class, 'destroy'])->whereNumber('rubric')->name('rubrics.destroy');
     });
 
 require __DIR__.'/auth.php';

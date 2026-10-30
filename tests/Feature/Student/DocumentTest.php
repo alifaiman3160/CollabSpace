@@ -211,6 +211,131 @@ class DocumentTest extends TestCase
     }
 
     /*
+    | The editor's toolbar and counters
+    */
+
+    public function test_the_editor_offers_every_control_the_sanitizer_allows(): void
+    {
+        $document = $this->document();
+
+        $response = $this->actingAs($this->me)
+            ->get(route('student.documents.edit', $document))
+            ->assertOk();
+
+        foreach ([
+            'Undo', 'Redo',
+            'Font', 'Text size', 'Line spacing',
+            'Bold', 'Italic', 'Underline', 'Strikethrough',
+            'Text colour', 'Highlight',
+            'Align left', 'Centre', 'Align right', 'Justify',
+            'Bulleted list', 'Numbered list',
+            'Insert a table',
+            'Clear formatting',
+        ] as $control) {
+            $response->assertSee($control, false);
+        }
+    }
+
+    public function test_the_editor_shows_a_live_word_and_character_count(): void
+    {
+        $this->actingAs($this->me)
+            ->get(route('student.documents.edit', $this->document()))
+            ->assertOk()
+            // Recounted on every keystroke, not on save.
+            ->assertSee('count()', false)
+            ->assertSee('x-text="words"', false)
+            ->assertSee('x-text="characters"', false)
+            ->assertSee('aria-live="polite"', false);
+    }
+
+    public function test_the_editor_still_forces_pasted_text_to_plain(): void
+    {
+        // Unchanged by the new formatting: the toolbar is the only way to
+        // style anything, so a paste cannot carry someone's Word markup in.
+        $this->actingAs($this->me)
+            ->get(route('student.documents.edit', $this->document()))
+            ->assertOk()
+            ->assertSee('pastePlain', false)
+            ->assertSee("getData('text/plain')", false);
+    }
+
+    public function test_the_editor_offers_no_page_level_controls(): void
+    {
+        // A continuous flow, not a paginated document. These need a page model
+        // and a renderer that agrees with the browser about where a page ends.
+        $html = $this->actingAs($this->me)
+            ->get(route('student.documents.edit', $this->document()))
+            ->assertOk()
+            ->getContent();
+
+        foreach (['Page break', 'Header and footer', 'Page number', 'Margins'] as $absent) {
+            $this->assertStringNotContainsString($absent, $html);
+        }
+    }
+
+    public function test_formatting_survives_a_real_save_and_reload(): void
+    {
+        $document = $this->document();
+
+        $styled = '<p style="text-align: center"><span style="font-family: Georgia; color: #b7291f">Chapter one</span></p>'
+            .'<table><tbody><tr><td>Week 1</td></tr></tbody></table>';
+
+        $this->actingAs($this->me)->put(route('student.documents.update', $document), [
+            'title' => 'Chapter 1',
+            'content' => $styled,
+        ])->assertSessionHasNoErrors();
+
+        $this->actingAs($this->me)
+            ->get(route('student.documents.edit', $document))
+            ->assertOk()
+            ->assertSee('text-align: center', false)
+            ->assertSee('Georgia, serif', false)
+            ->assertSee('color: #b7291f', false)
+            // The body reaches the editor JSON-encoded into Alpine state, so
+            // the tags arrive escaped while the styles and the words do not.
+            ->assertSee('Week 1');
+    }
+
+    public function test_saving_the_same_formatting_twice_writes_no_second_version(): void
+    {
+        // The existing rule, unchanged: opening a document and pressing save
+        // must not inflate anyone's contribution score.
+        $document = $this->document();
+
+        $styled = '<p style="text-align: right">Chapter one</p>';
+
+        $this->actingAs($this->me)->put(route('student.documents.update', $document), [
+            'title' => 'Chapter 1', 'content' => $styled,
+        ]);
+
+        $after = DocumentVersion::where('document_id', $document->id)->count();
+        $logs = ActivityLog::where('reference_id', $document->id)->count();
+
+        $this->actingAs($this->me)->put(route('student.documents.update', $document), [
+            'title' => 'Chapter 1', 'content' => $styled,
+        ])->assertSessionHas('status', 'No changes to save.');
+
+        $this->assertSame($after, DocumentVersion::where('document_id', $document->id)->count());
+        $this->assertSame($logs, ActivityLog::where('reference_id', $document->id)->count());
+    }
+
+    public function test_a_style_payload_never_reaches_storage(): void
+    {
+        $document = $this->document();
+
+        $this->actingAs($this->me)->put(route('student.documents.update', $document), [
+            'title' => 'Chapter 1',
+            'content' => '<p><span style="background-color: url(//evil.test/pixel.gif)">Chapter one</span></p>',
+        ])->assertSessionHasNoErrors();
+
+        $stored = $document->fresh()->content;
+
+        $this->assertStringNotContainsString('evil.test', $stored);
+        $this->assertStringNotContainsString('url(', $stored);
+        $this->assertStringContainsString('Chapter one', $stored);
+    }
+
+    /*
     | Listing and creating
     */
 

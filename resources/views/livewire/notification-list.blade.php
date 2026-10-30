@@ -10,28 +10,45 @@
         'low_participation' => 'alert',
         'deadline' => 'calendar',
         'mention' => 'chat',
+        'project_deadline' => 'book',
+        // Lecturer
+        'group_completed' => 'check',
+        // Administrator
+        'account_created' => 'user',
+        'account_status' => 'shield',
+        'account_password' => 'lock',
+        'account_activated' => 'check',
     ];
     $tones = [
         'task_overdue' => 'bg-danger-bg text-danger-text',
         'low_participation' => 'bg-danger-bg text-danger-text',
-        'deadline' => 'bg-danger-bg text-danger-text',
+        // A deadline that is still ahead is information, not an alarm — the
+        // alarm is task_overdue, and two red rows would flatten the difference
+        // between "due Friday" and "you have already missed it".
+        'deadline' => 'bg-periwinkle-soft text-periwinkle-link',
         'task_assigned' => 'bg-success-bg text-success-text',
         'group_assigned' => 'bg-periwinkle-soft text-periwinkle-link',
+        'group_completed' => 'bg-success-bg text-success-text',
+        'account_activated' => 'bg-success-bg text-success-text',
+        'account_created' => 'bg-periwinkle-soft text-periwinkle-link',
+        'project_deadline' => 'bg-periwinkle-soft text-periwinkle-link',
     ];
 @endphp
 
-<div class="flex flex-col gap-[18px]">
+{{-- One Alpine scope wrapping the list and the single confirm dialog, the same
+     arrangement the admin and lecturer tables use. --}}
+<div class="flex flex-col gap-[18px]" x-data="{ confirm: null }">
 
     {{-- Controls --}}
     <div class="flex flex-wrap items-center gap-3">
         <div class="flex rounded-pill bg-surface-muted p-[3px]">
             <button type="button" wire:click="setFilter('all')"
-                    class="h-8 rounded-pill px-[15px] text-meta font-bold transition-colors
+                    class="h-8 rounded-pill px-[15px] text-meta font-bold interactive
                            {{ $filter === 'all' ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
                 All ({{ $total }})
             </button>
             <button type="button" wire:click="setFilter('unread')"
-                    class="h-8 rounded-pill px-[15px] text-meta font-bold transition-colors
+                    class="h-8 rounded-pill px-[15px] text-meta font-bold interactive
                            {{ $filter === 'unread' ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
                 Unread ({{ $unread }})
             </button>
@@ -44,9 +61,29 @@
         @endif
 
         @if ($total > 0)
+            @php
+                // Built here, then passed through Js::from below. A double
+                // quote inside a component attribute ends that attribute as
+                // far as Blade's component parser is concerned, so the string
+                // cannot be written inline — same reason the admin and lecturer
+                // tables build theirs up here too.
+                $clearBody = 'All '.$total.' '.Str::plural('notification', $total)
+                    .' will be removed from your list. Nothing else is affected — the tasks,'
+                    .' documents and messages they refer to are untouched.';
+            @endphp
+
+            {{-- Was wire:confirm, which raises the browser's own confirm() box:
+                 a grey system dialog with the site's hostname at the top, in
+                 the middle of an app that styles every other confirmation
+                 itself. Same guard, CollabSpace's own dialog. --}}
             <x-button variant="secondary" class="!text-danger-text"
-                      wire:click="clearAll"
-                      wire:confirm="Remove all {{ $total }} notifications? This cannot be undone.">
+                      x-on:click="confirm = {
+                          call: 'clearAll',
+                          title: 'Clear every notification?',
+                          body: {{ Js::from($clearBody) }},
+                          action: 'Clear all',
+                          tone: 'danger',
+                      }">
                 Clear all
             </x-button>
         @endif
@@ -63,7 +100,19 @@
                 @endif
             </span>
 
+            {{-- The line below uses the inline php directive, with the value in
+                 brackets, rather than the block form with a closing tag.
+                 Livewire injects its own code at the top of every loop
+                 iteration to track wire:key, and a block directive there lands
+                 inside that injection and breaks the compiled template. The
+                 inline form compiles to one statement and is safe.
+
+                 For the same reason, do not name Blade directives inside a
+                 comment in this file: the compiler reads them before comments
+                 are stripped, which is its own way of producing a parse error
+                 a long way from the line that caused it. --}}
             @foreach ($group as $notification)
+                @php($removeBody = Str::limit($notification->message, 120).' — this removes the notification only; whatever it refers to is untouched.')
                 <article wire:key="n-{{ $notification->id }}"
                          class="flex flex-wrap items-center gap-3.5 rounded-card px-4 py-3.5 transition-colors
                                 {{ $notification->is_read ? 'border border-surface-line bg-surface-soft' : 'border border-surface-line bg-surface shadow-subtle' }}">
@@ -102,8 +151,15 @@
                         @endif
 
                         <button type="button"
-                                wire:click="remove({{ $notification->id }})"
-                                class="flex size-9 items-center justify-center rounded-pill bg-surface-muted text-ink-400 transition-colors hover:bg-danger-bg hover:text-danger-text"
+                                x-on:click="confirm = {
+                                    call: 'remove',
+                                    args: [{{ $notification->id }}],
+                                    title: 'Remove this notification?',
+                                    body: {{ Js::from($removeBody) }},
+                                    action: 'Remove',
+                                    tone: 'danger',
+                                }"
+                                class="flex size-9 items-center justify-center rounded-pill bg-surface-muted text-ink-400 interactive hover:bg-danger-bg hover:text-danger-text"
                                 aria-label="Remove this notification">
                             <x-icon name="trash" size="15" />
                         </button>
@@ -119,4 +175,6 @@
                 ? 'You are all caught up. Switch to All to see the ones you have already read.'
                 : 'Assignments, document changes and group activity will show up here.'" />
     @endforelse
+
+    <x-confirm-dialog />
 </div>

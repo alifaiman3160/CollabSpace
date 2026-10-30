@@ -28,10 +28,20 @@ export default {
                     DEFAULT: '#ffffff',   // CARD background — cards are white
                     soft:    '#f7f7fa',   // PAGE background, table header
                     muted:   '#f2f2f5',   // search field, icon buttons
-                    // Darkened one step from #ececf2, which was invisible on
-                    // white. Cards are defined by the white-on-soft contrast
-                    // first; this border is the secondary cue.
-                    line:    '#dfdfe9',   // card border, row divider
+                    // Darkened a second time, from #dfdfe9.
+                    //
+                    // The note this replaces said cards are defined by the
+                    // white-on-soft contrast first and the border is only a
+                    // secondary cue. Measured, that was wrong: white on the
+                    // soft page is 1.07:1, which is nothing. The border was
+                    // never the secondary cue — it was doing the whole job at
+                    // 1.24:1, and a card the size of a dashboard tile simply
+                    // read as floating text.
+                    //
+                    // 1.43:1 against the page now, 1.53:1 against a white card
+                    // interior for row dividers and input edges. Still quiet,
+                    // but the box has an outline you can find.
+                    line:    '#d0d0df',   // card border, row divider
                     strong:  '#cbcbda',   // table header underline
                     hover:   '#e8e8ee',
                 },
@@ -50,10 +60,20 @@ export default {
                     bg:      '#fdeae8',   // overdue pill background
                     line:    '#f7cdc8',
                 },
+                // Amber: attention without alarm (a group short of members).
+                warning: {
+                    DEFAULT: '#d98a1c',
+                    text:    '#7a4a00',
+                    bg:      '#fdf0d5',
+                },
                 success: {
                     DEFAULT: '#1b6b45',
                     text:    '#155c3b',
                     bg:      '#e6f4ec',
+                    // Matches danger.line in weight, so a success toast and a
+                    // failure toast read as the same component in two tones
+                    // rather than as two differently built things.
+                    line:    '#c6e3d2',
                 },
 
                 // Per-sender chat colours. Eight hues so every member of a
@@ -69,15 +89,27 @@ export default {
                 // thread surface #f7f7fa, the bubble surface #ffffff, and its
                 // own tint. Re-check with the script in MANUAL-TEST before
                 // changing any of them.
+                //
+                // Lifted once: hue held fixed so a person stays recognisably
+                // the same colour, saturation up about a tenth, lightness a
+                // few points. Brightening a dark text colour spends contrast,
+                // so each one was taken only as far as a 4.8:1 floor allowed —
+                // a margin over the 4.5 promise, so a later tint tweak cannot
+                // quietly break it.
+                //
+                // Clay is the exception and is untouched. It sits at 4.62:1 on
+                // its own tint already, and orange-brown has nowhere to go: any
+                // visible lift puts it under the line. Better one colour that
+                // stays as it was than eight that are merely close to passing.
                 member: {
-                    1: '#4a5bd0', '1bg': '#e7ebfc',   // indigo
-                    2: '#0f6b6b', '2bg': '#d9eeee',   // teal
-                    3: '#7b3f8f', '3bg': '#f0e4f4',   // plum
+                    1: '#4155de', '1bg': '#e7ebfc',   // indigo
+                    2: '#097171', '2bg': '#d9eeee',   // teal
+                    3: '#8e38ab', '3bg': '#f0e4f4',   // plum
                     4: '#a1521f', '4bg': '#f7e6db',   // clay
-                    5: '#3f5163', '5bg': '#e6ebf0',   // slate
-                    6: '#b7291f', '6bg': '#fdeae8',   // crimson
-                    7: '#1b6b45', '7bg': '#e6f4ec',   // forest
-                    8: '#6b6414', '8bg': '#f2f0dc',   // olive
+                    5: '#3c5b7a', '5bg': '#e6ebf0',   // slate
+                    6: '#c91f13', '6bg': '#fdeae8',   // crimson
+                    7: '#137345', '7bg': '#e6f4ec',   // forest
+                    8: '#736a0c', '8bg': '#f2f0dc',   // olive
                 },
             },
             borderRadius: {
@@ -112,6 +144,20 @@ export default {
                 raised: '0 6px 16px rgba(17,17,20,.22)',
                 button: '0 8px 20px rgba(17,17,20,.22)',
                 modal:  '0 24px 60px rgba(17,17,20,.14)',
+                // Hover states: one step stronger than the resting shadow.
+                lift:   '0 4px 12px rgba(17,17,20,.12)',
+                'button-hover': '0 10px 24px rgba(17,17,20,.28)',
+            },
+            // Motion. Every duration and curve in the app comes from here, so the
+            // feel can be tuned in one place. 120-180ms, ease-out: quick enough
+            // to read as a response rather than an animation.
+            transitionDuration: {
+                'motion-fast': '120ms',   // things leaving, press-down
+                motion:        '150ms',   // hover, focus, entering
+                'motion-slow': '180ms',   // overlays and toasts opening
+            },
+            transitionTimingFunction: {
+                motion: 'cubic-bezier(0.22, 1, 0.36, 1)',   // ease-out
             },
             spacing: {
                 sidebar: '222px',

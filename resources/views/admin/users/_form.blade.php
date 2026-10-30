@@ -80,4 +80,22 @@
                       class="uppercase" />
         <x-input-error :messages="$errors->get('matric_no')" />
     </div>
+
+    {{-- Only students carry a CGPA. It is typed in here by hand: nothing in
+         CollabSpace is connected to an academic system, so the figure is only
+         as current as the last time somebody edited this account. It is shown
+         to lecturers, for forming balanced groups, and to nobody else. --}}
+    <div class="flex flex-col gap-2" x-show="role === 'student'" x-cloak>
+        <x-input-label for="cgpa" value="CGPA (optional)" />
+        <x-text-input id="cgpa" name="cgpa" type="number" step="0.01" min="0" max="4" inputmode="decimal"
+                      :value="old('cgpa', $user?->cgpa)"
+                      placeholder="3.47"
+                      class="max-w-[140px]" />
+        <p class="text-meta leading-[1.5] text-ink-400">
+            Entered by hand — CollabSpace does not read this from any academic system, so it is only
+            as up to date as you keep it. Lecturers see it when forming balanced groups; students
+            never do. Leave it blank if you do not have it.
+        </p>
+        <x-input-error :messages="$errors->get('cgpa')" />
+    </div>
 </div>

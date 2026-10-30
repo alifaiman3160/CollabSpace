@@ -18,7 +18,7 @@
                 cta="Create a subject"
                 :href="route('lecturer.subjects.create')" />
         @else
-            <x-data-table :headings="['Code', 'Subject', 'Groups', 'Students', 'Default group size', '']">
+            <x-data-table :headings="['Subject', ['Groups', 'right'], ['Students', 'right'], ['Default size', 'right'], 'Project deadline', '']">
                 @foreach ($subjects as $subject)
                     @php
                         // Built here, then passed through Js::from below. Blade compiles
@@ -34,20 +34,18 @@
                             ]
                             : [];
                     @endphp
-                    <tr class="hover:bg-surface-soft">
+                    <tr>
                         <td>
-                            <x-badge tone="info">{{ $subject->code }}</x-badge>
+                            <x-table.stack :href="route('lecturer.subjects.edit', $subject)">
+                                <x-slot:primary>{{ $subject->name }}</x-slot:primary>
+                                <x-badge tone="info">{{ $subject->code }}</x-badge>
+                            </x-table.stack>
                         </td>
 
-                        <td>
-                            <a href="{{ route('lecturer.subjects.edit', $subject) }}"
-                               class="text-nav font-bold hover:text-periwinkle-link">{{ $subject->name }}</a>
-                        </td>
-
-                        <td>
+                        <td class="num">
                             @if ($subject->groups_count > 0)
                                 <a href="{{ route('lecturer.groups', ['subject' => $subject->id]) }}"
-                                   class="text-meta font-semibold text-periwinkle-link hover:underline">
+                                   class="interactive rounded-md text-meta font-semibold text-periwinkle-link hover:underline">
                                     {{ $subject->groups_count }}
                                 </a>
                             @else
@@ -55,29 +53,41 @@
                             @endif
                         </td>
 
-                        <td class="text-meta font-semibold text-ink-400">{{ $subject->group_members_count }}</td>
+                        <td class="num text-meta font-semibold text-ink-400">{{ $subject->group_members_count }}</td>
 
-                        <td class="text-meta font-semibold text-ink-400">{{ $subject->group_size }}</td>
+                        <td class="num text-meta font-semibold text-ink-400">{{ $subject->group_size }}</td>
 
                         <td>
-                            <div class="flex flex-wrap items-center justify-end gap-2">
-                                <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
-                                          :href="route('lecturer.groups', ['subject' => $subject->id])">Groups</x-button>
+                            <x-table.date :date="$subject->project_deadline" />
+                        </td>
 
-                                <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
-                                          :href="route('lecturer.subjects.edit', $subject)">Edit</x-button>
+                        <td>
+                            <x-table.row-actions>
+                                <x-table.quiet-action tone="neutral" :href="route('lecturer.groups', ['subject' => $subject->id])">Groups</x-table.quiet-action>
 
-                                <x-button variant="secondary" class="!px-4 !py-2 !text-meta !text-danger-text"
+                                <x-table.quiet-action tone="neutral" :href="route('lecturer.formation', $subject)">Auto-assign students</x-table.quiet-action>
+
+                                <x-table.quiet-action tone="neutral" :href="route('lecturer.rubrics', $subject)">Rubric</x-table.quiet-action>
+
+                                {{-- Destructive: quiet, but always there. --}}
+                                <x-table.quiet-action icon="trash"
+                                    aria-label="Delete {{ $subject->code }}"
                                     x-on:click="confirm = {
                                         url: '{{ route('lecturer.subjects.destroy', $subject) }}',
                                         method: 'DELETE',
                                         title: 'Delete this subject?',
                                         body: {{ Js::from($deleteBody) }},
                                         consequences: {{ Js::from($consequences) }},
+                                        confirmText: {{ Js::from($subject->code) }},
                                         action: 'Delete subject',
                                         tone: 'danger',
-                                    }">Delete</x-button>
-                            </div>
+                                    }">Delete</x-table.quiet-action>
+
+                                <x-slot:primary>
+                                    <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
+                                              :href="route('lecturer.subjects.edit', $subject)">Edit</x-button>
+                                </x-slot:primary>
+                            </x-table.row-actions>
                         </td>
                     </tr>
                 @endforeach

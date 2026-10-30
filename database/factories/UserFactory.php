@@ -65,7 +65,11 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => 'student',
-            'matric_no' => 'A'.fake()->unique()->numberBetween(20, 24).'EC'.fake()->unique()->numerify('####'),
+            // Only the four digits need to be unique. The year used to be
+            // wrapped in unique() as well, which allowed just five of them per
+            // run: a test creating a sixth student failed with an overflow
+            // that had nothing to do with what it was testing.
+            'matric_no' => 'A'.fake()->numberBetween(20, 24).'EC'.fake()->unique()->numerify('####'),
         ]);
     }
 

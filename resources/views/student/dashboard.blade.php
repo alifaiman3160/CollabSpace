@@ -41,8 +41,17 @@
             {{-- My groups, one card per group, per the dashboard design --}}
             <section class="flex flex-wrap gap-3.5" aria-label="My groups">
                 @foreach ($groups as $i => $g)
-                    <div class="flex min-w-[150px] flex-1 flex-col justify-between gap-4 rounded-panel p-5
-                                {{ $i === 0 ? 'bg-periwinkle' : 'bg-surface-muted' }}">
+                    {{-- The first group is the periwinkle one, the rest are
+                         neutral. The neutral fill is #f2f2f5 on a #f7f7fa page,
+                         which is 1.05:1 — no edge at all — so those carry a
+                         border and the periwinkle one carries a transparent
+                         border of the same width, to keep every card in the row
+                         exactly the same size. --}}
+                    <div @class([
+                            'flex min-w-[150px] flex-1 flex-col justify-between gap-4 rounded-panel border p-5',
+                            'bg-periwinkle border-transparent' => $i === 0,
+                            'bg-surface-muted border-surface-line' => $i !== 0,
+                         ])>
                         <div class="flex items-start justify-between gap-2">
                             <span class="text-nav font-extrabold tracking-[-0.02em]">{{ $g->subject->code }}</span>
                             <a href="{{ route('student.workspace.show', $g) }}"
@@ -64,6 +73,13 @@
                     </div>
                 @endforeach
             </section>
+
+            {{-- What each subject actually asked for. Sits directly under the
+                 group cards, because a deadline nobody sees until they open a
+                 workspace is one they find out about late. --}}
+            @foreach ($groups->pluck('subject')->unique('id') as $subject)
+                <x-project-brief :subject="$subject" show-code />
+            @endforeach
 
             {{-- My counts --}}
             <section class="flex flex-wrap gap-3.5" aria-label="My tasks">
@@ -100,10 +116,12 @@
                     <x-data-table :headings="['Task', 'Group', 'Deadline', 'Status']"
                                   empty="Nothing assigned to you is outstanding.">
                         @foreach ($pendingTasks as $task)
-                            <tr class="hover:bg-surface-soft">
+                            <tr>
                                 <td>
-                                    <a href="{{ route('student.board.show', $task->group) }}"
-                                       class="text-nav font-bold hover:text-periwinkle-link">{{ $task->title }}</a>
+                                    <x-table.stack :href="route('student.board.show', $task->group)">
+                                        <x-slot:primary>{{ $task->title }}</x-slot:primary>
+                                        {{ $task->group->name }}
+                                    </x-table.stack>
                                 </td>
 
                                 <td>
@@ -112,28 +130,14 @@
                                     </x-badge>
                                 </td>
 
-                                <td class="whitespace-nowrap">
-                                    @if ($task->deadline)
-                                        <span class="text-meta font-semibold {{ $task->isOverdue() ? 'text-danger-text' : 'text-ink-400' }}">
-                                            {{ $task->deadline->format('j M Y') }}
-                                        </span>
-                                    @else
-                                        <span class="text-meta text-ink-300">No deadline</span>
-                                    @endif
+                                <td>
+                                    <x-table.date :date="$task->deadline" :soon-within="null" />
                                 </td>
 
                                 <td>
-                                    <span class="flex flex-wrap gap-1.5">
-                                        @if ($task->isOverdue())
-                                            <x-badge tone="danger">
-                                                <x-icon name="clock" size="12" />
-                                                Overdue
-                                            </x-badge>
-                                        @endif
-                                        <x-badge :tone="$task->status === 'inprogress' ? 'info' : 'neutral'">
-                                            {{ $task->status === 'inprogress' ? 'In progress' : 'To do' }}
-                                        </x-badge>
-                                    </span>
+                                    <x-badge :tone="$task->status === 'inprogress' ? 'info' : 'neutral'">
+                                        {{ $task->status === 'inprogress' ? 'In progress' : 'To do' }}
+                                    </x-badge>
                                 </td>
                             </tr>
                         @endforeach

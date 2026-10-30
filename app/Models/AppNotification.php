@@ -23,6 +23,7 @@ class AppNotification extends Model
     protected $fillable = [
         'user_id',
         'type',
+        'reference_id',
         'message',
         'link',
         'is_read',
@@ -44,5 +45,16 @@ class AppNotification extends Model
     public function scopeUnread(Builder $query): Builder
     {
         return $query->where('is_read', false);
+    }
+
+    /**
+     * Narrows to the notifications already raised about one record.
+     *
+     * reference_id is meaningless without its type — a task id and a document
+     * id are both just integers — so the two always travel together.
+     */
+    public function scopeAbout(Builder $query, string $type, int $referenceId): Builder
+    {
+        return $query->where('type', $type)->where('reference_id', $referenceId);
     }
 }

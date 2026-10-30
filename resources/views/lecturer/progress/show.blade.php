@@ -17,9 +17,14 @@
     ];
 @endphp
 
+{{-- The back link is withheld when the lecturer has only one group, because
+     the picker redirects straight here in that case — the link would look like
+     a way out and land you back on the same screen. --}}
 <x-layouts.app title="Monitor progress — CollabSpace"
                :heading="$group->name"
-               :subtitle="$group->subject->code.' — '.$group->subject->name">
+               :subtitle="$group->subject->code.' — '.$group->subject->name"
+               :back="$groups->count() > 1 ? route('lecturer.progress') : null"
+               back-label="All groups">
 
     <x-slot:actions>
         <x-button variant="secondary" :href="route('lecturer.reports.show', $group)">
@@ -39,7 +44,7 @@
                 @foreach ($groups as $g)
                     <a href="{{ route('lecturer.progress.show', $g) }}"
                        title="{{ $g->subject->name }}"
-                       class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold transition-colors
+                       class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold interactive
                               {{ $g->is($group) ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
                         {{ $g->name }}
                     </a>
@@ -177,6 +182,46 @@
                         </p>
                     @else
                         <p class="px-1 pt-1 text-label text-ink-400">Nothing has been recorded for this group yet.</p>
+                    @endif
+                </div>
+
+                {{-- The group's writing, read-only. Counts alone cannot tell a
+                     lecturer whether eleven edits produced a chapter or eleven
+                     rewrites of a heading. --}}
+                <h2 class="mt-2 text-h3 font-extrabold tracking-title">Documents</h2>
+
+                <div class="flex flex-col gap-2.5 rounded-panel border border-surface-line bg-surface-soft p-4">
+                    @forelse ($documents as $document)
+                        <a href="{{ route('lecturer.documents.show', $document) }}"
+                           class="flex items-center gap-3 rounded-card bg-surface p-3.5 card-hover">
+                            <span class="flex size-8 shrink-0 items-center justify-center rounded-[11px] bg-surface-muted text-ink-400">
+                                <x-icon name="file" size="15" />
+                            </span>
+
+                            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                                <span class="truncate text-meta font-bold">{{ $document->title }}</span>
+                                <span class="text-label text-ink-400">
+                                    {{ $document->versions_count }} {{ Str::plural('version', $document->versions_count) }}
+                                    · last edited by {{ $document->lastEditor?->name ?? 'unknown' }}
+                                </span>
+                            </span>
+
+                            <span class="shrink-0 text-tiny text-ink-300"
+                                  title="{{ $document->updated_at->format('j F Y, g:ia') }}">
+                                {{ $document->updated_at->diffForHumans(short: true) }}
+                            </span>
+                        </a>
+                    @empty
+                        <p class="px-2 py-6 text-center text-meta text-ink-400">
+                            This group has not created any documents yet.
+                        </p>
+                    @endforelse
+
+                    @if ($documents->isNotEmpty())
+                        <a href="{{ route('lecturer.documents', $group) }}"
+                           class="px-1 pt-1 text-label font-semibold text-periwinkle-link hover:underline">
+                            Open the full document list
+                        </a>
                     @endif
                 </div>
             </section>

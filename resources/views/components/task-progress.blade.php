@@ -13,13 +13,24 @@
 @endphp
 
 {{-- Progress block from the lecturer dashboard design: eyebrow + percentage,
-     bar, then the count and an overdue flag when there is one. --}}
+     bar, then the count and an overdue flag when there is one.
+
+     Pass an empty label to drop the eyebrow. Inside a table whose column is
+     already headed "Task progress", repeating it on every row is noise. --}}
 <div {{ $attributes->class('flex min-w-[180px] flex-col gap-1.5') }}>
-    <div class="flex items-baseline justify-between gap-2">
-        <span class="text-tiny font-bold uppercase tracking-eyebrow text-ink-300">{{ $label }}</span>
-        <span class="text-body font-extrabold tracking-[-0.02em] {{ $overdue > 0 ? 'text-danger-text' : 'text-ink' }}">
-            {{ $pct }}%
-        </span>
+    {{-- items-center, not items-baseline.
+         Aligning baselines is right for text sharing a line, but these two do
+         not: the label is 10.5px on a 1.3 line box and the percentage is 13px
+         on a 1.5 one, so a shared baseline pushed the percentage about three
+         and a half pixels above the label and read as a mistake. Centring the
+         two boxes puts them level, and leading-none stops the percentage's
+         generous line height adding height the row does not need. --}}
+    <div class="flex items-center justify-between gap-2">
+        @if (filled($label))
+            <span class="text-tiny font-bold uppercase leading-none tracking-eyebrow text-ink-300">{{ $label }}</span>
+        @endif
+
+        <span class="text-body font-extrabold leading-none tracking-[-0.02em] {{ $overdue > 0 ? 'text-danger-text' : 'text-ink' }}">{{ $pct }}%</span>
     </div>
 
     <x-progress-bar :done="$done" :total="$total" />

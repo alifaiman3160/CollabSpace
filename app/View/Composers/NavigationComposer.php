@@ -46,6 +46,7 @@ class NavigationComposer
                 ['icon' => 'grid',       'label' => 'Dashboard',       'route' => 'lecturer.dashboard'],
                 ['icon' => 'book',       'label' => 'My subjects',     'route' => 'lecturer.subjects'],
                 ['icon' => 'folder',     'label' => 'Groups',          'route' => 'lecturer.groups'],
+                ['icon' => 'check',      'label' => 'Marking',         'route' => 'lecturer.marking'],
                 ['icon' => 'chart',      'label' => 'Contribution',    'route' => 'lecturer.reports'],
                 ['icon' => 'graduation', 'label' => 'Students',        'route' => 'lecturer.students'],
                 ['icon' => 'clock',      'label' => 'Monitor progress','route' => 'lecturer.progress'],

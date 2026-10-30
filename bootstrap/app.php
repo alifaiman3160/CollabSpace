@@ -6,6 +6,8 @@ use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,5 +28,52 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        /*
+        | "Page expired" — a CSRF token that no longer matches the session.
+        |
+        | Laravel's stock answer is a dead-end error page reading
+        | "419 | PAGE EXPIRED", with no way forward but knowing to clear your
+        | cookies. It is reached more often than it should be: anything that
+        | ends the session behind an open tab produces it, and
+        | `migrate:fresh --seed` does exactly that by dropping the sessions
+        | table while browsers still hold their cookies. Someone who had been
+        | signed in is then unable to sign in again, because the login form in
+        | front of them is itself carrying the stale token.
+        |
+        | Bouncing them back to the form fixes it on its own: the fresh page
+        | carries a valid token, so the retry works. What they typed is handed
+        | back with it, apart from the password, which is never put back into
+        | a response.
+        */
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            // Typed against the HTTP exception rather than TokenMismatchException,
+            // because Laravel rewrites the latter into a 419 HttpException before
+            // it consults these callbacks — a callback typed against the original
+            // is simply never reached. Returning null hands every other status
+            // back to the framework untouched.
+            if ($e->getStatusCode() !== 419) {
+                return null;
+            }
+
+            // Livewire and other XHR callers handle a 419 themselves — Livewire
+            // reloads the page, which is the right move and gets the same
+            // fresh token. A redirect here would be swallowed as a fragment.
+            if ($request->expectsJson() || $request->hasHeader('X-Livewire')) {
+                return response()->json([
+                    'message' => 'Your session expired. Reload the page and try again.',
+                ], 419);
+            }
+
+            $back = url()->previous();
+
+            // Never bounce back to the endpoint that just rejected us, or the
+            // retry lands straight back here.
+            if ($back === $request->fullUrl() || ! str_starts_with($back, config('app.url'))) {
+                $back = route('login');
+            }
+
+            return redirect()->to($back)
+                ->withInput($request->except(['password', 'password_confirmation', '_token']))
+                ->with('status', 'Your session expired before that was submitted. Nothing was saved — please try again.');
+        });
     })->create();

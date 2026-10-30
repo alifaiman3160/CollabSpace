@@ -62,12 +62,16 @@ class Task extends Model
         return $this->status === self::STATUS_DONE;
     }
 
-    /** Past its deadline and still not finished. */
+    /**
+     * Past its deadline and still not finished. A deadline is a calendar day, and
+     * the task is on time until that day ends (in the application's timezone),
+     * which is also what the overdue scope below means.
+     */
     public function isOverdue(): bool
     {
         return $this->deadline !== null
             && ! $this->isDone()
-            && $this->deadline->isPast();
+            && $this->deadline->copy()->endOfDay()->isPast();
     }
 
     public function scopeOverdue(Builder $query): Builder

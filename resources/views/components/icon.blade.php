@@ -42,6 +42,16 @@
         // Added for the document editor.
         'list'        => '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/>',
         'list-ordered'=> '<path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 4.5h1.5V9M3.6 15.2c0-.7.6-1.2 1.3-1.2s1.3.5 1.3 1.2c0 1.1-2.6 1.6-2.6 3.3h2.8"/>',
+        // Alignment. Four buttons that all looked identical is four buttons
+        // nobody can tell apart, so each ragged edge is drawn where it falls.
+        'align-left'  => '<path d="M3 6h18M3 12h11M3 18h15"/>',
+        'align-center'=> '<path d="M3 6h18M6.5 12h11M4.5 18h15"/>',
+        'align-right' => '<path d="M3 6h18M10 12h11M6 18h15"/>',
+        'align-justify'=> '<path d="M3 6h18M3 12h18M3 18h18"/>',
+        // History. Curved arrows, not the navigation chevrons: going back a
+        // page and undoing an edit are different promises.
+        'undo'        => '<path d="M3 7v6h6"/><path d="M3.5 13a9 9 0 1 0 2.1-6.4L3 9"/>',
+        'redo'        => '<path d="M21 7v6h-6"/><path d="M20.5 13a9 9 0 1 1-2.1-6.4L21 9"/>',
         'quote'       => '<path d="M9 7.5H5.5A1.5 1.5 0 0 0 4 9v3.5h5V9M20 7.5h-3.5A1.5 1.5 0 0 0 15 9v3.5h5V9"/><path d="M9 12.5c0 2.4-1.4 3.6-3.5 4M20 12.5c0 2.4-1.4 3.6-3.5 4"/>',
         'history'     => '<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4.5V9h4.5"/><path d="M12 7.5V12l3 1.8"/>',
         'restore'     => '<path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M21 4.5V9h-4.5"/>',

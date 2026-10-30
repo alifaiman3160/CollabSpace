@@ -113,7 +113,14 @@
 
                         @unless ($continues)
                             <div class="flex items-baseline gap-2 {{ $mine ? 'flex-row-reverse' : '' }}">
-                                <span class="text-meta font-bold {{ $mine ? 'text-ink' : $tone['name'] }}">
+                                {{-- "You" carries your own colour too, not flat
+                                     ink. The name sits on the thread surface,
+                                     not on the dark bubble, so the contrast
+                                     rule that keeps your message body white
+                                     does not apply here — and one person being
+                                     the same colour everywhere is the whole
+                                     point of the palette. --}}
+                                <span class="text-meta font-bold {{ $tone['name'] }}">
                                     {{ $mine ? 'You' : $message->user->name }}
                                 </span>
                                 <span class="text-tiny text-ink-300"
@@ -144,30 +151,21 @@
                                     {{-- Thumbnail and lightbox both go through the
                                          authenticated route; nothing is public. --}}
                                     <button type="button"
-                                            x-on:click="lightbox = { src: @js($inline), name: @js($message->file_name), download: @js($href) }"
-                                            class="group/img block overflow-hidden rounded-[14px]">
+                                            x-on:click="lightbox = { src: @js($inline), name: @js($message->file_name), size: @js($readableSize($message->file_size)), download: @js($href) }"
+                                            class="interactive group/img block overflow-hidden rounded-[14px]">
                                         <img src="{{ $inline }}"
                                              alt="{{ $message->file_name }}"
                                              loading="lazy"
                                              class="max-h-64 w-auto max-w-full rounded-[14px] object-cover transition-opacity group-hover/img:opacity-90">
                                         <span class="sr-only">Open {{ $message->file_name }} full size</span>
                                     </button>
-                                    {{-- The caption must not decide how wide the bubble is.
-                                         The bubble is w-fit, so it takes the width of its
-                                         widest child — and a long filename is far wider than
-                                         a portrait thumbnail, which left the image floating in
-                                         a bubble sized to the text.
-
-                                         w-0 keeps this line out of that calculation (a
-                                         percentage min-width counts as nothing while the
-                                         container is being measured), then min-w-full stretches
-                                         it back to whatever width the image settled on. The
-                                         name ellipsizes; the size stays readable. --}}
-                                    <span class="flex w-0 min-w-full items-baseline gap-1 text-tiny
-                                                 {{ $mine ? 'text-white/60' : 'text-ink-300' }}">
-                                        <span class="min-w-0 truncate" title="{{ $message->file_name }}">{{ $message->file_name }}</span>
-                                        <span class="shrink-0">· {{ $readableSize($message->file_size) }}</span>
-                                    </span>
+                                    {{-- No caption under an image. A picture says what
+                                         it is far better than "9c26728ccac981f1…jpg"
+                                         does, and a random filename of that shape is
+                                         what phone cameras and downloads actually
+                                         produce. The name and size are still there on
+                                         the lightbox, which is where someone goes when
+                                         they want the file rather than the picture. --}}
                                 @else
                                     <a href="{{ $href }}"
                                        class="flex items-center gap-3 rounded-[14px] p-2 transition-colors
@@ -212,7 +210,7 @@
                     {{ $attachment->getClientOriginalName() }}
                 </span>
                 <button type="button" wire:click="removeAttachment"
-                        class="text-meta font-bold text-danger-text hover:underline">Remove</button>
+                        class="interactive text-meta font-bold text-danger-text hover:underline">Remove</button>
             </div>
         @endif
 
@@ -253,16 +251,16 @@
                     <button type="button"
                             x-on:click="open = ! open"
                             :aria-expanded="open"
-                            class="flex size-11 items-center justify-center rounded-pill bg-surface-muted text-lead transition-colors hover:bg-surface-hover"
+                            class="flex size-11 items-center justify-center rounded-pill bg-surface-muted text-lead interactive hover:bg-surface-hover"
                             title="Insert an emoji">
                         <span class="sr-only">Insert an emoji</span>
                         <span aria-hidden="true">🙂</span>
                     </button>
 
                     <div x-show="open" x-cloak
-                         x-transition:enter="transition ease-out duration-150"
-                         x-transition:enter-start="opacity-0 translate-y-1"
-                         x-transition:enter-end="opacity-100 translate-y-0"
+                         x-transition:enter="transition ease-motion duration-motion-slow"
+                         x-transition:enter-start="opacity-0 scale-[.96]"
+                         x-transition:enter-end="opacity-100 scale-100"
                          class="absolute bottom-full right-0 z-30 mb-2 w-[268px] rounded-panel border border-surface-line bg-surface p-3 shadow-card"
                          role="dialog"
                          aria-label="Emoji picker">
@@ -271,7 +269,7 @@
                                 @foreach ($row as $char)
                                     <button type="button"
                                             x-on:click="insert(@js($char))"
-                                            class="flex size-8 items-center justify-center rounded-[10px] text-lead transition-colors hover:bg-surface-muted"
+                                            class="flex size-8 items-center justify-center rounded-[10px] text-lead interactive hover:bg-surface-muted"
                                             title="{{ $char }}">
                                         <span aria-hidden="true">{{ $char }}</span>
                                         <span class="sr-only">Insert {{ $char }}</span>
@@ -323,7 +321,10 @@
                  class="max-h-[78vh] w-auto rounded-panel object-contain shadow-modal">
 
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <span class="truncate text-meta font-semibold text-white/80" x-text="lightbox?.name"></span>
+                <span class="flex min-w-0 items-baseline gap-1.5 text-meta font-semibold text-white/80">
+                    <span class="truncate" x-text="lightbox?.name"></span>
+                    <span class="shrink-0 text-white/50" x-text="lightbox?.size"></span>
+                </span>
 
                 <div class="flex items-center gap-2">
                     <a :href="lightbox?.download"
@@ -332,7 +333,7 @@
                         Download
                     </a>
                     <button type="button" x-on:click="lightbox = null"
-                            class="inline-flex items-center rounded-pill bg-white px-4 py-2 text-meta font-bold text-ink transition-colors hover:bg-surface-hover">
+                            class="inline-flex items-center rounded-pill bg-white px-4 py-2 text-meta font-bold text-ink btn-motion hover:bg-surface-hover">
                         Close
                     </button>
                 </div>

@@ -46,15 +46,11 @@
             <x-data-table :headings="['Name', 'Role', 'Matric no.', 'Status', 'Added']"
                           empty="No accounts have been created yet.">
                 @foreach ($recentUsers as $user)
-                    <tr class="hover:bg-surface-soft">
+                    <tr>
                         <td>
-                            <a href="{{ route('admin.users.edit', $user) }}" class="flex items-center gap-3 group">
-                                <x-avatar :name="$user->name" size="sm" />
-                                <span class="flex min-w-0 flex-col">
-                                    <span class="text-nav font-bold group-hover:text-periwinkle-link">{{ $user->name }}</span>
-                                    <span class="truncate text-meta text-ink-400">{{ $user->email }}</span>
-                                </span>
-                            </a>
+                            <x-table.person :name="$user->name" :href="route('admin.users.edit', $user)">
+                                <span class="truncate">{{ $user->email }}</span>
+                            </x-table.person>
                         </td>
                         <td><x-role-badge :role="$user->role" /></td>
                         <td class="text-meta font-semibold text-ink-400">{{ $user->matric_no ?? '—' }}</td>
@@ -63,7 +59,7 @@
                                 <x-status-badge :active="$user->is_active" :pending="$user->must_change_password" />
                             </span>
                         </td>
-                        <td class="whitespace-nowrap text-meta text-ink-400">
+                        <td class="whitespace-nowrap text-meta text-ink-400" title="{{ $user->created_at->format('j F Y, g:ia') }}">
                             {{ $user->created_at->diffForHumans() }}
                         </td>
                     </tr>

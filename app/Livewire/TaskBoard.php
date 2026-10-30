@@ -39,6 +39,13 @@ class TaskBoard extends Component
     #[Validate('nullable|date')]
     public ?string $deadline = null;
 
+    /**
+     * The task the form is editing, or null when the form is creating a new
+     * one. One form serves both: the fields are identical, and two of them
+     * would drift apart the first time one was changed.
+     */
+    public ?int $editingTask = null;
+
     /** Task pending delete confirmation. */
     public ?int $confirmingDelete = null;
 
@@ -85,6 +92,45 @@ class TaskBoard extends Component
         return app(ActivityRecorder::class);
     }
 
+    /**
+     * Whether the signed-in member may move this card between columns.
+     *
+     * Work that belongs to somebody is moved by that somebody. This is not
+     * tidiness — it protects the contribution record, which is the thing the
+     * whole system exists to produce.
+     *
+     * Two holes it closes. Dropping another member's card into Done credits
+     * *them* with the points, so anyone could hand a free rider a finished
+     * task they never touched. Dragging their finished card back out deletes
+     * that contribution row outright, so anyone could quietly wipe a
+     * groupmate's credit, twice over, in a marking dispute. Neither is a
+     * hypothetical: both are two drags with no barrier at all.
+     *
+     * An unassigned task belongs to nobody and stays open to everyone — it is
+     * the one most likely to be forgotten, and whoever picks it up is credited
+     * with it. And a task whose owner has gone quiet is not stuck: any member
+     * may reassign it from the edit form, which is a deliberate, recorded act
+     * rather than a silent drag.
+     */
+    protected function mayMove(Task $task): bool
+    {
+        return $task->assigned_to === null
+            || $task->assigned_to === auth()->id();
+    }
+
+    /** Says why the card did not move, rather than letting it snap back in silence. */
+    protected function refuseMove(Task $task): void
+    {
+        $owner = $task->assignee?->name ?? 'another member';
+
+        $this->dispatch(
+            'toast',
+            message: "“{$task->title}” is assigned to {$owner}, so only they can move it. "
+                .'If they are not able to, reassign the task first and then move it.',
+            tone: 'danger',
+        );
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Actions
@@ -106,6 +152,12 @@ class TaskBoard extends Component
 
         $task = $this->taskInGroup($taskId);
 
+        if (! $this->mayMove($task)) {
+            $this->refuseMove($task);
+
+            return;
+        }
+
         if ($task->status === $status) {
             return;
         }
@@ -123,6 +175,8 @@ class TaskBoard extends Component
             // Credited to whoever the task is assigned to; an unassigned task
             // is credited to the member who moved it.
             $this->recorder()->taskCompleted($task, $task->assigned_to ?? auth()->id());
+
+            $this->announceIfGroupFinished();
         } elseif ($wasDone && ! $nowDone) {
             $task->completed_at = null;
             $task->save();
@@ -135,11 +189,15 @@ class TaskBoard extends Component
         $this->dispatch('board-updated');
     }
 
-    public function createTask(): void
+    /**
+     * The form's rules. Shared, because create and edit write the same four
+     * fields and a rule that applied to only one of them would be a hole.
+     *
+     * @return array<string, mixed>
+     */
+    protected function formRules(): array
     {
-        $this->authorizedGroup($this->group);
-
-        $this->validate([
+        return [
             'title' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:2000'],
             'deadline' => ['nullable', 'date'],
@@ -148,7 +206,47 @@ class TaskBoard extends Component
                 'nullable',
                 Rule::exists('group_members', 'user_id')->where('group_id', $this->group->id),
             ],
-        ], [], [
+        ];
+    }
+
+    /** The form's single submit handler; which branch it takes is its mode. */
+    public function saveTask(): void
+    {
+        $this->editingTask === null
+            ? $this->createTask()
+            : $this->updateTask();
+    }
+
+    /**
+     * Tells the lecturer when the last open task on the board is finished.
+     *
+     * Checked here rather than on a schedule because "finished" is an event,
+     * not a date — it happens the moment somebody drops the final card into
+     * Done. The Notifier keys it on the group, so a board that is emptied,
+     * added to and emptied again announces itself only the first time.
+     */
+    protected function announceIfGroupFinished(): void
+    {
+        $total = Task::where('group_id', $this->group->id)->count();
+
+        if ($total === 0) {
+            return;
+        }
+
+        $open = Task::where('group_id', $this->group->id)
+            ->where('status', '!=', Task::STATUS_DONE)
+            ->count();
+
+        if ($open === 0) {
+            app(Notifier::class)->groupCompleted($this->group, $total);
+        }
+    }
+
+    public function createTask(): void
+    {
+        $this->authorizedGroup($this->group);
+
+        $this->validate($this->formRules(), [], [
             'assignedTo' => 'assignee',
         ]);
 
@@ -169,6 +267,86 @@ class TaskBoard extends Component
         $this->reset(['title', 'description', 'assignedTo', 'deadline', 'showForm']);
 
         $this->dispatch('board-updated');
+    }
+
+    /**
+     * Opens the form on an existing task.
+     *
+     * Use case 3.4.3.3 has the student create, assign, update and delete; until
+     * this existed, "update" meant only moving a card between columns, and a
+     * mistyped title or a wrong assignee could be corrected only by deleting
+     * the task and starting again — which also threw away its contribution
+     * credit and its place on the board.
+     */
+    public function startEdit(int $taskId): void
+    {
+        $this->authorizedGroup($this->group);
+
+        $task = $this->taskInGroup($taskId);
+
+        $this->editingTask = $task->getKey();
+        $this->title = $task->title;
+        $this->description = (string) $task->description;
+        $this->assignedTo = $task->assigned_to;
+        // The date input wants Y-m-d; the model hands back a Carbon instance.
+        $this->deadline = $task->deadline?->format('Y-m-d');
+
+        $this->showForm = true;
+        $this->resetValidation();
+    }
+
+    /**
+     * Saves changes to an existing task.
+     *
+     * Deliberately does not touch status or completed_at: those belong to the
+     * board's drag-and-drop and its status control, and editing a title is not
+     * a statement about whether the work is finished.
+     *
+     * Editing also scores nothing. The task already earned its creator their
+     * task_created points, and letting an edit score again would make renaming
+     * a task a way to farm contribution — the same reasoning that stops a
+     * no-op document save writing a version.
+     */
+    public function updateTask(): void
+    {
+        $this->authorizedGroup($this->group);
+
+        if ($this->editingTask === null) {
+            return;
+        }
+
+        $task = $this->taskInGroup($this->editingTask);
+
+        $this->validate($this->formRules(), [], [
+            'assignedTo' => 'assignee',
+        ]);
+
+        $previousAssignee = $task->assigned_to;
+
+        $task->fill([
+            'title' => trim($this->title),
+            'description' => $this->description !== '' ? $this->description : null,
+            'assigned_to' => $this->assignedTo,
+            'deadline' => $this->deadline ?: null,
+            'updated_by' => auth()->id(),
+        ])->save();
+
+        // Only when the work actually changed hands — re-saving a task that was
+        // already theirs should not ping them again.
+        if ($task->assigned_to !== null && $task->assigned_to !== $previousAssignee) {
+            app(Notifier::class)->taskAssigned($task, auth()->user());
+        }
+
+        $this->cancelEdit();
+
+        $this->dispatch('board-updated');
+    }
+
+    /** Closes the form and puts it back into create mode. */
+    public function cancelEdit(): void
+    {
+        $this->reset(['title', 'description', 'assignedTo', 'deadline', 'showForm', 'editingTask']);
+        $this->resetValidation();
     }
 
     public function confirmDelete(int $taskId): void
@@ -204,12 +382,17 @@ class TaskBoard extends Component
 
     public function toggleForm(): void
     {
-        $this->showForm = ! $this->showForm;
-
+        // Opening the form from the "New task" button always means a new task,
+        // even if it was last used to edit one.
         if (! $this->showForm) {
-            $this->reset(['title', 'description', 'assignedTo', 'deadline']);
+            $this->reset(['title', 'description', 'assignedTo', 'deadline', 'editingTask']);
             $this->resetValidation();
+            $this->showForm = true;
+
+            return;
         }
+
+        $this->cancelEdit();
     }
 
     /*
@@ -246,6 +429,10 @@ class TaskBoard extends Component
                 ->get(),
             'deletingTask' => $this->confirmingDelete
                 ? $tasks->firstWhere('id', $this->confirmingDelete)
+                : null,
+            // Lets the form title name what is being edited.
+            'editing' => $this->editingTask
+                ? $tasks->firstWhere('id', $this->editingTask)
                 : null,
         ]);
     }

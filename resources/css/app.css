@@ -1,12 +1,23 @@
-@import 'tailwindcss';
+/*
+ * source(none) turns off Tailwind's automatic scan of the whole project. By
+ * default it reads every file under the project root that git does not ignore:
+ * app, config, database, docs, tests, scripts, and so on, and keeps every string
+ * it finds in memory for as long as the dev server runs. Class names only ever
+ * appear in the places listed below, so only those are read.
+ */
+@import 'tailwindcss' source(none);
 
 /* CollabSpace design tokens live in tailwind.config.js (see DESIGN-NOTES.md). */
 @config '../../tailwind.config.js';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+/* Where class names are written. Keep in step with `content` in tailwind.config.js. */
+@source '../views';                   /* resources/views: Blade, including components and Livewire views */
+@source '../js';                      /* resources/js */
+@source '../../app/Livewire';         /* class strings in Livewire components */
+@source '../../app/View';             /* view components and composers */
+@source '../../app/Support';          /* e.g. MemberColour, the sanitiser's allowed classes */
+/* The paginator's own markup, which the framework supplies. */
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views';
 
 @theme {
     --font-sans: 'Plus Jakarta Sans', 'Helvetica', system-ui, sans-serif;
@@ -55,6 +66,18 @@
     .data-table thead th {
         padding-top: 0.625rem;
         padding-bottom: 0.625rem;
+    }
+
+    /* Figures: right-aligned, tabular digits, so a column reads as a column. */
+    .data-table td.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    /* The last row closes the card cleanly: no divider under it. */
+    .data-table tbody tr:last-child {
+        border-bottom: 0;
     }
 }
 
@@ -114,6 +137,33 @@
         text-decoration: underline;
     }
 
+    /*
+     * Tables. Preflight strips every border and makes cells collapse to
+     * nothing, so a table inserted by the toolbar would otherwise render as
+     * loose text with no grid at all. Styled once here, so the editor and the
+     * read-only views show the same thing.
+     */
+    .doc-body table {
+        width: 100%;
+        margin: 0 0 0.9em;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .doc-body th,
+    .doc-body td {
+        border: 1px solid #dfdfe9;
+        padding: 0.5em 0.7em;
+        text-align: start;
+        vertical-align: top;
+        word-break: break-word;
+    }
+
+    .doc-body th {
+        background: #f7f7fa;
+        font-weight: 700;
+    }
+
     .doc-body strong, .doc-body b { font-weight: 700; }
     .doc-body em, .doc-body i { font-style: italic; }
     .doc-body u { text-decoration: underline; }
@@ -121,5 +171,382 @@
     .doc-body:empty::before {
         content: attr(data-placeholder);
         color: #a3a3ad;
+    }
+}
+
+/*
+ * Motion.
+ *
+ * Durations and the curve are tokens in tailwind.config.js (duration-motion*,
+ * ease-motion); nothing below hard-codes a number. Components opt in with these
+ * classes, so a page never writes its own hover or press behaviour.
+ *
+ * Movement is only ever transform and opacity. Colour and shadow also change on
+ * hover, but those are paint, never layout, so nothing reflows.
+ *
+ * Everything that MOVES sits inside no-preference, and the reduce block at the
+ * end switches every transition off, so a reader who has asked for less motion
+ * gets the state change instantly and nothing slides, scales or fades.
+ */
+@layer components {
+    /* Colour-only easing: sidebar items, links, icon buttons. */
+    .motion-colors {
+        @apply transition-colors duration-motion ease-motion;
+    }
+
+    /* Buttons: 1px lift on hover, press down on active. */
+    .btn-motion {
+        transition-property: color, background-color, box-shadow, transform;
+        @apply duration-motion ease-motion;
+    }
+
+    /*
+     * Small controls: segmented chips, toolbar and icon buttons, text buttons,
+     * menu rows. Colour eases and a press nudges down; they do not lift, because
+     * they sit shoulder to shoulder and a row of bobbing chips reads as noise.
+     * Anything filled and standalone uses .btn-motion instead.
+     */
+    .interactive {
+        transition-property: color, background-color, border-color, box-shadow, transform;
+        @apply duration-motion ease-motion;
+    }
+
+    /*
+     * Interactive cards (a card that is itself a link). A card does ONE of
+     * these on hover, never both: .card-hover shifts the background,
+     * .card-lift raises it 2px. Static cards, table rows and the draggable task
+     * cards use neither.
+     */
+    .card-hover {
+        @apply transition-colors duration-motion ease-motion hover:bg-surface-hover focus-visible:bg-surface-hover;
+    }
+
+    .card-lift {
+        transition-property: transform, box-shadow;
+        @apply duration-motion ease-motion;
+    }
+
+    /* Table rows: a background shift only. Dense, so they never move. */
+    .data-table tbody tr {
+        @apply transition-colors duration-motion ease-motion;
+    }
+
+    .data-table tbody tr:hover,
+    .data-table tbody tr:focus-within {
+        background-color: #f7f7fa;   /* surface-soft */
+    }
+}
+
+/*
+ * Row actions are never hidden. An action that is part of the normal workflow
+ * (Manage, Edit, Open, Groups, Report...) is always visible; a destructive one
+ * (Delete, Remove, Deactivate) is always visible too, just quiet, and warms to
+ * red on hover and focus. Hover is decoration here, never the way to find an
+ * action, because touch screens have no hover.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+    .btn-motion:where(:not(:disabled)):hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-motion:where(:not(:disabled)):active {
+        transform: translateY(0) scale(0.98);
+        transition-duration: 120ms;   /* = duration-motion-fast; press should feel immediate */
+    }
+
+    .interactive:where(:not(:disabled)):active {
+        transform: scale(0.97);
+        transition-duration: 120ms;   /* = duration-motion-fast */
+    }
+
+    .card-lift:hover,
+    .card-lift:focus-visible {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 22px rgba(17, 17, 20, 0.1);   /* = shadow-card */
+    }
+}
+
+/*
+ * A visible focus ring for anything reachable by keyboard that does not draw
+ * its own. :where() keeps the specificity at zero, so every component that
+ * styles its own ring (buttons, inputs) still wins.
+ */
+@layer base {
+    :where(a, button, summary, [role='button'], [tabindex]:not([tabindex='-1'])):focus-visible {
+        outline: 2px solid #4a5bd0;   /* periwinkle-link */
+        outline-offset: 2px;
+    }
+}
+
+/*
+ * Sign-in opening: a preloader, then the card and everything in it rising in turn.
+ *
+ * It is CSS from start to finish; the Alpine component only tidies up afterwards. Nothing is
+ * hidden unless the page head has added .js-intro (see layouts/guest.blade.php), so a page
+ * without JavaScript, with reduced motion, or already seen this session shows at once. The
+ * delays are written out here because the whole sequence is one timeline:
+ *
+ *   0 - 1.7s   logo reveals (tile, bars, then the word)
+ *   1.7 - 2.3s preloader lifts away, the periwinkle page shows through
+ *   1.9s       card rises
+ *   2.1s +     each item, 90ms apart (--i)
+ */
+.cs-preloader {
+    display: none;
+}
+
+.js-intro .cs-preloader {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f7f7fa;   /* surface-soft */
+    animation: cs-preloader-out 600ms cubic-bezier(0.22, 1, 0.36, 1) 1700ms forwards;
+}
+
+.cs-preloader__logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.cs-preloader__tile {
+    display: flex;
+    width: 56px;
+    height: 56px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    background: #111114;   /* ink */
+    animation: cs-tile-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cs-bar {
+    transform-box: fill-box;
+    transform-origin: bottom;
+    animation: cs-bar-in 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(250ms + var(--b) * 110ms);
+}
+
+.cs-preloader__word {
+    animation: cs-word-in 800ms cubic-bezier(0.22, 1, 0.36, 1) 500ms both;
+}
+
+.js-intro .cs-card {
+    animation: cs-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) 1900ms backwards;
+}
+
+.js-intro [data-reveal] {
+    animation: cs-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: calc(2100ms + var(--i, 0) * 90ms);
+}
+
+@keyframes cs-preloader-out {
+    to { opacity: 0; transform: translateY(-16px); visibility: hidden; }
+}
+
+@keyframes cs-tile-in {
+    from { opacity: 0; transform: scale(0.6); }
+}
+
+@keyframes cs-bar-in {
+    from { opacity: 0; transform: scaleY(0); }
+}
+
+@keyframes cs-word-in {
+    from { opacity: 0; clip-path: inset(0 100% 0 0); transform: translateX(-8px); }
+    to   { opacity: 1; clip-path: inset(0 0 0 0); transform: none; }
+}
+
+@keyframes cs-rise {
+    from { opacity: 0; transform: translateY(20px); }
+}
+
+/*
+ * Sign-in backdrop and small interactions. Only transform and opacity ever animate; the blur is
+ * a fixed, moderate value and is never animated.
+ *
+ * Layers: .cs-bg is z-0, the page content is z-10 and the preloader z-50, so the backdrop can never
+ * sit over the form, an error message, a dropdown or a toast.
+ *
+ * Without script the blobs are simply there and the floating cards stay hidden: .cs-bg--live is
+ * added by the page script once the opening has finished.
+ */
+.cs-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.cs-bg__layer {
+    position: absolute;
+    inset: 0;
+    transform: translate3d(calc(var(--px, 0) * var(--d) * 14px), calc(var(--py, 0) * var(--d) * 14px), 0);
+    transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-pattern {
+    position: absolute;
+    inset: -28px;   /* one grid step of slack, so the drift never shows an edge */
+    will-change: transform;
+}
+
+.cs-blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(64px);
+    opacity: 0.6;
+    will-change: transform;
+}
+
+.cs-blob--1 { width: 560px; height: 560px; left: -140px; top: -160px; background: #8fa4f0; opacity: 0.5; }
+.cs-blob--2 { width: 440px; height: 440px; right: -150px; bottom: -170px; background: #e7ebfc; opacity: 0.38; }
+.cs-blob--3 { width: 420px; height: 420px; right: 8%; top: -140px; background: #e7ebfc; opacity: 0.6; }
+.cs-blob--4 { width: 460px; height: 460px; left: 6%; bottom: -190px; background: #8fa4f0; opacity: 0.26; }
+.cs-blob--5 { display: none; }
+
+.cs-float {
+    position: absolute;
+    opacity: 0;
+    transition: opacity 600ms ease-out;
+    transform-origin: center;
+}
+
+.cs-float__in {
+    will-change: transform;
+    transform: scale(var(--s, 1));
+}
+
+/* Edge cards, and corners peeking out from behind the 1020px sign-in card. */
+.cs-float--1 { --s: 1;    --o: 0.95; left: calc(50% - 510px - 96px);  top: 11vh; }
+.cs-float--2 { --s: 0.95; --o: 0.9;  left: calc(50% + 510px - 78px);  bottom: 13vh; }
+.cs-float--3 { --s: 0.8;  --o: 0.6;  left: 1.5vw;                     top: 58vh; }
+.cs-float--4 { --s: 0.85; --o: 0.65; right: 1.5vw;                    top: 17vh; }
+.cs-float--5 { --s: 0.7;  --o: 0.5;  left: calc(50% - 510px - 52px);  bottom: 6vh; }
+.cs-float--6 { --s: 0.75; --o: 0.55; left: calc(50% + 510px - 30px);  top: 5vh; }
+
+.cs-bg--live .cs-float { opacity: var(--o, 0.8); }
+
+/* Phones: two blobs, two cards, a lighter blur, no parallax. */
+@media (max-width: 767px) {
+    .cs-blob { filter: blur(36px); }
+    .cs-blob--3, .cs-blob--4,
+    .cs-float--3, .cs-float--4, .cs-float--5, .cs-float--6 { display: none; }
+    .cs-blob--1 { width: 340px; height: 340px; left: -120px; top: -120px; }
+    .cs-blob--2 { width: 320px; height: 320px; right: -120px; bottom: -120px; }
+    .cs-float--1 { left: -34px; top: 6vh; }
+    .cs-float--2 { left: auto; right: -34px; bottom: 6vh; }
+    .cs-bg__layer { transform: none; }
+    .cs-cols { display: none; }
+    .cs-pattern { will-change: auto; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .cs-bg--live .cs-blob { animation: cs-drift 11s ease-in-out infinite alternate; }
+    .cs-bg--live .cs-blob--2 { animation-duration: 14s; animation-delay: -5s; }
+    .cs-bg--live .cs-blob--3 { animation-duration: 8s; animation-delay: -3s; }
+    .cs-bg--live .cs-blob--4 { animation-duration: 10s; animation-delay: -6s; }
+
+    .cs-bg--live .cs-float__in { animation: cs-float 14s ease-in-out infinite alternate; }
+    .cs-bg--live .cs-float--2 .cs-float__in { animation-duration: 18s; animation-delay: -7s; --dx: -34px; --r1: -2deg; }
+    .cs-bg--live .cs-float--3 .cs-float__in { animation-duration: 11s; animation-delay: -4s; --dx: 24px; }
+    .cs-bg--live .cs-float--4 .cs-float__in { animation-duration: 16s; animation-delay: -9s; --dx: -22px; --r1: 1.5deg; }
+    .cs-bg--live .cs-float--5 .cs-float__in { animation-duration: 10s; animation-delay: -2s; }
+    .cs-bg--live .cs-float--6 .cs-float__in { animation-duration: 17s; animation-delay: -10s; --dx: -28px; }
+
+    /* The pattern creeps one grid step and starts over, so the loop has no visible seam. Desktop only. */
+    @media (min-width: 768px) {
+        .cs-bg--live .cs-pattern { animation: cs-pattern 26s linear infinite; }
+    }
+
+    /* Tab hidden: stop everything so a background tab costs nothing. */
+    .cs-bg--paused .cs-blob,
+    .cs-bg--paused .cs-pattern,
+    .cs-bg--paused .cs-float__in { animation-play-state: paused; }
+}
+
+/* Reduced motion: a still backdrop. The blobs stay as colour, the floating cards go. */
+@media (prefers-reduced-motion: reduce) {
+    .cs-float { display: none; }
+    .cs-blob, .cs-pattern { animation: none !important; }
+    .cs-bg__layer { transform: none !important; }
+}
+
+@keyframes cs-drift {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to   { transform: translate3d(90px, 64px, 0) scale(1.14); }
+}
+
+@keyframes cs-pattern {
+    to { transform: translate3d(-28px, -28px, 0); }
+}
+
+@keyframes cs-float {
+    from { transform: scale(var(--s, 1)) translate3d(0, 0, 0) rotate(-1.5deg); }
+    to   { transform: scale(var(--s, 1)) translate3d(var(--dx, 36px), -96px, 0) rotate(var(--r1, 2deg)); }
+}
+
+/* Sign-in card: fields, button, feature cards, avatars. 200ms on the same curve as everything else. */
+.cs-login span:has(> input) {
+    transition: box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-login span:has(> input) > svg:first-child {
+    transition: color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-login span:has(> input:focus) {
+    box-shadow: 0 0 0 1.5px #4a5bd0, 0 0 0 5px rgba(74, 91, 208, 0.14);   /* periwinkle-link */
+}
+
+.cs-login span:has(> input:focus) > svg:first-child {
+    color: #4a5bd0;
+}
+
+.cs-arrow {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-feature {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-avatar {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .cs-login button[type='submit']:hover .cs-arrow {
+        transform: translateX(4px);
+    }
+
+    .cs-feature:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 16px rgba(17, 17, 20, 0.12);
+    }
+
+    .cs-avatar:hover {
+        transform: translateY(-2px);
+    }
+}
+/*
+ * Reduced motion: no movement, no fading, no scaling. State changes (colour,
+ * shadow) still happen, instantly. Alpine's x-transition ends immediately when
+ * the duration is zero, so dialogs, menus and toasts simply appear.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0s !important;
+        transition-delay: 0s !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
     }
 }

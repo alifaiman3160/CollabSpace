@@ -15,8 +15,12 @@
             <x-button variant="secondary" :href="route('student.workspace.show', $group)">Workspace</x-button>
         </x-slot:actions>
 
-        {{-- Status changes run through Livewire, so the page never reloads. --}}
-        <livewire:task-board :group="$group" />
+        <div class="flex flex-col gap-[18px]">
+            <x-group-switcher :groups="$groups" :current="$group" route="student.board.show" />
+
+            {{-- Status changes run through Livewire, so the page never reloads. --}}
+            <livewire:task-board :group="$group" />
+        </div>
 
     @endif
 

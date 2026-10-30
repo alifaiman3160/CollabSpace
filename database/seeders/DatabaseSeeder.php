@@ -48,10 +48,17 @@ class DatabaseSeeder extends Seeder
 
         $students = $this->createStudents();
 
+        // One subject carries a brief and a deadline and the other does not, so
+        // the demo shows both states: a written assignment with a countdown,
+        // and a subject whose brief has not been posted yet.
         $appDev = Subject::create([
             'lecturer_id' => $siti->id,
             'code' => 'SECJ3104',
             'name' => 'Application Development',
+            'brief' => "Build a working web-based system in groups of four, from requirements through to a running prototype.\n\n".
+                "Submit the full report (chapters 1 to 5), the source code, and a 15-minute demonstration.\n\n".
+                'Marked on the working system, the quality of the report, and each member’s recorded contribution.',
+            'project_deadline' => $this->now->addDays(12)->toDateString(),
             'group_size' => 4,
         ]);
 
@@ -66,13 +73,23 @@ class DatabaseSeeder extends Seeder
             $students['alif'], $students['nurul'], $students['weijie'], $students['farah'],
         ], $this->now->subDays(52));
 
+        // One group of each origin, so the record has something to show: A was
+        // built by hand, B was dealt out by the balancer, and C came from the
+        // students' own choices in a Google Form.
         $groupB = $this->createGroup($appDev, 'Group B - MediTrack', 3, [
             $students['danial'], $students['priya'], $students['kaiming'],
-        ], $this->now->subDays(50));
+        ], $this->now->subDays(50), Group::FORMED_BALANCED, [
+            'batch' => 'seed-balanced', 'batch_size' => 1, 'algorithm' => 'snake_draft', 'seed' => 0,
+            // (3.67 + 3.28 + 2.74) / 3, as it stood when the group was formed.
+            'average_cgpa' => 3.23, 'cgpa_known' => 3, 'cgpa_unknown' => 0,
+            'spread_across_batch' => null, 'cgpa_entered_manually' => true,
+        ]);
 
         $groupC = $this->createGroup($hci, 'Group 1 - Campus Wayfinder', 3, [
             $students['alia'], $students['arvind'], $students['syafiq'],
-        ], $this->now->subDays(44));
+        ], $this->now->subDays(44), Group::FORMED_IMPORTED, [
+            'source' => 'group-form-responses.csv', 'rows' => [3], 'matched_by_hand' => 0,
+        ]);
 
         $this->seedGroupA($groupA, $students);
         $this->seedGroupB($groupB, $students);
@@ -95,6 +112,7 @@ class DatabaseSeeder extends Seeder
         string $role,
         ?string $matric = null,
         bool $mustChange = false,
+        ?float $cgpa = null,
     ): User {
         return User::create([
             'name' => $name,
@@ -102,6 +120,7 @@ class DatabaseSeeder extends Seeder
             'password' => 'password',
             'role' => $role,
             'matric_no' => $matric,
+            'cgpa' => $cgpa,
             'must_change_password' => $mustChange,
             'is_active' => true,
             'email_verified_at' => $this->now->subDays(60),
@@ -111,22 +130,37 @@ class DatabaseSeeder extends Seeder
     /** @return array<string, User> */
     protected function createStudents(): array
     {
+        // [name, email handle, matric, CGPA]. CGPAs are typed in by hand in the
+        // real system, so they are plain figures here too, with a believable
+        // spread. Syafiq has none: he has never signed in and nobody has entered
+        // one yet, which is the state group formation has to cope with.
         $roster = [
-            'alif' => ['Alif Aiman Jaafar', 'alif.aiman', 'A21EC0011'],
-            'nurul' => ['Nurul Izzah Hamzah', 'nurul.izzah', 'A21EC0024'],
-            'weijie' => ['Lee Wei Jie', 'lee.weijie', 'A21EC0037'],
-            'farah' => ['Farah Aqilah Roslan', 'farah.aqilah', 'A21EC0042'],
-            'danial' => ['Muhammad Danial Zulkifli', 'muhd.danial', 'A21EC0055'],
-            'priya' => ['Priya Raman', 'priya.raman', 'A21EC0063'],
-            'kaiming' => ['Chong Kai Ming', 'chong.kaiming', 'A21EC0078'],
-            'alia' => ['Nur Alia Zainal', 'nur.alia', 'A22EC0009'],
-            'arvind' => ['Arvind Kumar Selvam', 'arvind.kumar', 'A22EC0018'],
-            'syafiq' => ['Syafiq Idris', 'syafiq.idris', 'A22EC0031'],
+            'alif' => ['Alif Aiman Jaafar', 'alif.aiman', 'A21EC0011', 3.82],
+            'nurul' => ['Nurul Izzah Hamzah', 'nurul.izzah', 'A21EC0024', 3.45],
+            'weijie' => ['Lee Wei Jie', 'lee.weijie', 'A21EC0037', 3.12],
+            'farah' => ['Farah Aqilah Roslan', 'farah.aqilah', 'A21EC0042', 2.31],
+            'danial' => ['Muhammad Danial Zulkifli', 'muhd.danial', 'A21EC0055', 3.67],
+            'priya' => ['Priya Raman', 'priya.raman', 'A21EC0063', 3.28],
+            'kaiming' => ['Chong Kai Ming', 'chong.kaiming', 'A21EC0078', 2.74],
+            'alia' => ['Nur Alia Zainal', 'nur.alia', 'A22EC0009', 3.55],
+            'arvind' => ['Arvind Kumar Selvam', 'arvind.kumar', 'A22EC0018', 2.96],
+            'syafiq' => ['Syafiq Idris', 'syafiq.idris', 'A22EC0031', null],
+
+            // Not in any group, so there is somebody to form groups from. Between
+            // them and the students who sit in one subject but not the other,
+            // both subjects have a pool to balance and an uneven headcount to
+            // deal with.
+            'hana' => ['Hana Sofea Mahmud', 'hana.sofea', 'A22EC0044', 3.91],
+            'zulhilmi' => ['Zulhilmi Anuar', 'zulhilmi.anuar', 'A22EC0052', 2.58],
+            'meiling' => ['Tan Mei Ling', 'tan.meiling', 'A22EC0067', 3.36],
+            'rajesh' => ['Rajesh Pillai', 'rajesh.pillai', 'A22EC0071', 3.02],
+            'aisyah' => ['Siti Aisyah Kamal', 'siti.aisyah', 'A22EC0085', 2.84],
+            'omar' => ['Omar Haziq Rahim', 'omar.haziq', 'A22EC0093', 3.58],
         ];
 
         $students = [];
 
-        foreach ($roster as $key => [$name, $handle, $matric]) {
+        foreach ($roster as $key => [$name, $handle, $matric, $cgpa]) {
             // Syafiq has never signed in, so his temporary password is still in
             // place. That gives EnsurePasswordChanged something to act on.
             $students[$key] = $this->createUser(
@@ -135,6 +169,7 @@ class DatabaseSeeder extends Seeder
                 'student',
                 $matric,
                 mustChange: $key === 'syafiq',
+                cgpa: $cgpa,
             );
         }
 
@@ -142,12 +177,23 @@ class DatabaseSeeder extends Seeder
     }
 
     /** @param  array<int, User>  $members */
-    protected function createGroup(Subject $subject, string $name, int $size, array $members, CarbonImmutable $joinedAt): Group
-    {
+    protected function createGroup(
+        Subject $subject,
+        string $name,
+        int $size,
+        array $members,
+        CarbonImmutable $joinedAt,
+        string $method = Group::FORMED_MANUAL,
+        array $meta = [],
+    ): Group {
         $group = Group::create([
             'subject_id' => $subject->id,
             'name' => $name,
             'group_size' => $size,
+            'formation_method' => $method,
+            'formation_meta' => $meta ?: null,
+            'formed_by' => $subject->lecturer_id,
+            'formed_at' => $joinedAt,
         ]);
 
         foreach ($members as $i => $member) {

@@ -1,5 +1,5 @@
-<x-layouts.app title="New group — CollabSpace"
-               heading="Create group"
+<x-layouts.app title="Add one group — CollabSpace"
+               heading="Add one group"
                subtitle="The size is suggested from the subject's default, and you can override it.">
 
     @php
@@ -7,7 +7,7 @@
         $defaults = $subjects->pluck('group_size', 'id');
     @endphp
 
-    <form method="POST" action="{{ route('lecturer.groups.store') }}" class="flex flex-col gap-7"
+    <form method="POST" action="{{ route('lecturer.groups.store') }}" class="mx-auto flex w-full max-w-xl flex-col gap-7"
           x-data="{
               defaults: {{ Js::from($defaults) }},
               subject: '{{ old('subject_id', $selected) }}',

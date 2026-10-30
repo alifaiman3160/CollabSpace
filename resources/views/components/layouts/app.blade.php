@@ -58,7 +58,7 @@
             </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" class="flex text-ink/[.55] transition-colors hover:text-ink" aria-label="Log out">
+                <button type="submit" class="flex text-ink/[.55] interactive hover:text-ink" aria-label="Log out">
                     <x-icon name="logout" />
                 </button>
             </form>
@@ -104,6 +104,11 @@
         </main>
     </div>
 </div>
+
+{{-- Mounted once here rather than per screen, so every action anywhere in the
+     app reports itself. Six screens previously forgot to include the banner,
+     which meant those actions appeared to do nothing at all. --}}
+<x-toast />
 
 {{-- Livewire owns Alpine for the whole app: it bundles and starts its own
      copy, so loading a second one from app.js would run two instances on any

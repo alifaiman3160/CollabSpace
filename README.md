@@ -7,6 +7,20 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Running CollabSpace locally
+
+```bash
+composer install && npm install
+php artisan migrate --seed
+npm run build          # or `npm run dev` while editing styles; see docs/FRONTEND-DEV.md
+php artisan serve
+```
+
+**The dev server and long requests.** `php artisan serve` is single-threaded by default: while it answers one request it answers nothing else. Generating mark suggestions asks an AI provider, which can take several seconds per student, so on a single thread other pages stall meanwhile.
+
+- On macOS and Linux, run it with several workers: `PHP_CLI_SERVER_WORKERS=4 php artisan serve`.
+- **PHP does not support that setting on Windows.** It is ignored there. Either keep using it as it is (the marking page asks for one student at a time, each request ending within about 20 seconds, so the wait is short), or serve the app from Laragon, XAMPP or WSL, which answer requests in parallel.
+- `php artisan marking:preview` has no web time limit and is unaffected.
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

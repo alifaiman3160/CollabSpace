@@ -12,17 +12,69 @@ class Group extends Model
 {
     use HasFactory;
 
+    public const FORMED_MANUAL = 'manual';
+
+    public const FORMED_BALANCED = 'balanced';
+
+    public const FORMED_IMPORTED = 'imported';
+
     protected $fillable = [
         'subject_id',
         'name',
         'group_size',
+        'formation_method',
+        'formation_meta',
+        'formed_by',
+        'formed_at',
     ];
 
     protected function casts(): array
     {
         return [
             'group_size' => 'integer',
+            'formation_meta' => 'array',
+            'formed_at' => 'datetime',
         ];
+    }
+
+    /** The lecturer who formed it, when that account still exists. */
+    public function formedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'formed_by');
+    }
+
+    /**
+     * The other groups made in the same batch: the same click of Confirm.
+     *
+     * Lets a lecturer looking at one balanced group see the rest of the set it
+     * was dealt with, which is what "balanced" means.
+     *
+     * @return \Illuminate\Support\Collection<int, Group>
+     */
+    public function formationPeers(): \Illuminate\Support\Collection
+    {
+        $batch = $this->formation_meta['batch'] ?? null;
+
+        if ($batch === null) {
+            return collect();
+        }
+
+        return static::query()
+            ->where('subject_id', $this->subject_id)
+            ->where('formation_meta->batch', $batch)
+            ->whereKeyNot($this->getKey())
+            ->orderBy('name')
+            ->get();
+    }
+
+    /** How the group came about, in the words a lecturer would use. */
+    public function formationLabel(): string
+    {
+        return match ($this->formation_method) {
+            self::FORMED_BALANCED => 'Balanced by CGPA',
+            self::FORMED_IMPORTED => 'Imported from CSV',
+            default => 'Created manually',
+        };
     }
 
     public function subject(): BelongsTo

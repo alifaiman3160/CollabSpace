@@ -42,19 +42,10 @@
 
             <x-flash />
 
-            {{-- Switch between groups when the student is in more than one --}}
-            @if ($groups->count() > 1)
-                <div class="flex flex-wrap rounded-pill bg-surface-muted p-[3px]">
-                    @foreach ($groups as $g)
-                        <a href="{{ route('student.workspace.show', $g) }}"
-                           title="{{ $g->subject->name }} · {{ $g->name }}"
-                           class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold transition-colors
-                                  {{ $g->is($group) ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
-                            {{ $g->subject->code }}
-                        </a>
-                    @endforeach
-                </div>
-            @endif
+            <x-group-switcher :groups="$groups" :current="$group" route="student.workspace.show" />
+
+            {{-- The assignment this group exists to produce. --}}
+            <x-project-brief :subject="$group->subject" />
 
             {{-- Overview --}}
             <section class="flex flex-wrap gap-3.5">
@@ -132,27 +123,22 @@
                     <x-data-table :headings="['Task', 'Assigned to', 'Deadline']"
                                   empty="Nothing outstanding — every task is done.">
                         @foreach ($openTasks as $task)
-                            <tr class="hover:bg-surface-soft">
+                            <tr>
                                 <td>
-                                    <span class="flex flex-wrap items-center gap-2">
-                                        <span class="text-nav font-bold">{{ $task->title }}</span>
-                                        @if ($task->isOverdue())
-                                            <x-badge tone="danger">Overdue</x-badge>
-                                        @endif
-                                    </span>
+                                    <x-table.stack>
+                                        <x-slot:primary>{{ $task->title }}</x-slot:primary>
+                                        {{ $task->status === 'inprogress' ? 'In progress' : 'To do' }}
+                                    </x-table.stack>
                                 </td>
                                 <td>
                                     @if ($task->assignee)
-                                        <span class="flex items-center gap-2">
-                                            <x-avatar :name="$task->assignee->name" size="sm" />
-                                            <span class="text-meta font-semibold text-ink-600">{{ $task->assignee->name }}</span>
-                                        </span>
+                                        <x-table.person :name="$task->assignee->name" />
                                     @else
                                         <span class="text-meta text-ink-300">Unassigned</span>
                                     @endif
                                 </td>
-                                <td class="whitespace-nowrap text-meta font-semibold {{ $task->isOverdue() ? 'text-danger-text' : 'text-ink-400' }}">
-                                    {{ $task->deadline?->format('j M Y') ?? '—' }}
+                                <td>
+                                    <x-table.date :date="$task->deadline" :soon-within="null" />
                                 </td>
                             </tr>
                         @endforeach

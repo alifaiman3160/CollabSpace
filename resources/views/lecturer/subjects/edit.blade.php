@@ -2,7 +2,7 @@
                :heading="$subject->code"
                :subtitle="$subject->name">
 
-    <div class="flex flex-col gap-7">
+    <div class="mx-auto flex w-full max-w-xl flex-col gap-7">
 
         <x-flash />
 

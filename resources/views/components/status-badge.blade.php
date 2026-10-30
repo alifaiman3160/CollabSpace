@@ -1,12 +1,13 @@
 @props(['active' => true, 'pending' => false])
 
+{{-- Account status: a pill led by a status dot. --}}
 @if($active)
-    <x-badge tone="success">Active</x-badge>
+    <x-table.dot-pill tone="success">Active</x-table.dot-pill>
 @else
-    <x-badge tone="danger">Inactive</x-badge>
+    <x-table.dot-pill tone="danger">Inactive</x-table.dot-pill>
 @endif
 
 @if($pending)
     {{-- Still carrying the temporary password issued at creation. --}}
-    <x-badge tone="neutral" title="Has not signed in and changed the temporary password yet">Pending</x-badge>
+    <x-table.dot-pill tone="neutral" title="Has not signed in and changed the temporary password yet">Pending</x-table.dot-pill>
 @endif

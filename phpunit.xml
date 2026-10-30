@@ -19,6 +19,12 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- A developer's real provider and keys must never be reachable from a test. -->
+        <env name="AI_DRIVER" value="none"/>
+        <env name="ANTHROPIC_API_KEY" value=""/>
+        <env name="OPENAI_API_KEY" value=""/>
+        <env name="GEMINI_API_KEY" value=""/>
+        <env name="AI_COMPAT_API_KEY" value=""/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

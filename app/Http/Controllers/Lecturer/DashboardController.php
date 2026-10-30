@@ -26,7 +26,7 @@ class DashboardController extends LecturerController
         ];
 
         $groups = $this->groups()
-            ->with('subject')
+            ->with(['subject', 'members:users.id,users.name'])
             ->withCount([
                 'groupMembers as members_count',
                 'tasks as tasks_total',

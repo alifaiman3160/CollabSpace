@@ -26,7 +26,7 @@ class ProgressController extends LecturerController
     public function index(): View|RedirectResponse
     {
         $groups = $this->groups()
-            ->with('subject')
+            ->with(['subject', 'members:users.id,users.name'])
             ->withCount([
                 'groupMembers as members_count',
                 'tasks as tasks_total',
@@ -80,6 +80,14 @@ class ProgressController extends LecturerController
                 ->with('user')
                 ->latest()
                 ->take(12)
+                ->get(),
+
+            // The group's shared writing, openable read-only — the counts in
+            // the contribution report say how much was edited, this says what.
+            'documents' => $group->documents()
+                ->with('lastEditor')
+                ->withCount('versions')
+                ->orderByDesc('updated_at')
                 ->get(),
 
             'recentActivity' => ActivityLog::where('group_id', $group->id)

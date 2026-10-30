@@ -48,7 +48,7 @@
             <button type="button"
                     x-on:click="show = ! show"
                     :aria-label="show ? 'Hide password' : 'Show password'"
-                    class="flex shrink-0 items-center text-ink-300 transition-colors hover:text-ink">
+                    class="flex shrink-0 items-center text-ink-300 interactive hover:text-ink">
                 <span x-show="! show"><x-icon name="eye" size="18" /></span>
                 <span x-show="show" x-cloak><x-icon name="eye-off" size="18" /></span>
             </button>

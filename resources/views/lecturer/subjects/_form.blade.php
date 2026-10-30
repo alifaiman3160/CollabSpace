@@ -20,6 +20,32 @@
         <x-input-error :messages="$errors->get('name')" />
     </div>
 
+    {{-- The assignment. Both optional: a subject is usually created so groups
+         can be set up, and the brief is written afterwards. --}}
+    <div class="flex flex-col gap-2">
+        <x-input-label for="brief" value="Assignment brief" />
+        <textarea id="brief" name="brief" rows="5"
+                  placeholder="What the groups have to produce, and what it is marked on."
+                  class="w-full rounded-[16px] bg-surface border border-surface-line px-[18px] py-3.5 text-[14px] font-medium text-ink placeholder:text-ink-300 focus:outline-none focus:ring-2 focus:ring-ink/10">{{ old('brief', $subject?->brief) }}</textarea>
+        <p class="text-meta text-ink-400">
+            Shown to every student in this subject, on their dashboard and their workspace.
+            Leave blank until you have written it.
+        </p>
+        <x-input-error :messages="$errors->get('brief')" />
+    </div>
+
+    <div class="flex flex-col gap-2">
+        <x-input-label for="project_deadline" value="Project deadline" />
+        <x-text-input id="project_deadline" name="project_deadline" type="date"
+                      :value="old('project_deadline', $subject?->project_deadline?->format('Y-m-d'))"
+                      class="max-w-[220px]" />
+        <p class="text-meta text-ink-400">
+            Students see the days remaining, and get one reminder as it approaches. This is the
+            whole project's due date — individual task deadlines are set by the groups themselves.
+        </p>
+        <x-input-error :messages="$errors->get('project_deadline')" />
+    </div>
+
     <div class="flex flex-col gap-2">
         <x-input-label for="group_size" value="Default group size" />
         <x-text-input id="group_size" name="group_size" type="number" min="2" max="10" required

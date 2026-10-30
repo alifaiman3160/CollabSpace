@@ -4,7 +4,7 @@
 
     {{-- Capped at a readable measure, then split into two columns once there is
          room. A single narrow column left most of a desktop screen empty. --}}
-    <div class="flex max-w-5xl flex-col gap-[18px]">
+    <div class="mx-auto flex w-full max-w-5xl flex-col gap-[18px]">
 
         <x-flash />
 

@@ -25,19 +25,7 @@
 
             <x-flash />
 
-            {{-- Switch between groups when the student is in more than one --}}
-            @if ($groups->count() > 1)
-                <div class="flex flex-wrap rounded-pill bg-surface-muted p-[3px]">
-                    @foreach ($groups as $g)
-                        <a href="{{ route('student.documents.group', $g) }}"
-                           title="{{ $g->subject->name }} · {{ $g->name }}"
-                           class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold transition-colors
-                                  {{ $g->is($group) ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
-                            {{ $g->subject->code }}
-                        </a>
-                    @endforeach
-                </div>
-            @endif
+            <x-group-switcher :groups="$groups" :current="$group" route="student.documents.group" />
 
             {{-- New document: title only, then straight into the editor. --}}
             <form method="POST" action="{{ route('student.documents.store', $group) }}"
@@ -73,25 +61,19 @@
                     <x-button class="mt-2" x-on:click="creating = true">Create the first document</x-button>
                 </x-empty-state>
             @else
-                <x-data-table :headings="['Title', 'Last edited by', 'Last edited', 'Versions', '']">
+                <x-data-table :headings="['Title', 'Last edited by', 'Last edited', ['Versions', 'right'], '']">
                     @foreach ($documents as $document)
-                        <tr class="hover:bg-surface-soft">
+                        <tr>
                             <td>
-                                <a href="{{ route('student.documents.edit', $document) }}"
-                                   class="flex items-center gap-2.5 group">
-                                    <span class="flex size-8 shrink-0 items-center justify-center rounded-[11px] bg-surface-muted text-ink-400">
-                                        <x-icon name="file" size="15" />
-                                    </span>
-                                    <span class="text-nav font-bold group-hover:text-periwinkle-link">{{ $document->title }}</span>
-                                </a>
+                                <x-table.stack icon="file" :href="route('student.documents.edit', $document)">
+                                    <x-slot:primary>{{ $document->title }}</x-slot:primary>
+                                    Started by {{ $document->creator?->name ?? '—' }}
+                                </x-table.stack>
                             </td>
 
                             <td>
                                 @if ($document->lastEditor)
-                                    <span class="flex items-center gap-2">
-                                        <x-avatar :name="$document->lastEditor->name" size="sm" />
-                                        <span class="text-meta font-semibold text-ink-600">{{ $document->lastEditor->name }}</span>
-                                    </span>
+                                    <x-table.person :name="$document->lastEditor->name" />
                                 @else
                                     <span class="text-meta text-ink-300">—</span>
                                 @endif
@@ -103,15 +85,10 @@
                                 </span>
                             </td>
 
-                            <td class="whitespace-nowrap text-meta font-semibold text-ink-400">
-                                {{ $document->versions_count }}
-                            </td>
+                            <td class="num text-meta font-semibold text-ink-400">{{ $document->versions_count }}</td>
 
                             <td>
-                                <div class="flex flex-wrap items-center justify-end gap-2">
-                                    <x-button :href="route('student.documents.edit', $document)"
-                                              class="!px-4 !py-2 !text-meta">Open</x-button>
-
+                                <div class="flex items-center justify-end gap-1.5">
                                     @php
                                         // Built here, then passed through Js::from below: Blade
                                         // compiles {{ }} inside a component attribute but not
@@ -124,7 +101,7 @@
                                         ];
                                     @endphp
 
-                                    <x-button variant="secondary" class="!px-4 !py-2 !text-meta !text-danger-text"
+                                    <x-table.quiet-action icon="trash" aria-label="Delete {{ $document->title }}"
                                         x-on:click="confirm = {
                                             url: '{{ route('student.documents.destroy', $document) }}',
                                             method: 'DELETE',
@@ -133,7 +110,10 @@
                                             consequences: {{ Js::from($deleteConsequences) }},
                                             action: 'Delete document',
                                             tone: 'danger',
-                                        }">Delete</x-button>
+                                        }">Delete</x-table.quiet-action>
+
+                                    <x-button :href="route('student.documents.edit', $document)"
+                                              class="!px-4 !py-2 !text-meta">Open</x-button>
                                 </div>
                             </td>
                         </tr>

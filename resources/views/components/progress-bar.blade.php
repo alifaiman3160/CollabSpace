@@ -2,6 +2,7 @@
     'done'  => 0,
     'doing' => 0,
     'total' => 0,
+    'height' => '9px',
     'on'    => 'white',   // white | periwinkle — decides the track colour
 ])
 
@@ -15,10 +16,11 @@
 @endphp
 
 <div {{ $attributes->class([
-        'flex h-[9px] w-full overflow-hidden rounded-pill',
+        'flex w-full overflow-hidden rounded-pill',
         'bg-surface-muted'  => $on === 'white',
         'bg-white/60'       => $on === 'periwinkle',
    ]) }}
+   style="height: {{ $height }}"
    role="progressbar"
    aria-valuenow="{{ $donePct }}" aria-valuemin="0" aria-valuemax="100"
    aria-label="{{ $done }} of {{ $total }} complete">

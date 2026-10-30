@@ -50,7 +50,7 @@
 
     <form method="POST" action="{{ route('logout') }}">
         @csrf
-        <button type="submit" class="text-meta font-bold text-ink-400 hover:text-ink hover:underline">
+        <button type="submit" class="interactive text-meta font-bold text-ink-400 hover:text-ink hover:underline">
             Sign out instead
         </button>
     </form>
