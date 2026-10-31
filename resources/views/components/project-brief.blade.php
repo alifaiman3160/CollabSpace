@@ -45,7 +45,7 @@
             @if ($subject->project_deadline)
                 <span class="flex flex-wrap items-center gap-2">
                     <span class="text-meta font-semibold text-ink-400">
-                        Due {{ $subject->project_deadline->format('j F Y') }}
+                        Group project due {{ $subject->project_deadline->format('j F Y') }}
                     </span>
                     <span @class([
                             'rounded-pill px-3 py-1.5 text-label font-bold',

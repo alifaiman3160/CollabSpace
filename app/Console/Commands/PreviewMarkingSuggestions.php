@@ -116,12 +116,12 @@ class PreviewMarkingSuggestions extends Command
             return;
         }
 
-        $this->line('    Rule-based : '.$this->levelLine($criterion, $s->baseline_level_id).' | '.$s->baseline_note);
+        $this->line('    From the numbers: '.$this->levelLine($criterion, $s->baseline_level_id).' | '.$s->baseline_note);
 
         if ($s->ai_level_id !== null) {
-            $this->line('    AI-suggested: '.$this->levelLine($criterion, $s->ai_level_id).' | '.$s->ai_rationale);
+            $this->line('    AI\'s view: '.$this->levelLine($criterion, $s->ai_level_id).' | '.$s->ai_rationale);
         } else {
-            $this->line('    AI-suggested: unavailable. '.($s->ai_message ?? ($s->ai_status === 'not_asked' ? 'Not requested.' : '')));
+            $this->line('    AI\'s view: unavailable. '.($s->ai_message ?? ($s->ai_status === 'not_asked' ? 'Not requested.' : '')));
         }
 
         if ($s->differs) {

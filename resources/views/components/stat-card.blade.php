@@ -6,6 +6,9 @@
     'icon'  => null,
     'size'  => 'lg',         // lg (hero stat) | sm (compact row, per the dashboard designs)
     'iconTone' => 'neutral', // sm only: neutral | info | success | danger — the icon chip
+    'palette' => null,       // sm only: a SubjectPalette entry; the tile wears that soft colour instead of white
+    'bind' => null,          // sm only: an Alpine expression for the big number (a tile that follows a filter)
+    'metaBind' => null,      // sm only: the same for the caption
 ])
 
 @php
@@ -32,10 +35,17 @@
 
 @if($size === 'sm')
 
-    <div {{ $attributes->class([
+    @php
+        // One style attribute: the group's soft colour, then anything the caller passed.
+        $style = trim(($palette ? "background-color: {$palette['bg']}; border-color: {$palette['border']}; " : '').$attributes->get('style', ''));
+    @endphp
+
+    <div {{ $attributes->except('style')->class([
             'flex min-w-[128px] flex-1 flex-col justify-between gap-2.5 rounded-panel p-4',
             $tones[$tone] ?? $tones['plain'],
-       ]) }}>
+       ]) }}
+       @if ($style !== '') style="{{ $style }}" @endif
+       @if ($palette) data-palette="{{ $palette['name'] }}" @endif>
         @if($icon)
             <span class="flex size-8 items-center justify-center rounded-[11px] {{ $chip }}">
                 <x-icon :name="$icon" size="17" />
@@ -44,11 +54,11 @@
 
         <span class="flex flex-col gap-0.5">
             <span class="text-label font-bold uppercase tracking-eyebrow {{ $labelTone }}">{{ $label }}</span>
-            <span class="text-h1 font-extrabold leading-[1.05] tracking-stat">{{ $value }}</span>
+            <span class="text-h1 font-extrabold leading-[1.05] tracking-stat" @if ($bind) x-text="{{ $bind }}" @endif>{{ $value }}</span>
         </span>
 
         @if(filled($meta))
-            <span class="text-label font-semibold {{ $metaTone }}">{{ $meta }}</span>
+            <span class="text-label font-semibold {{ $metaTone }}" @if ($metaBind) x-text="{{ $metaBind }}" @endif>{{ $meta }}</span>
         @endif
 
         {{ $slot }}

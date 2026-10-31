@@ -13,8 +13,9 @@ use App\Models\Task;
  * Counts of messages, document edits and uploads are read from activity_logs,
  * not from the messages or documents tables, for the same reason the
  * contribution report is: the log is where the scoring rules (the daily message
- * cap, the removal of credit when a task leaves Done, the cleanup when a
- * document is deleted) have already been applied. Reading the source tables
+ * cap, the removal of credit when a task leaves Done) have already been applied.
+ * A deleted document is only hidden, and what it earned stays in the log, so edits
+ * on a deleted document still count: that is the point of keeping them. Reading the source tables
  * would hand back the uncapped figure and quietly bypass them.
  *
  * Task facts come from the tasks table, because deadlines live there, but a

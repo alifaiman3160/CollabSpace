@@ -35,13 +35,14 @@
     </div>
 
     <div class="flex flex-col gap-2">
-        <x-input-label for="project_deadline" value="Project deadline" />
+        <x-input-label for="project_deadline" value="Group project due date" />
         <x-text-input id="project_deadline" name="project_deadline" type="date"
                       :value="old('project_deadline', $subject?->project_deadline?->format('Y-m-d'))"
                       class="max-w-[220px]" />
-        <p class="text-meta text-ink-400">
-            Students see the days remaining, and get one reminder as it approaches. This is the
-            whole project's due date — individual task deadlines are set by the groups themselves.
+        <p class="text-meta text-ink-400" data-project-due-help>
+            Students see a countdown on their dashboard and get a reminder
+            {{ (int) config('notifications.project_reminder_days') }} days before. It does not lock tasks or documents.
+            Optional.
         </p>
         <x-input-error :messages="$errors->get('project_deadline')" />
     </div>

@@ -131,7 +131,7 @@ class ConfirmRubricRequest extends FormRequest
             'sections.*.criteria.*.levels.*.marks.required' => 'Every level needs its marks.',
             'sections.*.criteria.*.levels.*.marks.numeric' => 'Marks must be a number.',
             'sections.*.*.mode.in' => 'Choose System-suggested or Manual.',
-            'sections.*.criteria.*.evidence_type.in' => 'Choose one of the evidence types listed.',
+            'sections.*.criteria.*.evidence_type.in' => 'Choose one of the options listed.',
             'sections.*.scoring.in' => 'Choose how marks are calculated: level × weight, or level only.',
             'sections.*.declared_total.numeric' => 'The total marks must be a number.',
         ];

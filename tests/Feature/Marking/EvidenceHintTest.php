@@ -20,7 +20,7 @@ class EvidenceHintTest extends TestCase
 
     private const ATTITUDE = 'This looks like a judgement about attitude or quality, which recorded activity cannot measure. Consider setting the criterion to Manual.';
 
-    private const RELIABILITY = 'The wording mentions deadlines or reliability. Reliability (deadlines) is probably the better evidence type.';
+    private const RELIABILITY = 'The wording mentions deadlines or reliability. Reliability (deadlines) is probably the better choice.';
 
     protected function setUp(): void
     {
@@ -62,9 +62,9 @@ class EvidenceHintTest extends TestCase
             'respect for deadlines' => ['Respect for deadlines', 'suggested', 'reliability', $attitude],
 
             // Anything else the wording points to.
-            'communication wording, set to reliability' => ['Communication', 'suggested', 'reliability', 'The wording looks more like Communication. Check this is the evidence type you want.'],
-            'task wording, set to communication' => ['Contribution to tasks', 'suggested', 'communication', 'The wording looks more like Task completion. Check this is the evidence type you want.'],
-            'collaboration wording, set to task completion' => ['Collaboration', 'suggested', 'task_completion', 'The wording looks more like Collaboration. Check this is the evidence type you want.'],
+            'communication wording, set to reliability' => ['Communication', 'suggested', 'reliability', 'The wording looks more like Communication. Check this is what you want.'],
+            'task wording, set to communication' => ['Contribution to tasks', 'suggested', 'communication', 'The wording looks more like Task completion. Check this is what you want.'],
+            'collaboration wording, set to task completion' => ['Collaboration', 'suggested', 'task_completion', 'The wording looks more like Collaboration. Check this is what you want.'],
 
             // And nothing when it fits, or there is nothing to go on.
             'task wording, set to task completion' => ['Contribution to tasks', 'suggested', 'task_completion', null],
@@ -278,7 +278,7 @@ class EvidenceHintTest extends TestCase
         $this->assertSame(self::RELIABILITY, $hints[1]['text']);
 
         $this->assertTrue($hints[2]['visible']);
-        $this->assertSame('The wording looks more like Communication. Check this is the evidence type you want.', $hints[2]['text']);
+        $this->assertSame('The wording looks more like Communication. Check this is what you want.', $hints[2]['text']);
 
         $this->assertFalse($hints[3]['visible'], 'A criterion that fits has no hint.');
         $this->assertFalse($hints[4]['visible'], 'None is already lecturer-only, so nothing to advise.');
@@ -343,7 +343,7 @@ class EvidenceHintTest extends TestCase
         $visible = array_values(array_filter($this->hints($this->actingAs($this->lecturer)->get($url)->getContent()), fn ($h) => $h['visible']));
 
         $this->assertCount(1, $visible);
-        $this->assertSame('The wording looks more like Task completion. Check this is the evidence type you want.', $visible[0]['text']);
+        $this->assertSame('The wording looks more like Task completion. Check this is what you want.', $visible[0]['text']);
     }
 
     public function test_no_default_is_offered_for_attitude_wording(): void

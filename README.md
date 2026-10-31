@@ -16,6 +16,8 @@ npm run build          # or `npm run dev` while editing styles; see docs/FRONTEN
 php artisan serve
 ```
 
+Backing up and restoring the database and the private files (group files and document pictures): see [docs/BACKUP.md](docs/BACKUP.md).
+
 **The dev server and long requests.** `php artisan serve` is single-threaded by default: while it answers one request it answers nothing else. Generating mark suggestions asks an AI provider, which can take several seconds per student, so on a single thread other pages stall meanwhile.
 
 - On macOS and Linux, run it with several workers: `PHP_CLI_SERVER_WORKERS=4 php artisan serve`.

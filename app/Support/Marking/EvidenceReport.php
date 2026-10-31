@@ -158,7 +158,8 @@ class EvidenceReport
             return '';
         }
 
-        return EvidenceFacts::describe($c['evidence_type'], $c['facts']);
+        // An approval keeps the line it was approved with; one made before that was recorded is read in the old wording.
+        return $c['facts_text'] ?? EvidenceFacts::describeLegacy($c['evidence_type'], $c['facts']);
     }
 
     /** Neutralises a leading =, +, - or @ so a spreadsheet shows it as text. */

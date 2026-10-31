@@ -38,42 +38,52 @@
 
             <x-flash />
 
-            {{-- My groups, one card per group, per the dashboard design --}}
-            <section class="flex flex-wrap gap-3.5" aria-label="My groups">
+            {{-- My groups, one card per group. Each card is a container: the main area is the link to the
+                 workspace, and the subject's announcements, when there are any, are a separate pill-shaped
+                 button along the bottom. The colour is the subject's own (see SubjectPalette), the same for
+                 every student. Cards are top-aligned so opening one never stretches the others. --}}
+            @php
+                $announcementsBySubject = $announcements->groupBy('subject_id');
+                $readIds = collect($readAnnouncementIds);
+            @endphp
+            <section class="flex flex-wrap items-start gap-[18px]" aria-label="My groups">
                 @foreach ($groups as $i => $g)
-                    {{-- The first group is the periwinkle one, the rest are
-                         neutral. The neutral fill is #f2f2f5 on a #f7f7fa page,
-                         which is 1.05:1 — no edge at all — so those carry a
-                         border and the periwinkle one carries a transparent
-                         border of the same width, to keep every card in the row
-                         exactly the same size. --}}
-                    <div @class([
-                            'flex min-w-[150px] flex-1 flex-col justify-between gap-4 rounded-panel border p-5',
-                            'bg-periwinkle border-transparent' => $i === 0,
-                            'bg-surface-muted border-surface-line' => $i !== 0,
-                         ])>
-                        <div class="flex items-start justify-between gap-2">
-                            <span class="text-nav font-extrabold tracking-[-0.02em]">{{ $g->subject->code }}</span>
-                            <a href="{{ route('student.workspace.show', $g) }}"
-                               class="flex size-[22px] items-center justify-center rounded-pill bg-white/70 text-meta font-bold text-ink-400 hover:text-ink"
-                               aria-label="Open {{ $g->name }} workspace">›</a>
-                        </div>
+                    @php
+                        $items = $announcementsBySubject->get($g->subject_id, collect());
+                        $unreadIds = $items->pluck('id')->reject(fn ($id) => $readIds->contains($id))->values();
+                        $colour = \App\Support\SubjectPalette::for($g->subject_id);
+                        // The first card stands out with a 2px ring in its accent, not a heavier fill.
+                        $style = "background-color: {$colour['bg']}; border-color: {$colour['border']};".($i === 0 ? " box-shadow: 0 0 0 2px {$colour['accent']};" : '');
+                    @endphp
+                    <div class="flex min-w-[150px] flex-1 flex-col rounded-panel border text-ink"
+                         style="{{ $style }}" data-subject-card data-palette="{{ $colour['name'] }}">
 
-                        <div class="flex flex-col gap-1">
-                            <span class="text-label font-semibold text-ink/[.6]">{{ $g->subject->name }}</span>
-                            <span class="text-h2 font-extrabold leading-[1.1] tracking-title">
-                                {{ $g->tasks_total }} {{ Str::plural('task', $g->tasks_total) }}
+                        <a href="{{ route('student.workspace.show', $g) }}"
+                           class="motion-colors flex flex-col justify-between gap-4 rounded-panel p-5 hover:bg-white/50"
+                           aria-label="Open {{ $g->name }} workspace, {{ $g->subject->code }}">
+                            <span class="flex items-start justify-between gap-2">
+                                <span class="rounded-pill px-2.5 py-0.5 text-nav font-extrabold tracking-[-0.02em]" style="background-color: {{ $colour['accent'] }};">{{ $g->subject->code }}</span>
+                                <span class="flex size-[22px] items-center justify-center rounded-pill bg-white/80 text-meta font-bold text-ink-600" aria-hidden="true">›</span>
                             </span>
-                        </div>
 
-                        <div class="flex flex-wrap items-center justify-between gap-1.5 text-label font-semibold text-ink/[.6]">
-                            <span>{{ $g->name }}</span>
-                            <span>{{ $g->tasks_done }} done</span>
-                        </div>
+                            <span class="flex flex-col gap-1">
+                                <span class="truncate text-label font-semibold text-ink-600">{{ $g->subject->name }}</span>
+                                <span class="text-h2 font-extrabold leading-[1.1] tracking-title">
+                                    {{ $g->tasks_total }} {{ Str::plural('task', $g->tasks_total) }}
+                                </span>
+                            </span>
+
+                            <span class="flex flex-wrap items-center justify-between gap-1.5 text-label font-semibold text-ink-600">
+                                <span class="min-w-0 truncate">{{ $g->name }}</span>
+                                <span>{{ $g->tasks_done }} done</span>
+                            </span>
+                        </a>
+
+                        <x-announcement-strip :items="$items" :colour="$colour" :suffix="$g->id" :subject-id="$g->subject_id"
+                                              :unread-ids="$unreadIds" :read-url="route('student.announcements.read')" />
                     </div>
                 @endforeach
             </section>
-
             {{-- What each subject actually asked for. Sits directly under the
                  group cards, because a deadline nobody sees until they open a
                  workspace is one they find out about late. --}}
@@ -104,53 +114,107 @@
                 <x-button variant="secondary" :href="route('student.chat.show', $primaryGroup)" icon="chat">Group chat</x-button>
             </section>
 
-            <div class="grid gap-[18px] lg:grid-cols-3">
+            {{-- Two panels of the same height, side by side (stacked on a narrow screen). Each has a header,
+                 a body that fills the space, and a footer with its one link. --}}
+            <div class="grid gap-[18px] lg:h-[26rem] lg:grid-cols-3 lg:items-stretch" data-bottom-panels>
 
-                {{-- Pending tasks --}}
-                <section class="flex flex-col gap-3 lg:col-span-2">
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                        <h2 class="text-h3 font-extrabold tracking-title">My pending tasks</h2>
-                        <x-button variant="secondary" :href="route('student.board.show', $primaryGroup)">Open board</x-button>
+                {{-- Pending tasks: up to five, in columns that line up. --}}
+                <section class="flex min-h-[23.75rem] flex-col overflow-hidden rounded-panel border border-surface-line bg-surface shadow-subtle lg:col-span-2" aria-label="My pending tasks">
+                    <h2 class="px-5 pb-2 pt-4 text-h3 font-extrabold tracking-title">My pending tasks</h2>
+
+                    @php
+                        $shownTasks = $pendingTasks->take(5);
+                        // Three columns of fixed width beside the flexible one; stacked rows below the md breakpoint.
+                        $cols = 'md:grid md:grid-cols-[minmax(0,1fr)_5.5rem_13rem_6.5rem] md:items-center md:gap-x-4';
+                        $soonWithin = (int) config('notifications.deadline_reminder_days', 2);
+                    @endphp
+
+                    <div class="flex min-h-0 flex-1 flex-col">
+                        @if ($shownTasks->isNotEmpty())
+                            <div class="hidden px-5 pb-1.5 text-label font-bold uppercase tracking-eyebrow text-ink-300 md:grid md:grid-cols-[minmax(0,1fr)_5.5rem_13rem_6.5rem] md:gap-x-4" aria-hidden="true" data-pending-head>
+                                <span>Task</span><span>Subject</span><span>Deadline</span><span>Status</span>
+                            </div>
+
+                            <ul class="flex flex-col divide-y divide-surface-line/60" data-pending-list>
+                                @foreach ($shownTasks as $task)
+                                    @php
+                                        $days = $task->deadline ? now()->startOfDay()->diffInDays($task->deadline->copy()->startOfDay(), false) : null;
+                                        $late = $days !== null && $days < 0;
+                                        $soon = $days !== null && ! $late && $days <= $soonWithin;
+                                    @endphp
+                                    <li @class([
+                                            'motion-colors relative flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 py-3',
+                                            $cols,
+                                            'bg-danger-bg/40 hover:bg-danger-bg/70' => $late,
+                                            'bg-warning-bg/50 hover:bg-warning-bg/80' => $soon,
+                                            'hover:bg-surface-soft' => ! $late && ! $soon,
+                                        ])
+                                        data-pending-row @if ($late) data-state="overdue" @elseif ($soon) data-state="soon" @endif>
+                                        @if ($late || $soon)
+                                            <span @class(['absolute inset-y-1.5 left-0 w-1 rounded-r-pill', 'bg-danger/50' => $late, 'bg-warning/60' => $soon]) aria-hidden="true" data-row-bar></span>
+                                        @endif
+
+                                        <a href="{{ route('student.board.show', $task->group) }}"
+                                           class="interactive flex min-w-0 basis-full flex-col rounded-md md:basis-auto">
+                                            <span class="truncate text-nav font-bold">{{ $task->title }}</span>
+                                            <span class="truncate text-label text-ink-400">{{ $task->group->name }}</span>
+                                        </a>
+
+                                        <span class="justify-self-start"><x-badge tone="info" :title="$task->group->subject->name">{{ $task->group->subject->code }}</x-badge></span>
+
+                                        <span class="flex items-center gap-2 whitespace-nowrap" data-deadline>
+                                            @if ($task->deadline)
+                                                <span class="text-meta font-medium tabular-nums text-ink-600" title="{{ $task->deadline->format('j F Y') }}">{{ $task->deadline->format('j M Y') }}</span>
+                                                @if ($late)
+                                                    <span class="inline-flex items-center gap-1 rounded-pill bg-danger-bg px-2 py-0.5 text-label font-bold text-danger-text" data-deadline-badge="overdue">
+                                                        <x-icon name="clock" size="11" />Overdue
+                                                    </span>
+                                                @elseif ($soon)
+                                                    <span class="inline-flex items-center gap-1 rounded-pill bg-warning-bg px-2 py-0.5 text-label font-bold text-warning-text" data-deadline-badge="soon">
+                                                        <x-icon name="calendar" size="11" />{{ $days === 0 ? 'Due today' : 'Due in '.$days.' '.Str::plural('day', $days) }}
+                                                    </span>
+                                                @endif
+                                            @else
+                                                <span class="text-meta text-ink-300">—</span>
+                                            @endif
+                                        </span>
+
+                                        <span class="justify-self-start">
+                                            <x-badge :tone="$task->status === 'inprogress' ? 'info' : 'neutral'">
+                                                {{ $task->status === 'inprogress' ? 'In progress' : 'To do' }}
+                                            </x-badge>
+                                        </span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        {{-- Its own mint box, not a line under the list: what is left of the panel when there are fewer than five. --}}
+                        @if ($shownTasks->count() < 5)
+                            <div class="flex flex-1 px-5 pb-4 pt-4" data-pending-box>
+                                <div class="flex flex-1 flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-success-line bg-success-bg px-5 py-6 text-center" data-pending-empty>
+                                    <span class="flex size-10 items-center justify-center rounded-pill bg-surface text-success-text">
+                                        <x-icon name="check" size="18" />
+                                    </span>
+                                    <span class="text-meta font-semibold text-success-text">
+                                        {{ $shownTasks->isEmpty() ? 'You have no pending tasks.' : 'Nothing else pending. Nice work.' }}
+                                    </span>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
-                    <x-data-table :headings="['Task', 'Group', 'Deadline', 'Status']"
-                                  empty="Nothing assigned to you is outstanding.">
-                        @foreach ($pendingTasks as $task)
-                            <tr>
-                                <td>
-                                    <x-table.stack :href="route('student.board.show', $task->group)">
-                                        <x-slot:primary>{{ $task->title }}</x-slot:primary>
-                                        {{ $task->group->name }}
-                                    </x-table.stack>
-                                </td>
-
-                                <td>
-                                    <x-badge tone="info" :title="$task->group->subject->name">
-                                        {{ $task->group->subject->code }}
-                                    </x-badge>
-                                </td>
-
-                                <td>
-                                    <x-table.date :date="$task->deadline" :soon-within="null" />
-                                </td>
-
-                                <td>
-                                    <x-badge :tone="$task->status === 'inprogress' ? 'info' : 'neutral'">
-                                        {{ $task->status === 'inprogress' ? 'In progress' : 'To do' }}
-                                    </x-badge>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </x-data-table>
+                    <div class="border-t border-surface-line px-5 py-3">
+                        <x-button variant="secondary" class="!px-4 !py-2 !text-meta" :href="route('student.board.show', $primaryGroup)">Open board</x-button>
+                    </div>
                 </section>
+                {{-- Recent chat: scrolls inside its panel. --}}
+                <section class="flex min-h-[23.75rem] flex-col overflow-hidden rounded-panel border border-surface-line bg-surface shadow-subtle" aria-label="Recent chat">
+                    <h2 class="px-5 pb-2 pt-4 text-h3 font-extrabold tracking-title">Recent chat</h2>
 
-                {{-- Recent chat --}}
-                <section class="flex flex-col gap-3">
-                    <h2 class="text-h3 font-extrabold tracking-title">Recent chat</h2>
-
-                    <div class="flex flex-1 flex-col gap-2.5 rounded-panel border border-surface-line bg-surface-soft p-4">
+                    <div class="flex max-h-[26rem] min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pb-3" data-chat-list>
                         @forelse ($recentMessages as $message)
-                            <article class="flex items-start gap-2.5 rounded-card bg-surface p-3.5">
+                            <article class="flex items-start gap-2.5 rounded-card bg-surface-soft p-3.5">
                                 <x-avatar :name="$message->user->name" size="sm" />
                                 <div class="flex min-w-0 flex-1 flex-col gap-0.5">
                                     <div class="flex items-baseline justify-between gap-2">
@@ -171,10 +235,17 @@
                                 </div>
                             </article>
                         @empty
-                            <p class="px-2 py-6 text-center text-meta text-ink-400">
-                                No messages in your groups yet.
-                            </p>
+                            <div class="flex flex-1 flex-col items-center justify-center gap-2 px-2 py-6 text-center">
+                                <span class="flex size-11 items-center justify-center rounded-pill bg-surface-muted text-ink-300">
+                                    <x-icon name="chat" size="20" />
+                                </span>
+                                <span class="text-meta font-semibold text-ink-400">No messages in your groups yet.</span>
+                            </div>
                         @endforelse
+                    </div>
+
+                    <div class="border-t border-surface-line px-5 py-3">
+                        <x-button variant="secondary" class="!px-4 !py-2 !text-meta" :href="route('student.chat.show', $primaryGroup)">Open chat</x-button>
                     </div>
                 </section>
             </div>

@@ -11,6 +11,7 @@
         'deadline' => 'calendar',
         'mention' => 'chat',
         'project_deadline' => 'book',
+        'announcement' => 'inbox',
         // Lecturer
         'group_completed' => 'check',
         // Administrator
@@ -32,6 +33,7 @@
         'account_activated' => 'bg-success-bg text-success-text',
         'account_created' => 'bg-periwinkle-soft text-periwinkle-link',
         'project_deadline' => 'bg-periwinkle-soft text-periwinkle-link',
+        'announcement' => 'bg-periwinkle-soft text-periwinkle-link',
     ];
 @endphp
 
@@ -113,7 +115,7 @@
                  a long way from the line that caused it. --}}
             @foreach ($group as $notification)
                 @php($removeBody = Str::limit($notification->message, 120).' — this removes the notification only; whatever it refers to is untouched.')
-                <article wire:key="n-{{ $notification->id }}"
+                <article wire:key="n-{{ $notification->id }}" data-cs-item
                          class="flex flex-wrap items-center gap-3.5 rounded-card px-4 py-3.5 transition-colors
                                 {{ $notification->is_read ? 'border border-surface-line bg-surface-soft' : 'border border-surface-line bg-surface shadow-subtle' }}">
 

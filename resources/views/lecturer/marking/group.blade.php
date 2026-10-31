@@ -32,17 +32,12 @@
 
             <section class="flex flex-wrap items-center gap-3 rounded-panel border border-surface-line bg-surface p-5 shadow-subtle">
                 <div class="flex min-w-[240px] flex-1 flex-col gap-1">
-                    <h2 class="text-nav font-bold">Suggestions</h2>
+                    <h2 class="text-nav font-bold">Suggested levels</h2>
                     <p class="text-meta leading-[1.5] text-ink-400" data-ai-status>
                         @if ($suggested)
-                            @if ($ai['enabled'])
-                                Rule-based suggestions, and AI suggestions from {{ $ai['label'] }}. Both are advice: you choose every level.
-                                Refreshing takes a few seconds for each student, and you can leave this page while it runs.
-                            @else
-                                Rule-based suggestions only. {{ $ai['reason'] }}
-                            @endif
+                            We suggest a level for each criterion from what every student did in the group. You make the final decision.
                         @else
-                            This rubric has no System-suggested criteria, so every level is yours to choose.
+                            No criterion in this rubric gets a suggestion, so every level is yours to choose.
                         @endif
                     </p>
                 </div>
@@ -63,20 +58,24 @@
                     @if ($suggested)
                         <form method="POST" action="{{ route('lecturer.marking.accept_all', [$rubric, $group]) }}">
                             @csrf
-                            <x-button type="submit" icon="check" data-accept-all>Accept suggestions for all students</x-button>
+                            <x-button type="submit" icon="check" data-accept-all
+                                      title="Fills in the suggested level for every student who is not approved yet. It does not approve anything.">Use all suggestions</x-button>
                         </form>
                     @endif
 
-                    <x-button variant="secondary" :href="route('lecturer.marking.export', [$rubric, $group])" icon="file">Export evidence report</x-button>
+                    <x-button variant="secondary" :href="route('lecturer.marking.export', [$rubric, $group])" icon="file">Download evidence report</x-button>
                 </div>
             </section>
 
             @if ($suggested)
                 {{-- Progress: one line per student, and a plain message for anything that went wrong. --}}
-                <section x-show="started" x-cloak aria-live="polite" data-progress
+                <section x-show="started" x-cloak x-transition:enter="cs-t-enter" x-transition:enter-start="cs-t-from" x-transition:enter-end="cs-t-to" x-transition:leave="cs-t-leave" x-transition:leave-start="cs-t-to" x-transition:leave-end="cs-t-from" aria-live="polite" data-progress
                          class="flex flex-col gap-3 rounded-panel border border-surface-line bg-surface p-5 shadow-subtle">
                     <div class="flex flex-wrap items-center justify-between gap-2">
-                        <p class="text-nav font-bold" x-text="headline"></p>
+                        <div class="flex min-w-0 flex-col gap-0.5">
+                            <p class="text-nav font-bold" x-text="headline"></p>
+                            <p class="text-label leading-[1.45] text-ink-400" x-show="running" x-cloak data-leave-note>If you leave, the students already done stay done. Refresh again to finish.</p>
+                        </div>
                         <div class="flex items-center gap-2">
                             <span class="text-meta font-semibold tabular-nums text-ink-400" x-text="finishedCount + ' of ' + total"></span>
                             <button type="button" x-show="running" x-on:click="stop()"
@@ -89,7 +88,7 @@
                     </div>
 
                     <div class="h-1.5 w-full overflow-hidden rounded-pill bg-surface-muted" role="progressbar"
-                         aria-label="Suggestions generated" aria-valuemin="0" aria-valuemax="100" x-bind:aria-valuenow="percent">
+                         aria-label="Progress" aria-valuemin="0" aria-valuemax="100" x-bind:aria-valuenow="percent">
                         <div class="h-full rounded-pill bg-ink" x-bind:style="'width: ' + percent + '%'"></div>
                     </div>
 
@@ -112,14 +111,14 @@
 
                                     <span class="text-label leading-[1.45] text-ink-400" x-show="item.state === 'waiting'">Waiting</span>
                                     <span class="text-label leading-[1.45] text-ink-400" x-show="item.state === 'working'"
-                                          x-text="item.attempt > 1 ? 'Asking again (attempt ' + item.attempt + ')…' : 'Working on this one…'"></span>
+                                          x-text="item.attempt > 1 ? 'Trying again (try ' + item.attempt + ')…' : 'Working on it…'"></span>
                                     <span class="text-label leading-[1.45] text-ink-400" x-show="item.state === 'skipped'" x-text="item.note"></span>
                                     <span class="text-label leading-[1.45] text-warning-text" x-show="item.state === 'pausing'" x-text="item.note"></span>
                                     <span class="text-label leading-[1.45] text-danger-text" x-show="item.state === 'failed'" x-text="item.note"></span>
 
                                     <span class="text-label leading-[1.45] text-ink-400" x-show="item.state === 'done'">
                                         <template x-if="item.counts">
-                                            <span x-text="item.counts.ai + ' from the AI, ' + item.counts.rule_based + ' rule-based' + (item.counts.insufficient ? ', ' + item.counts.insufficient + ' with too little group activity' : '')"></span>
+                                            <span x-text="item.counts.ai + ' with the AI\'s view, ' + item.counts.rule_based + ' from the numbers only' + (item.counts.insufficient ? ', ' + item.counts.insufficient + ' without enough activity to compare' : '')"></span>
                                         </template>
                                         <span x-show="item.note" x-text="' ' + item.note"></span>
                                     </span>
@@ -138,7 +137,7 @@
         @if ($locked)
             <p class="flex items-start gap-2 text-label leading-[1.5] text-ink-400">
                 <x-icon name="lock" size="14" class="mt-0.5 shrink-0 text-ink-300" />
-                Some marks are approved against this rubric version, so its evidence types and criterion modes are fixed.
+                Some marks are already approved, so who decides each criterion, and what its suggestion is based on, can no longer be changed.
             </p>
         @endif
 
@@ -201,7 +200,7 @@
 
         <p class="text-label leading-[1.5] text-ink-400">
             A total appears only when every criterion that counts has a level you chose. Until then it reads
-            incomplete, with the marks so far, except where a section is scaled from its System-suggested criteria: that has no figure until they are all chosen. Flags count criteria where the rule-based and AI suggestions are more than one level apart.
+            incomplete, with the marks so far, except where a section is scaled from its System-suggested criteria: that has no figure until they are all chosen. Flags count criteria where the two suggestions are more than one level apart.
         </p>
     </div>
 

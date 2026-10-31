@@ -152,8 +152,8 @@ final class EvidenceType
     {
         return [
             'attitude' => 'This looks like a judgement about attitude or quality, which recorded activity cannot measure. Consider setting the criterion to Manual.',
-            'reliability' => 'The wording mentions deadlines or reliability. Reliability (deadlines) is probably the better evidence type.',
-            'mismatch' => 'The wording looks more like :label. Check this is the evidence type you want.',
+            'reliability' => 'The wording mentions deadlines or reliability. Reliability (deadlines) is probably the better choice.',
+            'mismatch' => 'The wording looks more like :label. Check this is what you want.',
         ];
     }
 

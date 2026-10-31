@@ -411,16 +411,20 @@ class GroupChatTest extends TestCase
         $this->assertStringNotContainsString('h-px flex-1 bg-surface-line', $html);
     }
 
-    public function test_own_messages_are_labelled_differently_from_others(): void
+    public function test_my_messages_are_unlabelled_and_have_no_avatar_while_theirs_name_the_sender(): void
     {
         Message::create(['group_id' => $this->group->id, 'user_id' => $this->me->id, 'body' => 'Mine']);
         Message::create(['group_id' => $this->group->id, 'user_id' => $this->mate->id, 'body' => 'Theirs']);
 
-        $this->board()
-            ->assertSee('You')
-            ->assertSee($this->mate->name);
-    }
+        $html = $this->board()->html();
 
+        $this->assertStringNotContainsString('>You<', preg_replace('/\s+/', '', $html), 'No "You" label on my own messages.');
+        $this->assertSame(1, substr_count($html, 'data-sender'), 'Only the other person is named.');
+        $this->assertStringContainsString(e($this->mate->name), $html);
+        $this->assertStringContainsString('border border-periwinkle-deep/60 bg-periwinkle-soft text-ink', $html, 'Mine: a soft periwinkle bubble, not black.');
+        $this->assertStringNotContainsString('bg-ink text-white', substr($html, strpos($html, 'role="log"'), strpos($html, 'data-composer') - strpos($html, 'role="log"')));
+        $this->assertStringContainsString('border border-surface-line bg-surface text-ink shadow-subtle', $html, 'Theirs: white, thin border, light shadow.');
+    }
     public function test_the_thread_polls_rather_than_using_websockets(): void
     {
         $this->actingAs($this->me)
@@ -611,51 +615,90 @@ class GroupChatTest extends TestCase
         $this->board()->assertSee($tone['name'], escape: false);
     }
 
-    public function test_a_mates_message_text_carries_their_colour(): void
+    public function test_a_mates_name_and_avatar_carry_their_colour_and_their_text_stays_dark(): void
     {
         Message::create(['group_id' => $this->group->id, 'user_id' => $this->mate->id, 'body' => 'Their line']);
 
         $tone = MemberColour::for($this->mate->id);
         $html = $this->board()->html();
 
-        // The colour has to be on the paragraph itself, not only the name
-        // above it — that is the whole point of the change.
-        $this->assertMatchesRegularExpression(
-            '/<p[^>]*'.preg_quote($tone['name'], '/').'[^>]*>\s*Their line/',
-            $html,
-        );
+        $this->assertMatchesRegularExpression('/<span[^>]*'.preg_quote($tone['name'], '/').'[^>]*data-sender>\s*'.preg_quote($this->mate->name, '/').'/', $html);
+        $this->assertStringContainsString($tone['avatar'], $html);
+        $this->assertDoesNotMatchRegularExpression('/<p[^>]*'.preg_quote($tone['name'], '/').'[^>]*>\s*Their line/', $html, 'The words themselves are ink, easy to read on white.');
     }
 
-    public function test_my_own_message_text_stays_on_the_dark_bubble(): void
+    public function test_a_run_from_one_person_shows_the_name_and_avatar_once_and_the_time_once_at_the_end(): void
     {
-        Message::create(['group_id' => $this->group->id, 'user_id' => $this->me->id, 'body' => 'My line']);
+        foreach (['One', 'Two', 'Three'] as $i => $word) {
+            $m = Message::create(['group_id' => $this->group->id, 'user_id' => $this->mate->id, 'body' => $word]);
+            $m->forceFill(['created_at' => now()->subMinutes(10 - $i)])->save();
+        }
+        Message::create(['group_id' => $this->group->id, 'user_id' => $this->me->id, 'body' => 'Reply']);
 
-        $tone = MemberColour::for($this->me->id);
         $html = $this->board()->html();
 
-        // A member hue on the dark bubble would fail contrast, so own
-        // messages keep the white-on-ink treatment.
-        $this->assertDoesNotMatchRegularExpression(
-            '/<p[^>]*'.preg_quote($tone['name'], '/').'[^>]*>\s*My line/',
-            $html,
-        );
+        $this->assertSame(1, substr_count($html, 'data-sender'), 'The name leads the run only.');
+        $this->assertSame(2, substr_count($html, 'data-time'), 'One time at the end of each run.');
+        $this->assertStringContainsString('rounded-bl-md', $html, 'Bubbles inside a run are joined by square corners.');
+        $this->assertStringContainsString('rounded-tl-md', $html);
     }
 
-    public function test_your_own_name_carries_your_colour_too(): void
+    public function test_a_few_emoji_on_their_own_are_big_and_have_no_bubble(): void
     {
-        // The name sits on the thread surface, not on the dark bubble, so the
-        // contrast rule above does not reach it. Flat ink there made you the
-        // one person in the group without a colour.
-        Message::create(['group_id' => $this->group->id, 'user_id' => $this->me->id, 'body' => 'My line']);
+        Message::create(['group_id' => $this->group->id, 'user_id' => $this->mate->id, 'body' => '👍🎉']);
+        Message::create(['group_id' => $this->group->id, 'user_id' => $this->mate->id, 'body' => 'Great 👍']);
 
-        $tone = MemberColour::for($this->me->id);
+        $html = $this->board()->html();
 
-        $this->assertMatchesRegularExpression(
-            '/<span[^>]*'.preg_quote($tone['name'], '/').'[^>]*>\s*You\s*<\/span>/',
-            $this->board()->html(),
-        );
+        $this->assertSame(1, substr_count($html, 'data-emoji-only'));
+        $this->assertStringContainsString('text-[2rem]', $html);
+        $this->assertSame(1, substr_count($html, 'data-bubble'), 'Only the sentence is in a bubble.');
     }
 
+    public function test_bubbles_are_capped_and_the_thread_keeps_the_reader_where_they_are(): void
+    {
+        Message::create(['group_id' => $this->group->id, 'user_id' => $this->mate->id, 'body' => 'Hello']);
+
+        $html = $this->board()->html();
+
+        $this->assertStringContainsString('max-w-[68%]', $html);
+        $this->assertStringContainsString('MutationObserver', $html);
+        $this->assertStringContainsString('data-new-messages', $html);
+        $this->assertStringContainsString('New messages', $html);
+        $this->assertStringContainsString('x-init="$nextTick(() => { toBottom(); watch() })"', $html, 'Opens at the latest message.');
+    }
+
+    public function test_the_composer_is_one_bar_with_enter_to_send_and_a_short_help_line(): void
+    {
+        $html = $this->board()->html();
+
+        $this->assertStringContainsString('data-composer', $html);
+        $this->assertStringContainsString('rounded-[24px]', $html);
+        $this->assertStringContainsString('$wire.send()', $html);
+        $this->assertStringContainsString('! $event.shiftKey', $html, 'Shift+Enter makes a new line.');
+        $this->assertStringContainsString('Math.min($el.scrollHeight, 144)', $html, 'It grows with the text, up to a limit.');
+        $this->assertStringContainsString('PDF, Word, Excel, PowerPoint, PNG, JPG, ZIP · up to 10 MB · private to '.$this->group->name.'.', $html);
+    }
+
+    public function test_a_file_is_a_compact_card_with_a_download_link_and_no_black_block(): void
+    {
+        Message::create([
+            'group_id' => $this->group->id, 'user_id' => $this->me->id, 'body' => 'The report',
+            'file_path' => 'group-files/'.$this->group->id.'/'.str_repeat('c', 40).'.pdf', 'file_name' => 'report.pdf', 'file_size' => 2048,
+        ]);
+
+        $html = $this->board()->html();
+
+        $this->assertStringContainsString('data-file-card', $html);
+        $this->assertStringContainsString('report.pdf', $html);
+        $this->assertStringContainsString('2 KB', $html);
+        $this->assertStringContainsString('data-download-icon', $html, 'A download icon, not the word.');
+        $this->assertStringContainsString('title="Download report.pdf"', $html);
+        $this->assertStringContainsString('<span class="sr-only">Download report.pdf</span>', $html, 'Still named for screen readers.');
+        $this->assertDoesNotMatchRegularExpression('/>\s*Download\s*<\/span>/', $html);
+        $this->assertStringContainsString('bg-white/70', $html, 'A soft card on the bubble, not a black block.');
+        $this->assertStringNotContainsString('bg-white/10', $html);
+    }
     /*
     | Image attachments
     */

@@ -196,8 +196,7 @@ class FactsAndBaselineTest extends TestCase
         $this->assertSame('ok', $result['status']);
         $this->assertSame(0.5, $result['ratio']);
         $this->assertSame(102, $result['level_id']);   // third of four
-        $this->assertStringContainsString('Completed 2 of 4 assigned tasks (50%)', $result['note']);
-        $this->assertStringContainsString('level 3 of 4', $result['note']);
+        $this->assertSame('Finished 2 of 4 tasks (50%).', $result['note']);
     }
 
     public function test_reliability_is_on_time_over_assigned_with_nothing_subtracted_twice(): void
@@ -209,7 +208,7 @@ class FactsAndBaselineTest extends TestCase
         $result = app(Baseline::class)->suggest(EvidenceType::RELIABILITY, $facts, $this->levels(4));
 
         $this->assertSame(0.5, $result['ratio']);
-        $this->assertStringContainsString('1 of 2 assigned tasks was completed on time; 1 is overdue now (50%).', $result['note']);
+        $this->assertStringContainsString('1 of 2 tasks was done on time and 1 is overdue now (50% on time).', $result['note']);
         $this->assertStringNotContainsString('after counting', $result['note']);
     }
 
@@ -221,7 +220,7 @@ class FactsAndBaselineTest extends TestCase
         $result = app(Baseline::class)->suggest(EvidenceType::RELIABILITY, $facts, $this->levels(4));
 
         $this->assertSame(0.5, $result['ratio'], 'Only on-time work is in the numerator.');
-        $this->assertStringContainsString('2 of 4 assigned tasks were completed on time, 1 completed late (3 days late) (50%).', $result['note']);
+        $this->assertStringContainsString('2 of 4 tasks were done on time and 1 was late (3 days) (50% on time).', $result['note']);
     }
 
     public function test_overdue_tasks_never_move_the_ratio_only_the_sentence(): void
@@ -260,7 +259,7 @@ class FactsAndBaselineTest extends TestCase
 
         $this->assertEqualsWithDelta($ratio, $result['ratio'], 0.0001);
         $this->assertSame(100 + $level - 1, $result['level_id'], "{$label}");
-        $this->assertStringContainsString("level {$level} of 4", $result['note']);
+        $this->assertStringNotContainsString('This places it at level', $result['note']);
     }
 
     public function test_communication_and_collaboration_are_relative_to_the_group_average(): void
@@ -268,7 +267,7 @@ class FactsAndBaselineTest extends TestCase
         $comm = app(Baseline::class)->suggest(EvidenceType::COMMUNICATION, $this->facts4(['messages_sent' => 10]), $this->levels(4));
         $this->assertSame(2.0, $comm['ratio']);
         $this->assertSame(103, $comm['level_id']);
-        $this->assertStringContainsString('Sent 10 messages against a group average of 5', $comm['note']);
+        $this->assertStringContainsString("Sent 10 messages. The group's average is 5.", $comm['note']);
 
         $collab = app(Baseline::class)->suggest(EvidenceType::COLLABORATION, $this->facts4(['document_edits' => 1, 'files_uploaded' => 1, 'group_average' => ['document_edits' => 1, 'files_uploaded' => 1]]), $this->levels(4));
         $this->assertSame(1.0, $collab['ratio']);

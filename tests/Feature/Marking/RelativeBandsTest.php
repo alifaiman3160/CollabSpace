@@ -115,7 +115,7 @@ class RelativeBandsTest extends TestCase
 
         $this->assertSame('ok', $result['status']);
         $this->assertSame(100 + $expectedLevel, $result['level_id'], "{$messages} against an average of {$average}");
-        $this->assertStringContainsString('level '.$expectedLevel.' of 5', $result['note']);
+        $this->assertStringNotContainsString('This places it at level', $result['note'], 'The level has its own line on the page.');
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('counts')]

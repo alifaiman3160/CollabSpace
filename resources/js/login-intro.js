@@ -51,6 +51,13 @@ export default () => ({
  * desktop. If this never runs the backdrop is just the still blobs.
  */
 export const loginBackdrop = () => ({
+    cleanups: [],
+
+    destroy() {
+        this.cleanups.forEach((undo) => undo());
+        this.cleanups = [];
+    },
+
     init() {
         const bg = this.$el;
         const root = document.documentElement;
@@ -63,6 +70,7 @@ export const loginBackdrop = () => ({
 
         const sync = () => bg.classList.toggle('cs-bg--paused', document.hidden);
         document.addEventListener('visibilitychange', sync);
+        this.cleanups.push(() => document.removeEventListener('visibilitychange', sync));
         sync();
 
         // Parallax: desktop with a real pointer only, at most 14px.
@@ -70,7 +78,7 @@ export const loginBackdrop = () => ({
 
         let frame = 0;
 
-        window.addEventListener('mousemove', (event) => {
+        const move = (event) => {
             if (frame || document.hidden) return;
 
             frame = requestAnimationFrame(() => {
@@ -78,6 +86,9 @@ export const loginBackdrop = () => ({
                 bg.style.setProperty('--px', (event.clientX / window.innerWidth - 0.5) * 2);
                 bg.style.setProperty('--py', (event.clientY / window.innerHeight - 0.5) * 2);
             });
-        }, { passive: true });
+        };
+
+        window.addEventListener('mousemove', move, { passive: true });
+        this.cleanups.push(() => window.removeEventListener('mousemove', move));
     },
 });

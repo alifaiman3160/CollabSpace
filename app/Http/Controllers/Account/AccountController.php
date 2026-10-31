@@ -3,6 +3,11 @@
 namespace App\Http\Controllers\Account;
 
 use App\Http\Controllers\Controller;
+use App\Models\Group;
+use App\Models\GroupMember;
+use App\Models\Subject;
+use App\Models\Task;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,7 +28,46 @@ class AccountController extends Controller
 {
     public function edit(): View
     {
-        return view('account.edit', ['user' => auth()->user()]);
+        $user = auth()->user();
+
+        return view('account.edit', ['user' => $user, 'stats' => $this->stats($user)]);
+    }
+
+    /**
+     * The small numbers on the profile card: the signed-in user's own, with the same meaning as on their dashboard,
+     * and a fixed handful of count queries whatever they own. An administrator has none beyond "Member since".
+     *
+     * @return list<array{label: string, value: int}>
+     */
+    protected function stats(User $user): array
+    {
+        if ($user->isStudent()) {
+            $groupIds = $user->groupMemberships()->select('group_id');
+
+            return [
+                ['label' => 'Groups', 'value' => $user->groupMemberships()->count()],
+                // "Completed by me": tasks of my groups assigned to me and done.
+                ['label' => 'Tasks completed', 'value' => Task::query()
+                    ->whereIn('group_id', $groupIds)
+                    ->where('assigned_to', $user->id)
+                    ->where('status', Task::STATUS_DONE)
+                    ->count()],
+            ];
+        }
+
+        if ($user->isLecturer()) {
+            $subjects = Subject::query()->where('lecturer_id', $user->id);
+            $groups = Group::query()->whereIn('subject_id', (clone $subjects)->select('id'));
+
+            return [
+                ['label' => 'Subjects', 'value' => (clone $subjects)->count()],
+                ['label' => 'Groups', 'value' => (clone $groups)->count()],
+                // A student in several of the lecturer's groups counts once.
+                ['label' => 'Students', 'value' => GroupMember::query()->whereIn('group_id', (clone $groups)->select('id'))->distinct()->count('user_id')],
+            ];
+        }
+
+        return [];
     }
 
     public function update(Request $request): RedirectResponse

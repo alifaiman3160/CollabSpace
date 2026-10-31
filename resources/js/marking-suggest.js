@@ -2,12 +2,12 @@
  * "Refresh suggestions" on the group marking page.
  *
  * Works through the group one student at a time. Each student is one small
- * request to the server, which makes at most one provider call and answers well
+ * request to the server, which makes at most one AI call and answers well
  * inside half a minute, so nothing here waits on a whole group inside a single
- * request. If the provider says to slow down (a 429), the server does not sleep:
+ * request. If the AI service says to slow down (a 429), the server does not sleep:
  * it says how long, and this waits that long in the page and asks again, up to a
  * few times, before marking that student failed with a Retry button. A failed
- * student still has their rule-based suggestions; only the AI part is missing.
+ * student still has their suggestions from the numbers; only the AI part is missing.
  *
  * Nothing is held on the server between students, so the lecturer can leave the
  * page at any point and come back: whoever was finished stays finished.
@@ -25,7 +25,7 @@ export default (config) => ({
         url: student.url,
         // waiting | working | pausing | done | failed | skipped
         state: student.approved ? 'skipped' : 'waiting',
-        note: student.approved ? 'Approved, left as it is.' : '',
+        note: student.approved ? 'Approved, so left as it is.' : '',
         attempt: 0,
         wait: 0,
         counts: null,
@@ -57,15 +57,15 @@ export default (config) => ({
         return this.total === 0 ? 0 : Math.round((this.finishedCount / this.total) * 100)
     },
 
-    /** "Generating 2 of 4: Farah Aqilah Roslan", "Done", or "Done, with 1 problem". */
+    /** "Working on it... 2 of 4: Farah Aqilah Roslan", "Done", or "Done, with 1 problem". */
     get headline() {
         if (this.running && this.current !== null) {
             const position = this.items.findIndex((item) => item.id === this.current) + 1
 
-            return `Generating ${position} of ${this.total}: ${this.items[position - 1].name}`
+            return `Working on it... ${position} of ${this.total}: ${this.items[position - 1].name}`
         }
 
-        if (this.running) return 'Working…'
+        if (this.running) return 'Working on it...'
 
         if (this.stopped) return `Stopped after ${this.finishedCount} of ${this.total}`
 
@@ -141,7 +141,7 @@ export default (config) => ({
                     Object.assign(item, {
                         state: 'failed',
                         ruleOnly: true,
-                        note: `The AI provider is still asking us to slow down. ${item.name} keeps their rule-based suggestions; try again in a minute.`,
+                        note: `The AI is still busy. ${item.name} keeps the suggestions from the numbers. Try again in a minute.`,
                     })
 
                     return
@@ -166,7 +166,7 @@ export default (config) => ({
             if (this.stopped) return
 
             item.wait = left
-            item.note = `The AI provider asked us to slow down. Trying ${item.name} again in ${left} ${left === 1 ? 'second' : 'seconds'} (attempt ${attempt + 1} of ${this.maxAttempts}).`
+            item.note = `The AI is busy. Trying ${item.name} again in ${left} ${left === 1 ? 'second' : 'seconds'} (try ${attempt + 1} of ${this.maxAttempts}).`
 
             await new Promise((resolve) => setTimeout(resolve, 1000))
         }
@@ -183,20 +183,20 @@ export default (config) => ({
                 break
 
             case 'skipped':
-                Object.assign(item, { state: 'skipped', note: result.message || 'Approved, left as it is.' })
+                Object.assign(item, { state: 'skipped', note: result.message || 'Approved, so left as it is.' })
                 break
 
             case 'disabled':
             case 'limited':
-                // Not a failure: the rule-based suggestions were made, and the AI was not available.
-                Object.assign(item, { state: 'done', ruleOnly: true, note: result.message || 'AI suggestions are not available.' })
+                // Not a failure: the suggestions from the numbers were made, and the AI's view was not available.
+                Object.assign(item, { state: 'done', ruleOnly: true, note: result.message || "The AI's view is not available." })
                 break
 
             default:
                 Object.assign(item, {
                     state: 'failed',
                     ruleOnly: true,
-                    note: `${result.message || 'The AI provider could not answer.'} ${item.name} keeps their rule-based suggestions.`,
+                    note: `${result.message || 'The AI could not answer.'} ${item.name} keeps the suggestions from the numbers.`,
                 })
         }
     },

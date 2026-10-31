@@ -413,11 +413,21 @@ class TaskBoard extends Component
 
         $byStatus = $tasks->groupBy('status');
 
+        // Done: the most recently completed first. Anything without a completion time keeps its place after those.
+        $done = $byStatus->get(Task::STATUS_DONE, collect())->values()->sort(function (Task $a, Task $b) {
+            return match (true) {
+                $a->completed_at !== null && $b->completed_at !== null => $b->completed_at <=> $a->completed_at,
+                $a->completed_at !== null => -1,
+                $b->completed_at !== null => 1,
+                default => 0,
+            };
+        })->values();
+
         return view('livewire.task-board', [
             'columns' => [
                 Task::STATUS_TODO => $byStatus->get(Task::STATUS_TODO, collect()),
                 Task::STATUS_INPROGRESS => $byStatus->get(Task::STATUS_INPROGRESS, collect()),
-                Task::STATUS_DONE => $byStatus->get(Task::STATUS_DONE, collect()),
+                Task::STATUS_DONE => $done,
             ],
             'total' => $tasks->count(),
             'doneCount' => $byStatus->get(Task::STATUS_DONE, collect())->count(),

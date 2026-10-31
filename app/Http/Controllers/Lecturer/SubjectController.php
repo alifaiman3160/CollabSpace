@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Lecturer;
 
 use App\Http\Requests\Lecturer\StoreSubjectRequest;
 use App\Http\Requests\Lecturer\UpdateSubjectRequest;
+use App\Models\Announcement;
 use App\Models\Group;
 use App\Models\Subject;
+use App\Support\AnnouncementReach;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -19,7 +21,29 @@ class SubjectController extends LecturerController
             ->orderBy('code')
             ->get();
 
-        return view('lecturer.subjects.index', ['subjects' => $subjects]);
+        // Project deadlines, soonest first (an overdue one is the soonest), only for subjects that have one.
+        $deadlines = $subjects
+            ->filter(fn ($subject) => $subject->project_deadline !== null)
+            ->sortBy(fn ($subject) => \Illuminate\Support\Carbon::parse($subject->project_deadline)->startOfDay()->timestamp)
+            ->values();
+
+        // The newest five announcements across these subjects, with how far each has reached: three queries in all.
+        $announcements = Announcement::query()
+            ->whereIn('subject_id', $subjects->modelKeys())
+            ->latest()
+            ->latest('id')
+            ->limit(5)
+            ->get();
+
+        $reach = app(AnnouncementReach::class);
+
+        return view('lecturer.subjects.index', [
+            'subjects' => $subjects,
+            'deadlines' => $deadlines,
+            'announcements' => $announcements,
+            'audience' => $reach->audience($subjects->modelKeys()),
+            'opened' => $reach->opened($announcements->modelKeys()),
+        ]);
     }
 
     public function create(): View
@@ -77,6 +101,11 @@ class SubjectController extends LecturerController
         $groupCount = $subject->groups()->count();
 
         DB::transaction(function () use ($subject) {
+            \App\Models\AppNotification::query()
+                ->where('type', \App\Models\Announcement::TYPE)
+                ->whereIn('reference_id', $subject->announcements()->select('id'))
+                ->delete();
+
             $subject->groups()->cursor()->each(fn (Group $group) => $group->delete());
 
             $subject->delete();

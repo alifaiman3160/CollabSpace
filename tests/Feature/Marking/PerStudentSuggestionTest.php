@@ -188,7 +188,7 @@ class PerStudentSuggestionTest extends TestCase
         $this->assertNotNull($row->baseline_level_id);
         $this->assertNull($row->ai_level_id);
         $this->assertSame('failed', $row->ai_status);
-        $this->assertStringContainsString('rate limit', $row->ai_message);
+        $this->assertStringContainsString('busy', $row->ai_message);
         $this->assertSame('Rule-based', $row->sourceLabel());
     }
 
@@ -308,7 +308,7 @@ class PerStudentSuggestionTest extends TestCase
 
         $this->suggest('s1')->assertOk()
             ->assertJsonPath('status', 'failed')
-            ->assertJson(fn ($json) => $json->where('message', fn ($m) => str_contains($m, 'did not respond'))->etc());
+            ->assertJson(fn ($json) => $json->where('message', fn ($m) => str_contains($m, 'could not answer'))->etc());
 
         $row = $this->row('s1', 'Contribution to tasks');
         $this->assertNotNull($row->baseline_level_id);
@@ -384,7 +384,7 @@ class PerStudentSuggestionTest extends TestCase
         $this->suggest('s1')->assertJsonPath('status', 'done');
 
         $second = $this->suggest('s2')->assertOk()->assertJsonPath('status', 'limited');
-        $this->assertStringContainsString('daily limit of 1', $second->json('message'));
+        $this->assertStringContainsString('limit of 1 AI requests', $second->json('message'));
 
         $this->assertCount(1, FakeDriver::sent(), 'The second student cost no provider call.');
         $this->assertNotNull($this->row('s2', 'Contribution to tasks')->baseline_level_id, 'They still have the rule-based suggestion.');
@@ -487,7 +487,7 @@ class PerStudentSuggestionTest extends TestCase
         $this->assertStringContainsString('animate-spin', $html, 'And shows a spinner.');
         $this->assertStringContainsString('role="progressbar"', $html);
         $this->assertStringContainsString('aria-live="polite"', $html);
-        $this->assertStringContainsString('Generating', file_get_contents(resource_path('js/marking-suggest.js')));
+        $this->assertStringContainsString('Working on it', file_get_contents(resource_path('js/marking-suggest.js')));
 
         // One URL per student, each for that student alone, and a token to send with it.
         $config = $this->pageConfig($html);
@@ -498,7 +498,8 @@ class PerStudentSuggestionTest extends TestCase
         }
 
         $this->assertNotEmpty($config['token']);
-        $this->assertStringContainsString('you can leave this page while it runs', strtolower(strip_tags($html)));
+        $this->assertStringContainsString('If you leave, the students already done stay done. Refresh again to finish.', $html);
+        $this->assertMatchesRegularExpression('/x-show="running"[^>]*data-leave-note/', $html, 'One short line, shown only while it runs.');
     }
 
     public function test_approved_students_are_marked_as_such_for_the_page_to_skip(): void

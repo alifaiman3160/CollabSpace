@@ -154,7 +154,7 @@ class AssignmentBriefTest extends TestCase
             ->get(route('lecturer.subjects.edit', $this->subject))
             ->assertOk()
             ->assertSee('Assignment brief')
-            ->assertSee('Project deadline')
+            ->assertSee('Group project due date')
             ->assertSee('The written brief')
             ->assertSee('2026-11-20', false);
     }

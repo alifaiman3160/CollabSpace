@@ -56,14 +56,14 @@ class AiGateway
             // bug in the provider layer; the class is logged, its message (which
             // could carry a URL or header) is not, and the reader gets the same
             // neutral fallback.
-            $safe = $e instanceof AiException
-                ? $e->getMessage()
-                : AiException::requestFailed('unexpected '.class_basename($e))->getMessage();
+            $failure = $e instanceof AiException ? $e : AiException::requestFailed('unexpected '.class_basename($e));
+            $safe = $failure->getMessage();
 
             Log::warning('AI request failed', [
                 'provider' => $current['provider'],
                 'model' => $current['model'],
                 'reason' => $safe,
+                'detail' => $failure->detail,
             ]);
 
             return new AiOutcome(
@@ -72,6 +72,7 @@ class AiGateway
                 provider: $current['provider'],
                 model: $current['model'],
                 latencyMs: $this->since($started),
+                detail: $failure->detail,
             );
         }
 

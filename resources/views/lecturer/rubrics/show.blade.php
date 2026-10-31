@@ -1,8 +1,8 @@
-<x-layouts.app :title="'Rubric version '.$rubric->version.' — CollabSpace'"
+<x-layouts.app :title="'Rubric, version '.$rubric->version.' — CollabSpace'"
                :heading="$rubric->name"
                :subtitle="$subject->code.' — version '.$rubric->version"
                :back="route('lecturer.rubrics', $subject)"
-               back-label="Rubric versions">
+               back-label="Rubrics">
 
     <div class="flex flex-col gap-[18px]">
 
@@ -27,7 +27,7 @@
                 <x-icon name="lock" size="17" class="mt-0.5 shrink-0 text-ink-300" />
                 <p class="text-meta leading-[1.55] text-ink-600">
                     <span class="font-bold">This version is locked.</span>
-                    Marks have been approved against it, so who decides each criterion and the evidence types can no longer be changed here.
+                    Marks have been approved against it, so who decides each criterion, and what its suggestion is based on, can no longer be changed here.
                     To change them, upload a new version, or revoke the approvals first.
                 </p>
             </div>
@@ -75,7 +75,7 @@
                                 </div>
 
                                 @if ($criterion->isSuggested())
-                                    <div class="mt-2" x-show="cmode === 'suggested'">
+                                    <div class="mt-2" x-show="cmode === 'suggested'" x-transition:enter="cs-t-enter" x-transition:enter-start="cs-t-from" x-transition:enter-end="cs-t-to" x-transition:leave="cs-t-leave" x-transition:leave-start="cs-t-to" x-transition:leave-end="cs-t-from">
                                         <x-evidence-picker :name="'evidence['.$criterion->id.']'"
                                                            :selected="$criterion->evidence_type"
                                                            :criterion-name="$criterion->name"
@@ -123,8 +123,8 @@
 
         @unless ($locked)
             <div class="sticky bottom-4 z-10 flex flex-wrap items-center gap-3 rounded-panel border border-surface-strong bg-surface/95 p-3 shadow-card backdrop-blur">
-                <x-button type="submit">Save evidence types</x-button>
-                <span class="text-meta text-ink-400">This changes only who decides each criterion and what suggestions look at. The rubric's content is not edited.</span>
+                <x-button type="submit">Save changes</x-button>
+                <span class="text-meta text-ink-400">This changes only who decides each criterion and what its suggestion is based on. The rubric's content is not edited.</span>
             </div>
         @endunless
         </form>

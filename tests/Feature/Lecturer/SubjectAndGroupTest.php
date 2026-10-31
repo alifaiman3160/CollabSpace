@@ -353,12 +353,12 @@ class SubjectAndGroupTest extends TestCase
         $this->actingAs($this->lecturer)
             ->get(route('lecturer.dashboard'))
             ->assertOk()
-            ->assertSee('Subjects')
+            ->assertSee('Needs attention')
+            ->assertSee('Awaiting marking')
             ->assertSee('Groups')
             ->assertSee('Students')
-            ->assertSee('Tasks completed')
-            ->assertSee('Overdue tasks')
-            ->assertSee('All groups overview')
+            ->assertSee('Groups needing attention')
+            ->assertSee('Recent activity')
             ->assertSee('G1');
     }
 }

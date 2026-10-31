@@ -114,7 +114,7 @@ class RubricLockTest extends TestCase
 
         $this->assertSame(12, preg_match_all('/<select id="mode-\d+" name="mode\[\d+\]"/', $html));
         $this->assertStringNotContainsString('data-locked-notice', $html);
-        $this->assertStringContainsString('Save evidence types', $html);
+        $this->assertStringContainsString('Save changes', $html);
         $this->assertSame(0, preg_match_all('/<select id="mode-\d+"[^>]*\sdisabled[\s>=]/', $html), 'Every mode select is editable.');
     }
 
@@ -213,7 +213,7 @@ class RubricLockTest extends TestCase
 
         $this->putSettings(['mode' => [$criterion->id => 'manual']])
             ->assertRedirect($this->showUrl())
-            ->assertSessionHasErrors(['status' => 'This version has approved marks, so its evidence types and criterion modes can no longer be changed. Upload a new version instead.']);
+            ->assertSessionHasErrors(['status' => 'Some marks are already approved, so who decides each criterion, and what its suggestion is based on, can no longer be changed. Upload the rubric again as a new version instead.']);
 
         $this->assertSame($before, $this->settings());
     }
@@ -258,7 +258,7 @@ class RubricLockTest extends TestCase
 
         $this->assertStringContainsString('data-locked-notice', $html);
         $this->assertStringContainsString('This version is locked.', $html);
-        $this->assertStringNotContainsString('Save evidence types', $html);
+        $this->assertStringNotContainsString('Save changes', $html);
         $this->assertSame(12, preg_match_all('/<select id="mode-\d+"[^>]*\sdisabled[\s>=]/', $html), 'Every mode select is disabled.');
         $this->assertSame(5, preg_match_all('/<select id="evidence-\d+"[^>]*\sdisabled[\s>=]/', $html), 'And every evidence select.');
     }

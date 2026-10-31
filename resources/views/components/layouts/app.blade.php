@@ -7,6 +7,10 @@
     // too easy to miss when you are deep in a form.
     'back'      => null,
     'backLabel' => 'Back',
+    // A screen that is one fixed-height workspace (the group chat) asks for this: from 900px up the page is
+    // exactly as tall as the screen and does not scroll, and the content is a flex chain that hands the
+    // remaining height to the screen's own panels. Every other screen keeps the normal scrolling page.
+    'fit' => false,
 ])
 
 <!DOCTYPE html>
@@ -22,13 +26,16 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-surface-soft text-ink">
-<div class="flex min-h-screen">
+<body class="bg-surface-soft text-ink {{ $fit ? 'min-h-screen min-[900px]:h-dvh min-[900px]:overflow-hidden' : 'min-h-screen' }}">
+<div class="flex {{ $fit ? 'min-h-screen min-[900px]:h-dvh min-[900px]:overflow-hidden' : 'min-h-screen' }}">
 
-    {{-- Sidebar: 222px, sticky, periwinkle, rounded on the right edge only --}}
-    <aside class="sticky top-0 flex h-screen w-sidebar shrink-0 flex-col bg-periwinkle px-[14px] pb-[18px] pt-[22px] [border-radius:0_26px_26px_0]">
+    {{-- Sidebar: 222px, sticky, periwinkle, rounded on the right edge only.
+         x-persist keeps this very element across wire:navigate visits, so the sidebar is neither
+         re-rendered nor re-animated; the highlighted item follows the address (wire:current on the links).
+         Put on the <aside> itself rather than a @persist wrapper, which would add a div and end the sticky. --}}
+    <aside x-persist="sidebar" class="sticky top-0 flex h-dvh min-h-0 w-sidebar shrink-0 self-start flex-col bg-periwinkle px-[14px] pb-[18px] pt-[22px] [border-radius:0_26px_26px_0]">
 
-        <a href="{{ url('/') }}" class="mb-6 flex items-center gap-2.5 px-[14px]">
+        <a href="{{ url('/') }}" wire:navigate class="mb-6 flex items-center gap-2.5 px-[14px]">
             <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-pill bg-ink text-white">
                 <x-icon name="grid" size="16" />
             </span>
@@ -68,10 +75,13 @@
     {{-- Content --}}
     {{-- Soft page background: white cards are defined by contrast against it,
          which is what makes them read as cards at all. --}}
-    <div class="min-w-0 flex-1 bg-surface-soft">
-        <header class="flex flex-wrap items-center gap-4 px-7 pb-[18px] pt-6">
+    <div data-page-content class="cs-page-content min-w-0 flex-1 bg-surface-soft {{ $fit ? 'min-[900px]:flex min-[900px]:min-h-0 min-[900px]:flex-col' : '' }}">
+        <header class="flex flex-wrap items-center gap-4 px-7 pb-[18px] pt-6 {{ $fit ? 'shrink-0' : '' }}">
             <div class="min-w-0 flex-1">
                 @if($heading)
+                    @isset($breadcrumb)
+                        {{ $breadcrumb }}
+                    @endisset
                     @if($back)
                         <a href="{{ $back }}"
                            class="mb-1.5 inline-flex w-fit items-center gap-1.5 text-meta font-bold text-ink-400 transition-colors hover:text-ink">
@@ -99,7 +109,7 @@
             @endisset
         </header>
 
-        <main class="px-7 pb-12">
+        <main class="px-7 {{ $fit ? 'flex flex-col pb-5 min-[900px]:min-h-0 min-[900px]:flex-1' : 'pb-12' }}">
             {{ $slot }}
         </main>
     </div>

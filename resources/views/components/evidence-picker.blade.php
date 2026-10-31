@@ -13,7 +13,7 @@
 
 @php
     $selected = in_array($selected, \App\Support\Marking\EvidenceType::ALL, true) ? $selected : '';
-    $options = ['' => 'Not set (treated as none)'] + array_combine(\App\Support\Marking\EvidenceType::ALL, array_map(\App\Support\Marking\EvidenceType::label(...), \App\Support\Marking\EvidenceType::ALL));
+    $options = ['' => 'Not set (you choose)'] + array_combine(\App\Support\Marking\EvidenceType::ALL, array_map(\App\Support\Marking\EvidenceType::label(...), \App\Support\Marking\EvidenceType::ALL));
     $hint = \App\Support\Marking\EvidenceType::hint($criterionName, $mode, $selected);
     $isDefault = $selected !== '' && $selected === \App\Support\Marking\EvidenceType::guess($criterionName);
 @endphp
@@ -38,7 +38,7 @@
      class="flex min-w-0 flex-col gap-1.5">
 
     <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        <label for="{{ $idPrefix }}" class="text-label font-bold uppercase tracking-eyebrow text-ink-300">Evidence</label>
+        <label for="{{ $idPrefix }}" class="text-label font-bold uppercase tracking-eyebrow text-ink-300">Based on</label>
 
         <select id="{{ $idPrefix }}" name="{{ $name }}" x-model="ev" @disabled($disabled)
                 class="w-full min-w-0 rounded-[12px] border border-surface-line bg-surface px-3 py-2 text-meta text-ink focus:border-ink focus:ring-0 sm:w-auto sm:min-w-[14rem]">

@@ -28,10 +28,19 @@ class ChatController extends StudentController
     {
         $group = $this->ownedGroup($group);
 
+        $groups = $this->myGroups();
+        $groups->loadCount('groupMembers as members_count');
+
         return view('student.chat', [
             'hasGroup' => true,
-            'group' => $group->load('subject'),
-            'groups' => $this->myGroups(),
+            'group' => $groups->firstWhere('id', $group->id) ?? $group->load('subject'),
+            'groups' => $groups,
+            // The newest message of each of this student's groups, for the list on the left.
+            'lastMessages' => Message::query()
+                ->whereIn('id', Message::query()->selectRaw('max(id)')->whereIn('group_id', $groups->modelKeys())->groupBy('group_id'))
+                ->with('user:id,name')
+                ->get()
+                ->keyBy('group_id'),
         ]);
     }
 

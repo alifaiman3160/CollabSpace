@@ -56,7 +56,7 @@ class EvidenceScreensAndPreviewTest extends TestCase
         $this->assertStringContainsString('Task completion', $html);
         $this->assertStringContainsString('Reliability (deadlines)', $html);
         $this->assertStringContainsString('None (lecturer input only)', $html);
-        $this->assertStringContainsString('Not set (treated as none)', $html);
+        $this->assertStringContainsString('Not set (you choose)', $html);
         $this->assertStringContainsString('A default chosen from the wording. Change it if it is not right.', $html);
 
         // The wording picks the obvious ones in the teamwork section.
@@ -122,7 +122,7 @@ class EvidenceScreensAndPreviewTest extends TestCase
         $html = $this->actingAs($this->lecturer)->get(route('lecturer.rubrics.show', [$this->subject, $this->rubric]))->assertOk()->getContent();
 
         $this->assertSame(5, preg_match_all('/<select id="evidence-\d+" name="evidence\[\d+\]"/', $html));
-        $this->assertStringContainsString('Save evidence types', $html);
+        $this->assertStringContainsString('Save changes', $html);
         $this->assertStringContainsString('The rubric\'s content is not edited', $html);
     }
 
@@ -239,10 +239,10 @@ class EvidenceScreensAndPreviewTest extends TestCase
 
         $this->assertStringContainsString('Aminah Binti Rashid', $out);
         $this->assertStringContainsString('Tasks assigned 4', $out);
-        $this->assertStringContainsString('Rule-based :', $out);
-        $this->assertStringContainsString('Completed 3 of 4 assigned tasks (75%)', $out);
+        $this->assertStringContainsString('From the numbers:', $out);
+        $this->assertStringContainsString('Finished 3 of 4 tasks (75%)', $out);
         $this->assertStringContainsString('level 3 of 4, 1.5 marks', $out);
-        $this->assertStringContainsString('AI-suggested: unavailable. AI suggestions are switched off', $out);
+        $this->assertStringContainsString("AI's view: unavailable. The AI's view is not turned on", $out);
         $this->assertStringContainsString('Needs lecturer input. No tasks are assigned to this student.', $out);
         $this->assertStringContainsString('Needs lecturer input. This criterion is not drawn from recorded activity.', $out);
     }
@@ -259,7 +259,7 @@ class EvidenceScreensAndPreviewTest extends TestCase
         Artisan::call('marking:preview', ['rubric' => $this->rubric->id, 'group' => $this->group->id]);
         $out = Artisan::output();
 
-        $this->assertStringContainsString('AI-suggested: Excellent (level 4 of 4, 2 marks) | The counts are strong (', $out);
+        $this->assertStringContainsString("AI's view: Excellent (level 4 of 4, 2 marks) | The counts are strong (", $out);
         $this->assertStringContainsString('Flag: the baseline and the AI suggestion differ by more than one level.', $out);
         $this->assertStringContainsString('requests 4', $out);
     }
@@ -285,7 +285,7 @@ class EvidenceScreensAndPreviewTest extends TestCase
 
         $this->assertStringNotContainsString('SECRETKEY', $out);
         $this->assertStringNotContainsString('sk-test', $out);
-        $this->assertStringContainsString('did not respond (HTTP 401', $out);
+        $this->assertStringContainsString('The AI could not answer just now', $out);
     }
 
     public function test_the_preview_command_refuses_a_group_from_another_subject_or_a_missing_id(): void

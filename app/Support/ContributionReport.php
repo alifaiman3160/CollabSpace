@@ -58,10 +58,6 @@ class ContributionReport
      */
     public function for(Group $group): array
     {
-        $group->loadMissing(['subject.lecturer', 'members']);
-
-        $members = $group->members->sortBy('name')->values();
-
         // One pass over the log, grouped by member and activity type.
         $aggregate = ActivityLog::query()
             ->where('group_id', $group->getKey())
@@ -69,6 +65,37 @@ class ContributionReport
             ->groupBy('user_id', 'activity_type')
             ->get()
             ->groupBy('user_id');
+
+        return $this->assemble($group, $aggregate);
+    }
+
+    /**
+     * The same report for several groups, from ONE read of the log instead of one each. Every number comes from the
+     * same code as for(); only the query is shared. Keyed by group id.
+     *
+     * @param  Collection<int, Group>  $groups
+     * @return Collection<int, array>
+     */
+    public function forMany(Collection $groups): Collection
+    {
+        $log = ActivityLog::query()
+            ->whereIn('group_id', $groups->modelKeys())
+            ->selectRaw('group_id, user_id, activity_type, COUNT(*) AS entries, SUM(weight) AS points')
+            ->groupBy('group_id', 'user_id', 'activity_type')
+            ->get()
+            ->groupBy('group_id');
+
+        return $groups->mapWithKeys(fn (Group $group) => [
+            $group->getKey() => $this->assemble($group, $log->get($group->getKey(), collect())->groupBy('user_id')),
+        ]);
+    }
+
+    /** @param  Collection  $aggregate  the group's log rows, grouped by user id */
+    protected function assemble(Group $group, Collection $aggregate): array
+    {
+        $group->loadMissing(['subject.lecturer', 'members']);
+
+        $members = $group->members->sortBy('name')->values();
 
         $rows = $members->map(function (User $member) use ($aggregate) {
             $mine = $aggregate->get($member->getKey(), collect());
@@ -124,7 +151,8 @@ class ContributionReport
             'hasActivity' => $total > 0,
             'flagged' => $rows->where('flagged', true)->values(),
             'top' => $top && $top['score'] > 0 ? $top : null,
-            'weights' => config('contribution.weights'),
+            // Zero-weight rows (the deletion trail) are not a scoring rule, so they are not listed with the weights.
+            'weights' => array_filter(config('contribution.weights'), fn ($weight) => (int) $weight > 0),
             'generatedAt' => now(),
         ];
     }

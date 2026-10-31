@@ -84,7 +84,8 @@ class GroupSwitcherTest extends TestCase
                 ->get(route($screen, $this->appDev))
                 ->assertOk();
 
-            $response->assertSee('Your groups');
+            // The chat has its own list of groups (the left pane); the other screens share the switcher.
+            $response->assertSee($screen === 'student.chat.show' ? 'My groups' : 'Your groups');
 
             // The subject you are not on must be reachable from the one you are.
             $response->assertSee(route($linksTo, $this->networks), false);
@@ -113,10 +114,9 @@ class GroupSwitcherTest extends TestCase
             ->assertSee('Group B');
     }
 
-    public function test_a_student_in_one_group_gets_no_dead_switcher(): void
+    public function test_a_student_in_one_group_gets_a_single_card_with_nothing_that_suggests_a_choice(): void
     {
-        // A control offering a single choice asks to be clicked and does
-        // nothing, so it is not rendered at all.
+        // One card is shown (the group you are in), flagged so it has no hover lift or pointer.
         $soloist = User::factory()->student()->create(['must_change_password' => false]);
         GroupMember::create([
             'group_id' => $this->appDev->id,
@@ -124,12 +124,15 @@ class GroupSwitcherTest extends TestCase
             'joined_at' => now(),
         ]);
 
-        foreach (array_keys($this->screens()) as $screen) {
-            $this->actingAs($soloist)
-                ->get(route($screen, $this->appDev))
-                ->assertOk()
-                ->assertDontSee('Your groups');
+        foreach (['student.board.show', 'student.workspace.show', 'student.documents.group'] as $screen) {
+            $html = $this->actingAs($soloist)->get(route($screen, $this->appDev))->assertOk()->getContent();
+
+            $this->assertSame(1, substr_count($html, 'data-group-card'), $screen);
+            $this->assertStringContainsString('is-solo', $html);
         }
+
+        // The chat keeps its own list.
+        $this->actingAs($soloist)->get(route('student.chat.show', $this->appDev))->assertOk()->assertDontSee('Your groups');
     }
 
     public function test_the_switcher_never_offers_a_group_you_are_not_in(): void

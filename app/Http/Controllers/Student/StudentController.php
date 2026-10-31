@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\Document;
 use App\Models\Group;
+use App\Models\GroupMember;
+use App\Models\Task;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -48,6 +51,34 @@ abstract class StudentController extends Controller
             ->orderBy('subjects.code')
             ->orderBy('groups.name')
             ->get();
+    }
+
+    /**
+     * The quiet line under each group's name in the group picker ("4 members"): one grouped count for all of the
+     * student's groups, never one query per card.
+     *
+     * @param  Collection<int, Group>  $groups
+     * @param  'members'|'tasks'|'documents'  $kind
+     * @return array<int, string>  group id => text
+     */
+    protected function groupSecondary(Collection $groups, string $kind): array
+    {
+        $ids = $groups->modelKeys();
+
+        $counts = match ($kind) {
+            'members' => GroupMember::query()->whereIn('group_id', $ids)->groupBy('group_id')
+                ->selectRaw('group_id, count(*) as total')->pluck('total', 'group_id'),
+            'tasks' => Task::query()->whereIn('group_id', $ids)->where('status', '!=', Task::STATUS_DONE)->groupBy('group_id')
+                ->selectRaw('group_id, count(*) as total')->pluck('total', 'group_id'),
+            'documents' => Document::query()->whereIn('group_id', $ids)->groupBy('group_id')
+                ->selectRaw('group_id, count(*) as total')->pluck('total', 'group_id'),
+        };
+
+        $noun = ['members' => 'member', 'tasks' => 'open task', 'documents' => 'document'][$kind];
+
+        return $groups->mapWithKeys(fn (Group $group) => [
+            $group->getKey() => ($n = (int) ($counts[$group->getKey()] ?? 0)).' '.str($noun)->plural($n),
+        ])->all();
     }
 
     /** @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException */

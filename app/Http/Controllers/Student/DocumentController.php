@@ -6,11 +6,22 @@ use App\Models\Document;
 use App\Models\DocumentVersion;
 use App\Models\Group;
 use App\Support\ActivityRecorder;
+use App\Support\DocumentPreview;
+use App\Support\DocumentPrintBody;
 use App\Support\DocumentSanitizer;
+use App\Support\GroupFiles;
 use App\Support\Notifier;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Throwable;
 use Illuminate\View\View;
 
 class DocumentController extends StudentController
@@ -67,16 +78,14 @@ class DocumentController extends StudentController
     public function group(Group $group): View
     {
         $group = $this->ownedGroup($group);
+        $groups = $this->myGroups();
 
         return view('student.documents.index', [
             'hasGroup' => true,
-            'groups' => $this->myGroups(),
+            'groups' => $groups,
             'group' => $group->load('subject'),
-            'documents' => $group->documents()
-                ->with(['lastEditor', 'creator'])
-                ->withCount('versions')
-                ->orderByDesc('updated_at')
-                ->get(),
+            'secondary' => $this->groupSecondary($groups, 'documents'),
+            'documents' => \App\Support\DocumentCards::forGroup($group),
         ]);
     }
 
@@ -191,23 +200,152 @@ class DocumentController extends StudentController
 
     /*
     |--------------------------------------------------------------------------
+    | PDF
+    |--------------------------------------------------------------------------
+    */
+
+    /** More than this and a PDF is not attempted: it would take the server's memory or time. */
+    protected const PDF_MAX_CHARACTERS = 500000;
+
+    protected const PDF_MAX_PICTURES = 40;
+
+    /**
+     * The document's latest saved version as an A4 PDF, for any member of its group.
+     *
+     * Members only: someone outside the group gets 403, a document that does not exist gets 404. The
+     * print layout (resources/views/documents/print.blade.php) puts the title first and carries no names;
+     * the file name carries the group.
+     */
+    public function pdf(Request $request, Document $document, DocumentPrintBody $print): Response|JsonResponse|RedirectResponse
+    {
+        $document->loadMissing('group');
+
+        abort_if($document->group === null, 404);
+        abort_unless($this->student()->groupMemberships()->where('group_id', $document->group_id)->exists(), 403);
+
+        $content = (string) $document->content;
+
+        if (mb_strlen($content) > self::PDF_MAX_CHARACTERS || substr_count($content, 'data-image=') > self::PDF_MAX_PICTURES) {
+            return $this->pdfFailed($request, 'This document is too large to turn into a PDF in one go. Try splitting it into two documents.');
+        }
+
+        try {
+            @ini_set('memory_limit', '384M');
+            @set_time_limit(60);
+
+            $output = Pdf::setOption([
+                'defaultFont' => 'DejaVu Sans',
+                'isRemoteEnabled' => false,
+                'isPhpEnabled' => false,
+                'isHtml5ParserEnabled' => true,
+            ])
+                ->setPaper('a4')
+                ->loadView('documents.print', ['title' => $document->title, 'body' => $print->render($content, $document)])
+                ->output();
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->pdfFailed($request, 'The PDF could not be prepared just now. Please try again in a moment.');
+        }
+
+        $name = $this->pdfFilename($document);
+
+        return response($output, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, $name, Str::ascii(str_replace('%', '', $name))),
+            'Content-Length' => (string) strlen($output),
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    /** "<title> - <group>.pdf" without anything a file system or a header would object to. */
+    public function pdfFilename(Document $document): string
+    {
+        $name = $document->title.' - '.$document->group->name;
+        $name = preg_replace('/[\\\\\/:*?"<>|\x00-\x1F\x7F]+/u', '', $name) ?? '';
+        $name = trim(preg_replace('/\s+/u', ' ', $name) ?? '', ' .');
+        $name = trim(mb_substr($name, 0, 120), ' .');
+
+        return ($name !== '' ? $name : 'Document').'.pdf';
+    }
+
+    protected function pdfFailed(Request $request, string $message): JsonResponse|RedirectResponse
+    {
+        if ($request->expectsJson()) {
+            return response()->json(['message' => $message], 422);
+        }
+
+        return back()->withErrors(['status' => $message]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Pictures
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Stores one picture for the editor and answers with the address to put in the body.
+     *
+     * The file goes on the private disk inside the group's folder, so it is removed with the group.
+     * The type is checked on the file's own content as well as its extension.
+     */
+    public function storeImage(Request $request, Document $document): JsonResponse
+    {
+        $document = $this->ownedDocument($document);
+
+        $validator = Validator::make($request->all(), [
+            'image' => ['required', 'file', 'mimes:png,jpg,jpeg,webp', 'mimetypes:image/png,image/jpeg,image/webp', 'max:2048'],
+        ], [
+            'image.required' => 'Choose a picture to insert.',
+            'image.file' => 'That file could not be read. Try another picture.',
+            'image.uploaded' => 'That picture is too large. Pictures can be up to 2 MB.',
+            'image.mimes' => 'Only PNG, JPG or WebP pictures can be inserted.',
+            'image.mimetypes' => 'Only PNG, JPG or WebP pictures can be inserted.',
+            'image.max' => 'That picture is too large. Pictures can be up to 2 MB.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first('image')], 422);
+        }
+
+        $file = $request->file('image');
+        $extension = match ($file->getMimeType()) {
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => 'jpg',
+        };
+
+        $path = $file->storeAs(
+            GroupFiles::directoryFor($document->group_id).'/documents/'.$document->id,
+            Str::random(40).'.'.$extension,
+            GroupFiles::DISK,
+        );
+
+        $image = $document->images()->create([
+            'path' => $path,
+            'mime' => $file->getMimeType(),
+            'size' => $file->getSize(),
+            'original_name' => Str::limit($file->getClientOriginalName(), 200, ''),
+        ]);
+
+        return response()->json(['id' => $image->id, 'url' => $image->url()]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | Delete
     |--------------------------------------------------------------------------
     */
 
     /**
-     * Deletes a document, its whole version history and the contribution it
-     * earned. Use case 3.4.3.5, alternative flow A2.
+     * Removes a document from the group. It is soft deleted: the row, its versions, its pictures and the files on disk
+     * all stay, and so does the credit it earned (the activity rows), so the writing remains available to the lecturer
+     * as marking evidence. Who deleted it, and when, is recorded, and a document_deleted row is written to the
+     * activity trail (worth no points).
      *
-     * The version rows cascade from the foreign key; the activity_logs rows do
-     * not, because reference_id is not a foreign key, so the recorder clears
-     * them explicitly. Both sit in one transaction: a document whose history
-     * survived it, or whose score did, would be worse than either outcome.
-     *
-     * Any member of the group may do this — the same rule the rest of the
-     * module runs on, since a group document belongs to the group rather than
-     * to whoever typed it first. The UI confirms, with the version count it is
-     * about to destroy.
+     * Any member of the group may do this, the rule the rest of the module runs on, since a group document belongs
+     * to the group rather than to whoever typed it first. The UI says plainly that the lecturer can still see it.
      */
     public function destroy(Document $document): RedirectResponse
     {
@@ -215,20 +353,20 @@ class DocumentController extends StudentController
 
         $groupId = $document->group_id;
         $title = $document->title;
-        $versions = $document->versions()->count();
 
         DB::transaction(function () use ($document) {
-            $this->recorder->documentDeleted($document);
+            $document->forceFill(['deleted_by' => auth()->id()])->save();
+
+            $this->recorder->documentDeleted($document, auth()->id());
 
             $document->delete();
         });
 
         return redirect()->route('student.documents.group', $groupId)->with(
             'status',
-            "“{$title}” has been deleted, along with ".$versions.' '.str('version')->plural($versions).' of its history.',
+            "“{$title}” has been removed from your group. Your lecturer can still see it.",
         );
     }
-
     /*
     |--------------------------------------------------------------------------
     | Versions

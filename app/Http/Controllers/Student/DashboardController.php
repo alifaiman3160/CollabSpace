@@ -52,8 +52,18 @@ class DashboardController extends StudentController
                 ->whereIn('group_id', $groupIds)
                 ->with(['user', 'group'])
                 ->latest()
-                ->take(5)
+                ->take(8)
                 ->get(),
+
+            // News from the subjects this student is grouped in, newest first.
+            'announcements' => \App\Models\Announcement::query()
+                ->whereIn('subject_id', $groups->pluck('subject_id')->unique())
+                ->with(['subject:id,code', 'author:id,name'])
+                ->latest()
+                ->latest('id')
+                ->get(),
+
+            'readAnnouncementIds' => \App\Models\AnnouncementRead::query()->where('user_id', $me->id)->pluck('announcement_id')->all(),
 
             'primaryGroup' => $groups->first(),
         ]);

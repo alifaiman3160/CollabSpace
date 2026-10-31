@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Announcement;
 use App\Models\AppNotification;
 use App\Models\Document;
 use App\Models\Group;
@@ -113,6 +114,25 @@ class Notifier
     | per task per person, so running the schedule daily does not nag.
     |
     */
+
+    /**
+     * A lecturer posted news for a subject. One notification for each active
+     * student in it, sent once: editing the announcement does not call this.
+     * Returns how many students were told.
+     */
+    public function announcementPosted(Announcement $announcement): int
+    {
+        $announcement->loadMissing('subject');
+        $subject = $announcement->subject;
+
+        return $this->writeMany(
+            $this->studentsOf($subject),
+            Announcement::TYPE,
+            fn () => "{$subject->code}: {$announcement->title}",
+            route('student.dashboard', absolute: false).'#announcement-'.$announcement->getKey(),
+            $announcement->getKey(),
+        );
+    }
 
     /** A task is coming up. Returns how many people were told. */
     public function taskDueSoon(Task $task): int
@@ -428,6 +448,8 @@ class Notifier
     {
         return GroupMember::query()
             ->whereIn('group_id', $subject->groups()->select('id'))
+            // A deactivated account cannot sign in, so there is nobody to tell.
+            ->whereIn('user_id', User::query()->where('is_active', true)->select('id'))
             ->pluck('user_id')
             ->unique()
             ->values()

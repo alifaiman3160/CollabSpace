@@ -8,6 +8,7 @@
 
         @if ($subjects->isEmpty())
             <x-empty-state
+                class="!border-solid !border-surface-line"
                 icon="book"
                 title="No subjects yet"
                 body="Marking uses a rubric for a subject. Create a subject, then upload its rubric."
@@ -18,42 +19,36 @@
             <section class="flex flex-col gap-3">
                 <h2 class="text-h3 font-extrabold tracking-title">Rubrics</h2>
 
-                <x-data-table :headings="['Subject', 'Current rubric', '']" min-width="620px">
-                    @foreach ($subjects as $subject)
+                <div class="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-[18px]" data-rubric-grid>
+                    @foreach ($subjects as $i => $subject)
                         @php $rubric = $rubrics->get($subject->id); @endphp
-                        <tr>
-                            <td>
-                                <x-table.stack>
-                                    <x-slot:primary><x-badge tone="info">{{ $subject->code }}</x-badge></x-slot:primary>
-                                    <span class="truncate">{{ $subject->name }}</span>
-                                </x-table.stack>
-                            </td>
 
-                            <td>
+                        <x-subject-card :subject="$subject" :i="$i">
+                            @if ($rubric && $locked->has($rubric->id))
+                                <x-slot:badge><x-table.dot-pill tone="warning">Locked</x-table.dot-pill></x-slot:badge>
+                            @endif
+
+                            @if ($rubric)
+                                <a href="{{ route('lecturer.rubrics.show', [$subject, $rubric]) }}" class="interactive mt-1 flex w-fit flex-col rounded-md">
+                                    <span class="text-nav font-bold">{{ $rubric->name }}</span>
+                                    <span class="text-label font-medium text-ink-600">Version {{ $rubric->version }}</span>
+                                </a>
+                            @else
+                                <span class="mt-1 text-meta font-medium text-ink-600">No rubric yet.</span>
+                            @endif
+
+                            <x-slot:footer>
                                 @if ($rubric)
-                                    <x-table.stack :href="route('lecturer.rubrics.show', [$subject, $rubric])">
-                                        <x-slot:primary>{{ $rubric->name }}</x-slot:primary>
-                                        Version {{ $rubric->version }}
-                                    </x-table.stack>
+                                    <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
+                                              :href="route('lecturer.rubrics', $subject)">Upload or manage</x-button>
                                 @else
-                                    <span class="text-meta text-ink-300">—</span>
+                                    <x-button class="!px-4 !py-2 !text-meta"
+                                              :href="route('lecturer.rubrics', $subject)">Upload a rubric</x-button>
                                 @endif
-                            </td>
-
-                            <td>
-                                <div class="flex justify-end">
-                                    @if ($rubric)
-                                        <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
-                                                  :href="route('lecturer.rubrics', $subject)">Upload or manage</x-button>
-                                    @else
-                                        <x-button class="!px-4 !py-2 !text-meta"
-                                                  :href="route('lecturer.rubrics', $subject)">Upload a rubric</x-button>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
+                            </x-slot:footer>
+                        </x-subject-card>
                     @endforeach
-                </x-data-table>
+                </div>
             </section>
 
             {{-- Groups --}}
@@ -61,50 +56,54 @@
                 <h2 class="text-h3 font-extrabold tracking-title">Groups to mark</h2>
 
                 @if ($subjects->flatMap->groups->isEmpty())
-                    <x-empty-state icon="folder" title="No groups yet"
+                    <x-empty-state class="!border-solid !border-surface-line" icon="folder" title="No groups yet"
                                    body="Create groups for a subject, then mark them here." />
                 @else
-                    <x-data-table :headings="['Group', ['Students', 'right'], 'Approved', '']" min-width="640px">
+                    <div class="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-[18px]" data-group-grid>
+                        @php $n = 0; @endphp
                         @foreach ($subjects as $subject)
                             @php $rubric = $rubrics->get($subject->id); @endphp
 
                             @foreach ($subject->groups as $group)
-                                @php $done = $rubric ? (int) $approved->get($rubric->id.'-'.$group->id, 0) : 0; @endphp
-                                <tr>
-                                    <td>
-                                        <x-table.stack>
-                                            <x-slot:primary>{{ $group->name }}</x-slot:primary>
-                                            {{ $subject->code }}
-                                        </x-table.stack>
-                                    </td>
+                                @php
+                                    $students = (int) $group->members_count;
+                                    $done = $rubric ? (int) $approved->get($rubric->id.'-'.$group->id, 0) : 0;
+                                    $status = ! $rubric ? 'Needs a rubric'
+                                        : ($students > 0 && $done === $students ? 'All approved' : ($done > 0 ? 'In progress' : 'Not started'));
+                                @endphp
 
-                                    <td class="num text-meta font-semibold text-ink-400">{{ $group->members_count }}</td>
-
-                                    <td>
-                                        @if (! $rubric)
-                                            <span class="text-meta text-ink-300">Needs a rubric</span>
-                                        @elseif ($group->members_count > 0 && $done === $group->members_count)
-                                            <x-table.dot-pill tone="success">All approved</x-table.dot-pill>
-                                        @else
-                                            <span class="text-meta font-semibold tabular-nums text-ink-600">{{ $done }} of {{ $group->members_count }}</span>
-                                        @endif
-                                    </td>
-
-                                    <td>
-                                        <div class="flex justify-end">
-                                            @if ($rubric)
-                                                <x-button class="!px-4 !py-2 !text-meta"
-                                                          :href="route('lecturer.marking.group', [$rubric, $group])">Mark</x-button>
+                                <x-group-card :group="$group->setRelation('subject', $subject)" :i="$n++" variant="light">
+                                    <div class="mt-auto flex flex-col gap-2 rounded-card bg-white/60 p-3" data-approval>
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="text-meta font-semibold text-ink-600">{{ $students }} {{ Str::plural('student', $students) }}</span>
+                                            @if ($status === 'All approved')
+                                                <x-table.dot-pill tone="success">{{ $status }}</x-table.dot-pill>
+                                            @elseif ($status === 'In progress')
+                                                <x-table.dot-pill tone="warning">{{ $status }}</x-table.dot-pill>
                                             @else
-                                                <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
-                                                          :href="route('lecturer.rubrics', $subject)">Upload a rubric</x-button>
+                                                <x-table.dot-pill tone="neutral">{{ $status }}</x-table.dot-pill>
                                             @endif
                                         </div>
-                                    </td>
-                                </tr>
+
+                                        @if ($rubric)
+                                            <x-progress-bar :done="$done" :total="$students" height="6px" />
+                                            <span class="text-label font-medium text-ink-400">{{ $done }} of {{ $students }} approved</span>
+                                        @endif
+                                    </div>
+
+                                    <x-slot:footer>
+                                        @if ($rubric)
+                                            <x-button class="!px-4 !py-2 !text-meta"
+                                                      :href="route('lecturer.marking.group', [$rubric, $group])">Mark</x-button>
+                                        @else
+                                            <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
+                                                      :href="route('lecturer.rubrics', $subject)">Upload a rubric</x-button>
+                                        @endif
+                                    </x-slot:footer>
+                                </x-group-card>
                             @endforeach
                         @endforeach
-                    </x-data-table>
+                    </div>
                 @endif
             </section>
         @endif

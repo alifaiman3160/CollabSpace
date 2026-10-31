@@ -191,7 +191,7 @@ class MarkSheetAndApprovalTest extends TestCase
         $row = fn () => collect($this->sheet('s1')['sections'])->flatMap(fn ($s) => $s['rows'])->first(fn ($r) => $r['criterion']->name === 'Communication');
 
         $this->assertNull($row()['level']);
-        $this->assertSame('Not enough recorded activity in this group to compare students', $row()['undecided_reason']);
+        $this->assertSame('There is too little activity in this group to compare students.', $row()['undecided_reason']);
 
         // It blocks completeness like any other undecided criterion.
         $this->chooseEverything('s1');

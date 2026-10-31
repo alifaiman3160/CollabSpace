@@ -59,9 +59,11 @@ class MarkingController extends LecturerController
             ->get()
             ->keyBy('subject_id');
 
-        $approved = MarkApproval::active()
+        $active = MarkApproval::active()
             ->whereIn('rubric_id', $rubrics->pluck('id'))
-            ->get()
+            ->get(['rubric_id', 'group_id']);
+
+        $approved = $active
             ->groupBy(fn ($a) => $a->rubric_id.'-'.$a->group_id)
             ->map->count();
 
@@ -69,6 +71,8 @@ class MarkingController extends LecturerController
             'subjects' => $subjects,
             'rubrics' => $rubrics,
             'approved' => $approved,
+            // A rubric version is locked while any approval against it is active (what Rubric::isLocked() asks, once for all).
+            'locked' => $active->pluck('rubric_id')->unique()->flip(),
         ]);
     }
 

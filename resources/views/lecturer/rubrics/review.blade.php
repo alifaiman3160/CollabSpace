@@ -2,7 +2,7 @@
                heading="Review the rubric"
                :subtitle="$subject->code.' — '.$subject->name"
                :back="route('lecturer.rubrics', $subject)"
-               back-label="Rubric versions">
+               back-label="Rubrics">
 
     @php
         $field = 'w-full rounded-[14px] border border-surface-line bg-surface px-3 py-2.5 text-meta text-ink focus:border-ink focus:ring-0';
@@ -100,8 +100,8 @@
                     </div>
 
                     <p class="-mt-2 text-label text-ink-400">
-                        <span x-show="mode === 'suggested'">The system may suggest a level for each criterion from recorded activity; you decide.</span>
-                        <span x-show="mode === 'manual'" x-cloak>You choose every level yourself. The system offers nothing here.</span>
+                        <span x-show="mode === 'suggested'" x-transition:enter="cs-t-enter" x-transition:enter-start="cs-t-from" x-transition:enter-end="cs-t-to">The system may suggest a level for each criterion from recorded activity; you decide.</span>
+                        <span x-show="mode === 'manual'" x-cloak x-transition:enter="cs-t-enter" x-transition:enter-start="cs-t-from" x-transition:enter-end="cs-t-to">You choose every level yourself. The system offers nothing here.</span>
                         Changing this sets every criterion below; each can then be changed on its own.
                     </p>
 
@@ -174,7 +174,7 @@
                                 </div>
 
                                 {{-- What recorded activity a system-suggested criterion looks at. --}}
-                                <div class="min-w-0 flex-[1_1_100%]" x-show="cmode === 'suggested'">
+                                <div class="min-w-0 flex-[1_1_100%]" x-show="cmode === 'suggested'" x-transition:enter="cs-t-enter" x-transition:enter-start="cs-t-from" x-transition:enter-end="cs-t-to" x-transition:leave="cs-t-leave" x-transition:leave-start="cs-t-to" x-transition:leave-end="cs-t-from">
                                     <x-evidence-picker :name="$base.'[evidence_type]'"
                                                        :selected="$criterion['evidence_type'] ?? null"
                                                        :criterion-name="$criterion['name'] ?? ''"

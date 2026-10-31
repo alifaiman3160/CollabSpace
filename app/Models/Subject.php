@@ -104,6 +104,11 @@ class Subject extends Model
         return $this->hasMany(Rubric::class);
     }
 
+    public function announcements(): HasMany
+    {
+        return $this->hasMany(Announcement::class);
+    }
+
     /** Every task under every group of this subject. */
     public function tasks(): HasManyThrough
     {

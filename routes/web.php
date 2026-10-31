@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Account\AccountController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\Lecturer\DashboardController as LecturerDashboardController;
+use App\Http\Controllers\Lecturer\AnnouncementController;
 use App\Http\Controllers\Lecturer\BalancedFormationController;
 use App\Http\Controllers\Lecturer\DocumentController as LecturerDocumentController;
 use App\Http\Controllers\Lecturer\FormationController;
@@ -16,7 +17,9 @@ use App\Http\Controllers\Lecturer\ProgressController;
 use App\Http\Controllers\Lecturer\ReportController;
 use App\Http\Controllers\Lecturer\StudentController as LecturerStudentController;
 use App\Http\Controllers\Lecturer\SubjectController;
+use App\Http\Controllers\DocumentImageController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Student\AnnouncementController as StudentAnnouncementController;
 use App\Http\Controllers\Student\BoardController;
 use App\Http\Controllers\Student\ChatController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
@@ -46,6 +49,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     | flow all redirect here, so each role lands on its own screen without
     | every redirect having to know the role.
     */
+    // A picture inside a document. Shared by every role that can read documents; the controller decides who.
+    Route::get('documents/images/{image}', [DocumentImageController::class, 'show'])->name('documents.images.show');
+
     Route::get('/dashboard', function () {
         return match (auth()->user()->role) {
             'admin' => redirect()->route('admin.dashboard'),
@@ -73,12 +79,16 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
 
         Route::get('notifications', [NotificationController::class, 'index'])->name('notifications');
 
+        Route::post('announcements/read', [StudentAnnouncementController::class, 'read'])->name('announcements.read');
+
         Route::get('documents', [DocumentController::class, 'index'])->name('documents');
         Route::get('documents/g/{group}', [DocumentController::class, 'group'])->name('documents.group');
         Route::post('documents/g/{group}', [DocumentController::class, 'store'])->name('documents.store');
         Route::get('documents/d/{document}', [DocumentController::class, 'edit'])->name('documents.edit');
         Route::put('documents/d/{document}', [DocumentController::class, 'update'])->name('documents.update');
         Route::delete('documents/d/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
+        Route::get('documents/d/{document}/pdf', [DocumentController::class, 'pdf'])->name('documents.pdf');
+        Route::post('documents/d/{document}/images', [DocumentController::class, 'storeImage'])->name('documents.images.store');
         Route::get('documents/d/{document}/v/{version}', [DocumentController::class, 'version'])->name('documents.version');
         Route::post('documents/d/{document}/v/{version}/restore', [DocumentController::class, 'restore'])->name('documents.restore');
     });
@@ -135,9 +145,15 @@ Route::middleware(['auth', 'password.changed', 'role:lecturer'])
 
         // The group's documents, read-only. No write verbs here on purpose —
         // a lecturer reads the group's writing, they do not edit it.
-        Route::get('groups/{group}/documents', [LecturerDocumentController::class, 'index'])->name('documents');
-        Route::get('documents/{document}', [LecturerDocumentController::class, 'show'])->name('documents.show');
-        Route::get('documents/{document}/v/{version}', [LecturerDocumentController::class, 'version'])->name('documents.version');
+        // They are sub-pages of Monitor progress (so the sidebar stays on it, and the address says so).
+        Route::get('progress/{group}/documents', [LecturerDocumentController::class, 'index'])->name('progress.documents');
+        Route::get('progress/{group}/documents/{document}', [LecturerDocumentController::class, 'show'])->withTrashed()->whereNumber('document')->name('progress.documents.show');
+        Route::get('progress/{group}/documents/{document}/v/{version}', [LecturerDocumentController::class, 'version'])->withTrashed()->whereNumber(['document', 'version'])->name('progress.documents.version');
+
+        // The old addresses still work: they send the lecturer (who must own the group) to the new ones.
+        Route::get('groups/{group}/documents', [LecturerDocumentController::class, 'legacyIndex'])->name('documents');
+        Route::get('documents/{document}', [LecturerDocumentController::class, 'legacyShow'])->withTrashed()->name('documents.show');
+        Route::get('documents/{document}/v/{version}', [LecturerDocumentController::class, 'legacyVersion'])->withTrashed()->name('documents.version');
 
         // My Subjects
         Route::get('subjects', [SubjectController::class, 'index'])->name('subjects');
@@ -146,6 +162,13 @@ Route::middleware(['auth', 'password.changed', 'role:lecturer'])
         Route::get('subjects/{subject}/edit', [SubjectController::class, 'edit'])->name('subjects.edit');
         Route::put('subjects/{subject}', [SubjectController::class, 'update'])->name('subjects.update');
         Route::delete('subjects/{subject}', [SubjectController::class, 'destroy'])->name('subjects.destroy');
+
+        // Announcements for a subject
+        Route::get('subjects/{subject}/announcements', [AnnouncementController::class, 'index'])->name('announcements');
+        Route::post('subjects/{subject}/announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
+        Route::get('subjects/{subject}/announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->whereNumber('announcement')->name('announcements.edit');
+        Route::put('subjects/{subject}/announcements/{announcement}', [AnnouncementController::class, 'update'])->whereNumber('announcement')->name('announcements.update');
+        Route::delete('subjects/{subject}/announcements/{announcement}', [AnnouncementController::class, 'destroy'])->whereNumber('announcement')->name('announcements.destroy');
 
         // Contribution reports
         Route::get('reports', [ReportController::class, 'index'])->name('reports');

@@ -68,48 +68,50 @@
         <x-flash />
 
         @if ($subjects->isNotEmpty())
-            {{-- The two buttons above look alike to someone new, so say what each does. --}}
-            <dl class="grid gap-3 rounded-card border border-surface-line bg-surface-soft px-5 py-4 text-meta leading-[1.5] text-ink-400 md:grid-cols-2">
-                <div>
-                    <dt class="font-bold text-ink-600">Add one group</dt>
-                    <dd>{{ $oneHelp }}</dd>
-                </div>
-                <div>
-                    <dt class="font-bold text-ink-600">Auto-assign students</dt>
-                    <dd>{{ $autoHelp }}</dd>
-                </div>
-            </dl>
+            {{-- The two buttons above look alike to someone new, so say what each does: two small tiles, side by side. --}}
+            <div class="grid gap-3 md:grid-cols-2" data-group-help>
+                @foreach ([['plus', 'Add one group', $oneHelp], ['users', 'Auto-assign students', $autoHelp]] as [$icon, $title, $text])
+                    <div class="flex items-start gap-3 rounded-card border border-surface-line bg-surface p-4 shadow-subtle">
+                        <span class="flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-periwinkle-soft text-periwinkle-link"><x-icon :name="$icon" size="17" /></span>
+                        <div class="flex min-w-0 flex-col gap-0.5">
+                            <span class="text-nav font-bold">{{ $title }}</span>
+                            <span class="text-meta leading-[1.5] text-ink-400">{{ $text }}</span>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
         @endif
-
         @if ($subjects->isEmpty())
             <x-empty-state
+                class="!border-solid !border-surface-line"
                 icon="book"
                 title="No subjects yet"
                 body="Groups live inside a subject. Create a subject first."
                 cta="Create a subject"
                 :href="route('lecturer.subjects.create')" />
         @else
-            {{-- Subject filter, as the design's segmented control --}}
-            <div class="flex flex-wrap items-center gap-2">
-                <div class="flex flex-wrap rounded-pill bg-surface-muted p-[3px]">
-                    <a href="{{ route('lecturer.groups') }}"
-                       class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold interactive
-                              {{ $subjectId === null ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
-                        All subjects
+            {{-- Subject filter: pills in each subject's own colour. They switch in place (no reload, the content fades). --}}
+            <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by subject" data-subject-filter>
+                <a href="{{ route('lecturer.groups') }}" wire:navigate
+                   @if ($subjectId === null) aria-current="page" @endif
+                   class="interactive flex h-9 items-center rounded-pill border px-4 text-meta font-bold motion-colors
+                          {{ $subjectId === null ? 'border-ink bg-ink text-white' : 'border-surface-line bg-surface text-ink-600 hover:bg-surface-hover hover:text-ink' }}">
+                    All subjects
+                </a>
+                @foreach ($subjects as $subject)
+                    @php $pill = \App\Support\SubjectPalette::for($subject->id); $on = $subjectId === $subject->id; @endphp
+                    <a href="{{ route('lecturer.groups', ['subject' => $subject->id]) }}" wire:navigate
+                       title="{{ $subject->name }}" data-palette="{{ $pill['name'] }}"
+                       @if ($on) aria-current="page" @endif
+                       class="interactive flex h-9 items-center rounded-pill border px-4 text-meta font-bold text-ink motion-colors"
+                       style="background-color: {{ $on ? $pill['accent'] : $pill['bg'] }}; border-color: {{ $on ? $pill['accent'] : $pill['border'] }};">
+                        {{ $subject->code }}
                     </a>
-                    @foreach ($subjects as $subject)
-                        <a href="{{ route('lecturer.groups', ['subject' => $subject->id]) }}"
-                           title="{{ $subject->name }}"
-                           class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold interactive
-                                  {{ $subjectId === $subject->id ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
-                            {{ $subject->code }}
-                        </a>
-                    @endforeach
-                </div>
+                @endforeach
             </div>
-
             @if ($groups->isEmpty())
                 <x-empty-state
+                    class="!border-solid !border-surface-line"
                     icon="folder"
                     title="No groups here yet"
                     body="Create a group by hand and assign students to it, or let CollabSpace form them: balanced by CGPA, or imported from a Google Form where students chose their own."
@@ -122,8 +124,8 @@
                     @endif
                 </x-empty-state>
             @else
-                <x-data-table :headings="['Group', 'Subject', 'Members', 'Task progress', '']" min-width="860px">
-                    @foreach ($groups as $group)
+                <section class="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-[18px]" aria-label="Groups" data-group-grid>
+                    @foreach ($groups as $i => $group)
                         @php
                             // Built here, then passed through Js::from below. Blade compiles
                             // {{ }} echoes inside a component attribute but NOT @ directives,
@@ -146,31 +148,27 @@
                                 'every contribution record for this group',
                             ]));
                         @endphp
-                        <tr>
-                            <x-table.group-cells :group="$group" />
 
-                            <td>
-                                <div class="flex items-center justify-end gap-1.5">
-                                    <x-button :href="route('lecturer.groups.show', $group)"
-                                              class="!px-4 !py-2 !text-meta">Manage</x-button>
+                        <x-group-card :group="$group" :i="$i" :href="route('lecturer.groups.show', $group)">
+                            <x-slot:footer>
+                                <x-button :href="route('lecturer.groups.show', $group)" class="!px-4 !py-2 !text-meta">Manage</x-button>
 
-                                    <x-table.quiet-action
-                                        aria-label="Delete {{ $group->name }}" icon="trash"
-                                        x-on:click="confirm = {
-                                            url: '{{ route('lecturer.groups.destroy', $group) }}',
-                                            method: 'DELETE',
-                                            title: 'Delete this group?',
-                                            body: {{ Js::from($deleteBody) }},
-                                            consequences: {{ Js::from($consequences) }},
-                                            confirmText: {{ Js::from($group->name) }},
-                                            action: 'Delete group',
-                                            tone: 'danger',
-                                        }">Delete</x-table.quiet-action>
-                                </div>
-                            </td>
-                        </tr>
+                                <x-table.quiet-action
+                                    aria-label="Delete {{ $group->name }}" icon="trash"
+                                    x-on:click="confirm = {
+                                        url: '{{ route('lecturer.groups.destroy', $group) }}',
+                                        method: 'DELETE',
+                                        title: 'Delete this group?',
+                                        body: {{ Js::from($deleteBody) }},
+                                        consequences: {{ Js::from($consequences) }},
+                                        confirmText: {{ Js::from($group->name) }},
+                                        action: 'Delete group',
+                                        tone: 'danger',
+                                    }">Delete</x-table.quiet-action>
+                            </x-slot:footer>
+                        </x-group-card>
                     @endforeach
-                </x-data-table>
+                </section>
             @endif
         @endif
 

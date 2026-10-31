@@ -639,8 +639,208 @@ class TaskBoardTest extends TestCase
     {
         Livewire::actingAs($this->me)
             ->test(TaskBoard::class, ['group' => $this->group])
-            ->assertSee('Nothing queued')
-            ->assertSee('No one has started')
-            ->assertSee('Nothing finished yet');
+            ->assertSee('Nothing here yet')
+            ->assertSee('Nothing in progress')
+            ->assertSee('Nothing done yet')
+            ->assertSeeHtml('data-empty');
+    }
+
+    public function test_every_column_has_an_accent_bar_a_count_and_its_own_scrolling_body(): void
+    {
+        $html = Livewire::actingAs($this->me)->test(TaskBoard::class, ['group' => $this->group])->html();
+
+        $this->assertSame(3, substr_count($html, 'data-accent'));
+        $this->assertSame(3, substr_count($html, 'data-column-body'));
+        $this->assertSame(3, substr_count($html, 'h-[var(--board-h)]'), 'Every column is the same height.');
+        $this->assertStringContainsString('--board-h: max(26rem, calc(100dvh - 31rem))', $html);
+        $this->assertSame(3, substr_count($html, 'overflow-y-auto'), 'Each column scrolls inside itself.');
+    }
+
+    public function test_new_task_is_at_the_top_of_the_to_do_column_only_and_only_an_empty_column_has_a_dashed_box(): void
+    {
+        Task::create(['group_id' => $this->group->id, 'created_by' => $this->me->id, 'title' => 'One card', 'status' => Task::STATUS_TODO]);
+
+        $html = Livewire::actingAs($this->me)->test(TaskBoard::class, ['group' => $this->group])->html();
+
+        $this->assertSame(1, substr_count($html, 'data-column-new-task'));
+        $todo = substr($html, strpos($html, 'data-column="todo"'), 3000);
+        $this->assertStringContainsString('data-column-new-task', $todo);
+        $this->assertSame(0, substr_count($html, 'data-dropzone'), 'No dashed box under the cards.');
+        $this->assertSame(2, substr_count($html, 'data-empty'), 'Only the two columns with no tasks show one.');
+    }
+
+    protected function boardHtml(): string
+    {
+        return Livewire::actingAs($this->me)->test(TaskBoard::class, ['group' => $this->group])->html();
+    }
+
+    protected function doneTask(string $title, ?string $completedAt = null, array $extra = []): Task
+    {
+        return Task::create($extra + [
+            'group_id' => $this->group->id, 'created_by' => $this->me->id, 'assigned_to' => $this->me->id,
+            'title' => $title, 'status' => Task::STATUS_DONE, 'completed_at' => $completedAt,
+        ]);
+    }
+
+    public function test_every_done_task_shows_its_title_and_is_a_collapsible_row(): void
+    {
+        $titles = ['Write the report', 'Draw the diagram', 'A very long title that would never fit on one line of a narrow column and must be cut short with an ellipsis'];
+        foreach ($titles as $title) {
+            $this->doneTask($title);
+        }
+        Task::create(['group_id' => $this->group->id, 'created_by' => $this->me->id, 'title' => 'Still to do', 'description' => 'Full card text', 'status' => Task::STATUS_TODO]);
+
+        $html = $this->boardHtml();
+        $done = substr($html, strpos($html, 'data-column="done"'));
+
+        foreach ($titles as $title) {
+            $this->assertStringContainsString($title, $done, 'The title is rendered for every Done task.');
+        }
+
+        $this->assertSame(3, substr_count($done, 'data-done-row'));
+        $this->assertSame(3, substr_count($done, 'data-done-toggle'));
+        $this->assertSame(3, substr_count($done, 'truncate text-meta font-bold'), 'One line each, cut with an ellipsis.');
+        $this->assertStringNotContainsString('rounded-pill px-[11px] py-[4.5px] text-label font-bold bg-success-bg', $done, 'No repeated Done badge on each row.');
+        $this->assertDoesNotMatchRegularExpression('/>\s*Done\s*<\/span>\s*@?/', preg_replace('/<option[^>]*>.*?<\/option>/s', '', $done), 'The word Done is not repeated on the rows.');
+
+        // The other columns are still full cards.
+        $todo = substr($html, strpos($html, 'data-column="todo"'), strpos($html, 'data-column="inprogress"') - strpos($html, 'data-column="todo"'));
+        $this->assertStringContainsString('Full card text', $todo);
+        $this->assertStringNotContainsString('data-done-row', $todo);
+    }
+
+    public function test_a_done_row_is_a_real_button_that_opens_a_shared_collapse(): void
+    {
+        $task = $this->doneTask('Finished', null, ['description' => 'What was done']);
+
+        $done = substr($this->boardHtml(), strpos($this->boardHtml(), 'data-column="done"'));
+
+        preg_match('/<button type="button"[^>]*data-done-toggle[^>]*>/s', $done, $button);
+        $this->assertStringContainsString('x-bind:aria-expanded="doneOpen === '.$task->id.'"', $button[0]);
+        $this->assertStringContainsString('aria-controls="done-'.$task->id.'"', $button[0]);
+        $this->assertStringContainsString('motion-colors', $button[0], 'A soft hover background over about 150ms.');
+        $this->assertStringContainsString('hover:bg-surface-soft', $button[0]);
+
+        preg_match('/<div [^>]*id="done-'.$task->id.'"[^>]*>/s', $done, $panel);
+        $this->assertStringContainsString('cs-collapse', $panel[0]);
+        $this->assertStringContainsString(' inert ', ' '.$panel[0].' ', 'Closed and unreachable until opened.');
+        $this->assertStringContainsString("'is-open': doneOpen === {$task->id}", $panel[0]);
+        $this->assertStringContainsString('cs-chevron', $done);
+        $this->assertStringNotContainsString('x-data="{ open: false }"', $done, 'Open state is held by the board, one row at a time.');
+    }
+
+    public function test_the_open_part_has_the_description_the_assignee_the_deadline_and_every_control(): void
+    {
+        $task = $this->doneTask('Finished', '2026-11-03 10:00:00', ['description' => 'What was done', 'deadline' => '2026-11-05']);
+
+        $done = substr($this->boardHtml(), strpos($this->boardHtml(), 'data-column="done"'));
+
+        $this->assertStringContainsString('What was done', $done);
+        $this->assertStringContainsString('Deadline 5 Nov', $done);
+        $this->assertStringContainsString('3 Nov', $done, 'The completion date sits on the closed row.');
+        $this->assertStringContainsString('You', $done);
+        $this->assertStringContainsString('id="status-'.$task->id.'"', $done);
+        $this->assertStringContainsString('aria-label="Edit Finished"', $done);
+        $this->assertStringContainsString('aria-label="Delete Finished"', $done);
+        $this->assertStringNotContainsString('group-hover:', $done, 'No control waits for a hover.');
+    }
+
+    public function test_the_most_recently_completed_comes_first_and_without_a_time_the_old_order_stays(): void
+    {
+        $this->doneTask('Older', '2026-11-01 09:00:00');
+        $this->doneTask('Newest', '2026-11-04 09:00:00');
+        $this->doneTask('Middle', '2026-11-02 09:00:00');
+        $this->doneTask('No time A', null, ['deadline' => '2026-12-01']);
+        $this->doneTask('No time B', null, ['deadline' => '2026-12-02']);
+
+        $done = substr($this->boardHtml(), strpos($this->boardHtml(), 'data-column="done"'));
+        $order = [];
+        foreach (['Newest', 'Middle', 'Older', 'No time A', 'No time B'] as $title) {
+            $order[$title] = strpos($done, $title);
+        }
+
+        $this->assertSame(array_keys($order), array_keys(collect($order)->sort()->all()));
+    }
+
+    public function test_moving_rules_are_unchanged_for_a_done_task_somebody_else_owns(): void
+    {
+        $other = User::factory()->student()->create(['must_change_password' => false]);
+        GroupMember::create(['group_id' => $this->group->id, 'user_id' => $other->id, 'joined_at' => now()]);
+        $task = $this->doneTask('Theirs', null, ['assigned_to' => $other->id]);
+
+        $done = substr($this->boardHtml(), strpos($this->boardHtml(), 'data-column="done"'));
+        $this->assertStringContainsString('only they can move this card', $done);
+
+        Livewire::actingAs($this->me)->test(TaskBoard::class, ['group' => $this->group])->call('moveTask', $task->id, Task::STATUS_TODO);
+        $this->assertSame(Task::STATUS_DONE, $task->fresh()->status, 'Refused, as before.');
+    }
+    public function test_every_task_title_is_rendered_in_every_column(): void
+    {
+        $titles = [];
+        foreach ([Task::STATUS_TODO, Task::STATUS_INPROGRESS, Task::STATUS_DONE] as $status) {
+            foreach (range(1, 12) as $i) {
+                $title = "{$status} task number {$i}";
+                Task::create(['group_id' => $this->group->id, 'created_by' => $this->me->id, 'assigned_to' => $this->me->id, 'title' => $title, 'status' => $status]);
+                $titles[$status][] = $title;
+            }
+        }
+
+        $html = $this->boardHtml();
+
+        foreach ($titles as $status => $list) {
+            $start = strpos($html, 'data-column="'.$status.'"');
+            $next = strpos($html, 'data-column="', $start + 10);
+            $column = substr($html, $start, ($next === false ? strlen($html) : $next) - $start);
+            foreach ($list as $title) {
+                $this->assertStringContainsString($title, $column, "{$title} is missing from its column.");
+            }
+        }
+    }
+
+    public function test_rows_never_shrink_and_the_column_body_scrolls_inside_its_fixed_height(): void
+    {
+        $this->doneTask('Done one');
+        Task::create(['group_id' => $this->group->id, 'created_by' => $this->me->id, 'title' => 'Todo one', 'status' => Task::STATUS_TODO]);
+        Task::create(['group_id' => $this->group->id, 'created_by' => $this->me->id, 'title' => 'Doing one', 'status' => Task::STATUS_INPROGRESS]);
+
+        $html = $this->boardHtml();
+
+        $this->assertSame(3, substr_count($html, 'h-[var(--board-h)]'), 'Every column keeps the same fixed height.');
+        $this->assertSame(3, preg_match_all('/<div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1" data-column-body>/', $html), 'Each body scrolls inside it.');
+
+        preg_match_all('/<article\s[^>]*data-cs-item[^>]*>/s', $html, $cards);
+        $this->assertCount(3, $cards[0]);
+        foreach ($cards[0] as $card) {
+            $this->assertMatchesRegularExpression('/class="[^"]*\bshrink-0\b/', $card, 'A card or row is never squashed.');
+        }
+        $this->assertStringContainsString('min-h-[44px]', $html, 'Every collapsed Done row has the same height.');
+    }
+
+    public function test_only_one_done_row_is_open_at_a_time_and_it_scrolls_into_view(): void
+    {
+        $a = $this->doneTask('First');
+        $b = $this->doneTask('Second');
+
+        $html = $this->boardHtml();
+
+        $this->assertStringContainsString('doneOpen: null', $html);
+        $this->assertStringContainsString('this.doneOpen = this.doneOpen === id ? null : id', $html);
+        $this->assertStringContainsString("scrollIntoView({\n                 block: 'nearest',", str_replace("\r\n", "\n", $html));
+        $this->assertStringContainsString("prefers-reduced-motion: reduce", $html);
+        foreach ([$a, $b] as $task) {
+            $this->assertStringContainsString("x-on:click=\"toggleDone({$task->id}, \$el.closest('article'))\"", $html);
+            $this->assertStringContainsString("'is-open': doneOpen === {$task->id}", $html);
+        }
+    }
+
+    public function test_an_opened_done_row_is_one_card_with_no_divider(): void
+    {
+        $this->doneTask('Neat', null, ['description' => 'Details here']);
+
+        $done = substr($this->boardHtml(), strpos($this->boardHtml(), 'data-column="done"'));
+
+        $this->assertStringNotContainsString('border-t border-surface-line', $done, 'No hard line between the row and its details.');
+        $this->assertStringContainsString('px-3 pb-3 pt-1', $done);
+        $this->assertSame(1, substr_count($done, 'rounded-card bg-surface shadow-subtle'), 'One white rounded card for the row and its details.');
     }
 }

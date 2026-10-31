@@ -5,23 +5,23 @@
         Task::STATUS_TODO => [
             'title' => 'To Do',
             'well' => 'bg-surface-muted',
+            'bar' => 'bg-ink-200',
             'pill' => 'bg-surface-muted text-ink-500',
-            'emptyTitle' => 'Nothing queued',
-            'emptyBody' => 'Add a task, or drag one back here if it needs to wait.',
+            'emptyTitle' => 'Nothing here yet',
         ],
         Task::STATUS_INPROGRESS => [
             'title' => 'In Progress',
             'well' => 'bg-periwinkle-soft',
+            'bar' => 'bg-periwinkle-deep',
             'pill' => 'bg-periwinkle-soft text-periwinkle-link',
-            'emptyTitle' => 'No one has started',
-            'emptyBody' => 'Move a card here when a member picks it up.',
+            'emptyTitle' => 'Nothing in progress',
         ],
         Task::STATUS_DONE => [
             'title' => 'Done',
             'well' => 'bg-success-bg',
+            'bar' => 'bg-success/50',
             'pill' => 'bg-success-bg text-success-text',
-            'emptyTitle' => 'Nothing finished yet',
-            'emptyBody' => 'Move a card here once it is submitted — the progress bar moves for everyone.',
+            'emptyTitle' => 'Nothing done yet',
         ],
     ];
 
@@ -37,6 +37,16 @@
      x-data="{
          dragging: null,
          over: null,
+         doneOpen: null,
+         toggleDone(id, el) {
+             this.doneOpen = this.doneOpen === id ? null : id
+             if (this.doneOpen === null) return
+             // Once it has grown, bring it into view inside its own column, only if it would be cut off.
+             setTimeout(() => el.scrollIntoView({
+                 block: 'nearest',
+                 behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+             }), 300)
+         },
          start(id, event) {
              this.dragging = id
              event.dataTransfer.effectAllowed = 'move'
@@ -95,7 +105,7 @@
     {{-- Create or edit a task — one form, because the fields are identical and
          two of them would drift apart the first time one was changed. --}}
     @if ($showForm)
-        <form wire:submit="saveTask" class="flex flex-col gap-5 rounded-panel border border-surface-line bg-surface shadow-subtle p-6">
+        <form wire:submit="saveTask" class="cs-pop flex flex-col gap-5 rounded-panel border border-surface-line bg-surface shadow-subtle p-6">
             <h2 class="text-h3 font-bold tracking-title">
                 @if ($editing)
                     Edit “{{ Str::limit($editing->title, 48) }}”
@@ -126,9 +136,18 @@
                     <x-input-error :messages="$errors->get('assignedTo')" />
                 </div>
 
-                <div class="flex flex-col gap-2">
+                {{-- A hint only: a task may be due after the group project is. Nothing is blocked or changed by it. --}}
+                <div class="flex flex-col gap-2"
+                     x-data="{ picked: '', limit: @js($group->subject->project_deadline?->format('Y-m-d')) }"
+                     x-effect="picked = $wire.deadline ?? ''">
                     <x-input-label for="task-deadline" value="Deadline" />
-                    <x-text-input id="task-deadline" wire:model="deadline" type="date" />
+                    <x-text-input id="task-deadline" wire:model="deadline" type="date" x-on:input="picked = $event.target.value" />
+                    @if ($group->subject->project_deadline)
+                        <p x-show="limit && picked && picked > limit" x-cloak role="status" data-task-after-project
+                           class="text-label font-semibold text-warning-text">
+                            This is after the group project due date, {{ $group->subject->project_deadline->format('j M Y') }}.
+                        </p>
+                    @endif
                     <x-input-error :messages="$errors->get('deadline')" />
                 </div>
 
@@ -155,26 +174,39 @@
     @endif
 
     {{-- Columns --}}
-    <div class="flex gap-4 overflow-x-auto pb-2">
+    {{-- Each column is as tall as what is left of the screen and scrolls inside itself, so a long Done
+         column never stretches the page. --}}
+    <div class="flex gap-4 overflow-x-auto pb-2" style="--board-h: max(26rem, calc(100dvh - 31rem))" data-columns>
         @foreach ($columns as $status => $tasks)
             @php($m = $meta[$status])
             <section
-                class="flex min-w-[290px] flex-1 flex-col gap-3 rounded-panel border p-4 transition-colors
+                class="relative flex h-[var(--board-h)] min-w-[290px] flex-1 flex-col gap-3 overflow-hidden rounded-panel border p-4 pt-5 transition-colors
                        {{ $m['well'] }}"
+                data-column="{{ $status }}"
                 :class="over === '{{ $status }}' ? 'border-ink/40' : 'border-surface-line'"
                 x-on:dragover.prevent="over = '{{ $status }}'"
                 x-on:dragleave="over = null"
                 x-on:drop.prevent="drop('{{ $status }}')"
                 aria-label="{{ $m['title'] }} column">
 
+                <span class="absolute inset-x-0 top-0 h-1.5 {{ $m['bar'] }}" aria-hidden="true" data-accent></span>
+
                 <div class="flex items-center gap-2.5 px-1 pt-0.5">
                     <h2 class="text-[16px] font-extrabold tracking-[-0.025em]">{{ $m['title'] }}</h2>
                     <span class="flex h-[22px] min-w-6 items-center justify-center rounded-pill bg-surface px-[7px] text-label font-bold text-ink-500">
                         {{ $tasks->count() }}
                     </span>
+
+                    @if ($status === Task::STATUS_TODO)
+                        <button type="button" wire:click="toggleForm" data-column-new-task
+                                class="interactive ml-auto inline-flex items-center gap-1.5 rounded-pill bg-surface px-3 py-1.5 text-label font-bold text-ink hover:bg-surface-hover">
+                            <x-icon name="plus" size="13" class="[stroke-width:2.5]" />
+                            New task
+                        </button>
+                    @endif
                 </div>
 
-                <div class="flex flex-col gap-3">
+                <div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1" data-column-body>
                     @forelse ($tasks as $task)
                         {{-- A card assigned to somebody else can still be picked
                              up and dropped: the move is refused on the server
@@ -182,8 +214,84 @@
                              outright would leave people guessing why the card
                              would not lift. --}}
                         @php($mine = $task->assigned_to === null || $task->assigned_to === auth()->id())
+                        @if ($status === Task::STATUS_DONE)
+                            {{-- A finished task is a row that opens: one line shut, everything about it open. --}}
+                            <article
+                                wire:key="task-{{ $task->id }}" data-cs-item data-done-row
+                                draggable="true"
+                                x-on:dragstart="start({{ $task->id }}, $event)"
+                                x-on:dragend="dragging = null; over = null"
+                                :class="dragging === {{ $task->id }} ? 'opacity-50' : ''"
+                                @unless ($mine)
+                                    title="Assigned to {{ $task->assignee->name }} — only they can move this card"
+                                @endunless
+                                class="flex shrink-0 flex-col overflow-hidden rounded-card bg-surface shadow-subtle transition-shadow hover:shadow-card">
+
+                                <button type="button" x-on:click="toggleDone({{ $task->id }}, $el.closest('article'))" x-bind:aria-expanded="doneOpen === {{ $task->id }}" aria-controls="done-{{ $task->id }}" data-done-toggle
+                                        class="motion-colors flex min-h-[44px] w-full shrink-0 items-center gap-2.5 px-3 py-2.5 text-left text-meta hover:bg-surface-soft">
+                                    <span class="flex size-5 shrink-0 items-center justify-center rounded-pill bg-success-bg text-success-text" aria-hidden="true">
+                                        <x-icon name="check" size="12" class="[stroke-width:3]" />
+                                    </span>
+                                    <span class="min-w-0 flex-1 truncate text-meta font-bold" title="{{ $task->title }}">{{ $task->title }}</span>
+                                    @if ($task->assignee)
+                                        <x-avatar :name="$task->assignee->name" size="sm" class="!size-[24px] !text-micro" />
+                                    @endif
+                                    @if ($task->completed_at ?? $task->deadline)
+                                        <span class="shrink-0 text-label font-medium tabular-nums text-ink-400">{{ ($task->completed_at ?? $task->deadline)->format('j M') }}</span>
+                                    @endif
+                                    <svg class="cs-chevron size-4 shrink-0 text-ink-300" x-bind:class="doneOpen === {{ $task->id }} ? 'rotate-180' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                                </button>
+
+                                <x-collapse open="doneOpen === {{ $task->id }}" id="done-{{ $task->id }}">
+                                    <div class="flex flex-col gap-2.5 px-3 pb-3 pt-1">
+                                        @if ($task->description)
+                                            <p class="break-words text-meta text-ink-600">{{ $task->description }}</p>
+                                        @endif
+
+                                        <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-meta">
+                                            <span class="flex min-w-0 items-center gap-1.5 font-semibold text-ink-600">
+                                                <x-icon name="user" size="13" class="shrink-0 text-ink-300" />
+                                                <span class="truncate">{{ $task->assignee ? ($mine ? 'You' : $task->assignee->name) : 'Unassigned' }}</span>
+                                                @if ($task->assignee && ! $mine)
+                                                    <span class="flex shrink-0 items-center text-ink-300" aria-label="Only {{ $task->assignee->name }} can move this card"><x-icon name="lock" size="12" /></span>
+                                                @endif
+                                            </span>
+                                            @if ($task->deadline)
+                                                <span class="flex shrink-0 items-center gap-1.5 font-semibold text-ink-400">
+                                                    <x-icon name="calendar" size="13" />
+                                                    Deadline {{ $task->deadline->format('j M') }}
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        <div class="flex items-center gap-2">
+                                            <label class="sr-only" for="status-{{ $task->id }}">Status for {{ $task->title }}</label>
+                                            <select id="status-{{ $task->id }}"
+                                                    class="h-9 flex-1 rounded-pill border-none bg-surface-muted px-3 text-meta font-bold text-ink focus:outline-none focus:ring-2 focus:ring-ink/20"
+                                                    wire:change="moveTask({{ $task->id }}, $event.target.value)">
+                                                @foreach ($meta as $value => $option)
+                                                    <option value="{{ $value }}" @selected($task->status === $value)>{{ $option['title'] }}</option>
+                                                @endforeach
+                                            </select>
+
+                                            <button type="button" wire:click="startEdit({{ $task->id }})"
+                                                    class="flex size-9 shrink-0 items-center justify-center rounded-pill bg-surface-muted text-ink-400 interactive hover:bg-periwinkle-soft hover:text-periwinkle-link"
+                                                    aria-label="Edit {{ $task->title }}">
+                                                <x-icon name="edit" size="15" />
+                                            </button>
+
+                                            <button type="button" wire:click="confirmDelete({{ $task->id }})"
+                                                    class="flex size-9 shrink-0 items-center justify-center rounded-pill bg-surface-muted text-ink-400 interactive hover:bg-danger-bg hover:text-danger-text"
+                                                    aria-label="Delete {{ $task->title }}">
+                                                <x-icon name="trash" size="15" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </x-collapse>
+                            </article>
+                        @else
                         <article
-                            wire:key="task-{{ $task->id }}"
+                            wire:key="task-{{ $task->id }}" data-cs-item
                             draggable="true"
                             x-on:dragstart="start({{ $task->id }}, $event)"
                             x-on:dragend="dragging = null; over = null"
@@ -191,7 +299,7 @@
                             @unless ($mine)
                                 title="Assigned to {{ $task->assignee->name }} — only they can move this card"
                             @endunless
-                            class="relative flex cursor-grab flex-col gap-3 overflow-hidden rounded-card bg-surface p-[15px] shadow-subtle transition-shadow hover:shadow-card active:cursor-grabbing">
+                            class="relative flex shrink-0 cursor-grab flex-col overflow-hidden rounded-card bg-surface shadow-subtle gap-3 p-[15px] transition-shadow hover:shadow-card active:cursor-grabbing">
 
                             @if ($task->isOverdue())
                                 <span class="absolute inset-y-0 left-0 w-1 bg-danger" aria-hidden="true"></span>
@@ -277,15 +385,13 @@
                                 </button>
                             </div>
                         </article>
+                        @endif
                     @empty
-                        <div class="flex flex-col items-center gap-2.5 rounded-card bg-surface px-5 py-8 text-center">
-                            <span class="flex size-[52px] items-center justify-center rounded-pill bg-periwinkle text-ink">
-                                <x-icon name="check" size="24" />
-                            </span>
-                            <span class="text-[15px] font-extrabold tracking-[-0.02em]">{{ $m['emptyTitle'] }}</span>
-                            <span class="max-w-[210px] text-meta leading-[1.5] text-ink-400">{{ $m['emptyBody'] }}</span>
+                        <div class="flex flex-1 flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-ink/15 bg-white/50 px-5 py-8 text-center" data-empty>
+                            <span class="text-[15px] font-bold tracking-[-0.02em] text-ink-600">{{ $m['emptyTitle'] }}</span>
                         </div>
                     @endforelse
+
                 </div>
             </section>
         @endforeach
@@ -295,9 +401,9 @@
     @if ($deletingTask)
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true"
              x-on:keydown.escape.window="$wire.cancelDelete()">
-            <div class="absolute inset-0 bg-ink/40" wire:click="cancelDelete"></div>
+            <div class="cs-pop-overlay absolute inset-0 bg-ink/40" wire:click="cancelDelete"></div>
 
-            <div class="relative w-full max-w-md rounded-panel bg-surface p-7 shadow-modal">
+            <div class="cs-pop relative w-full max-w-md rounded-panel bg-surface p-7 shadow-modal">
                 <div class="flex items-start gap-3.5">
                     <span class="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-danger-bg text-danger-text">
                         <x-icon name="alert" size="20" />

@@ -208,7 +208,7 @@ class SuggestionServiceTest extends TestCase
         $this->assertSame($good->id, $row->ai_level_id);
         $this->assertStringStartsWith('Based on the supplied counts', $row->ai_rationale);
         $this->assertNotNull($row->baseline_level_id);
-        $this->assertStringContainsString('Completed 3 of 4 assigned tasks', $row->baseline_note);
+        $this->assertStringContainsString('Finished 3 of 4 tasks', $row->baseline_note);
         $this->assertSame('openai', $row->provider);
         $this->assertSame('gpt-test', $row->model);
         $this->assertSame(4, $row->facts['tasks_assigned']);
@@ -302,7 +302,7 @@ class SuggestionServiceTest extends TestCase
         $row = $this->row('s1', 'Contribution to tasks');
         $this->assertNull($row->ai_level_id);
         $this->assertSame('invalid', $row->ai_status);
-        $this->assertStringContainsString('not one of this criterion', $row->ai_message);
+        $this->assertStringContainsString('does not have', $row->ai_message);
         $this->assertNotNull($row->baseline_level_id);
         $this->assertSame('Rule-based', $row->sourceLabel());
         $this->assertGreaterThan(0, $report->discarded);
@@ -611,15 +611,15 @@ class SuggestionServiceTest extends TestCase
         $this->assertCount(3, $this->requests(), 'Three attempts for the first student, then no more requests at all.');
         $this->assertTrue($report->rateLimited);
         $this->assertSame(1, $report->requests, 'One student was tried; the rest were never asked.');
-        $this->assertStringContainsString('rate limit was reached', $report->stopped);
-        $this->assertStringContainsString('rule-based suggestions only', $report->stopped);
+        $this->assertStringContainsString('The AI is busy', $report->stopped);
+        $this->assertStringContainsString('only have the suggestions from the numbers', $report->stopped);
         $this->assertSame(0, $report->fromAi);
 
         // Every student still has a suggestion.
         $row = $this->row('s4', 'Contribution to tasks');
         $this->assertNotNull($row->baseline_level_id);
         $this->assertSame('failed', $row->ai_status);
-        $this->assertStringContainsString('rate limit', $row->ai_message);
+        $this->assertStringContainsString('busy', $row->ai_message);
         $this->assertSame('Rule-based', $row->sourceLabel());
     }
 
@@ -659,11 +659,11 @@ class SuggestionServiceTest extends TestCase
         Http::assertNothingSent();
         $this->assertSame(0, MarkingRun::count());
         $this->assertSame(0, $report->requests);
-        $this->assertStringContainsString('no API key is set', $report->stopped);
+        $this->assertStringContainsString('not turned on', $report->stopped);
 
         $row = $this->row('s1', 'Contribution to tasks');
         $this->assertSame('disabled', $row->ai_status);
-        $this->assertStringContainsString('no API key is set', $row->ai_message);
+        $this->assertStringContainsString('not turned on', $row->ai_message);
         $this->assertNotNull($row->baseline_level_id);
         $this->assertSame('Rule-based', $row->sourceLabel());
     }
@@ -676,7 +676,7 @@ class SuggestionServiceTest extends TestCase
         $this->run_();
 
         Http::assertNothingSent();
-        $this->assertStringContainsString('switched off', $this->row('s1', 'Contribution to tasks')->ai_message);
+        $this->assertStringContainsString('not turned on', $this->row('s1', 'Contribution to tasks')->ai_message);
         $this->assertSame('Rule-based', $this->row('s1', 'Contribution to tasks')->sourceLabel());
     }
 
@@ -688,7 +688,7 @@ class SuggestionServiceTest extends TestCase
         $report = $this->run_();
 
         $this->assertCount(2, $this->requests());
-        $this->assertStringContainsString('daily limit of 2', $report->stopped);
+        $this->assertStringContainsString('limit of 2 AI requests', $report->stopped);
 
         $limited = MarkSuggestion::where('ai_status', 'limited')->get();
         $this->assertNotEmpty($limited);

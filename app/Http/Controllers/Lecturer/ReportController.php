@@ -22,23 +22,36 @@ class ReportController extends LecturerController
             ->orderBy('name')
             ->get();
 
-        // Enough of each report to show the flag count on the selection card,
-        // without building every report in full.
-        $flagCounts = $groups->mapWithKeys(function (Group $group) {
-            $report = $this->reports->for($group);
+        // One read of the log for every group, then each group's own report numbers: the flag count, the total, and
+        // each member's points (what the distribution bar is made of).
+        $reports = $this->reports->forMany($groups);
+
+        $summaries = $groups->mapWithKeys(function (Group $group) use ($reports) {
+            $report = $reports[$group->id];
 
             return [$group->id => [
                 'flagged' => $report['flagged']->count(),
                 'total' => $report['total'],
+                'segments' => $report['members']
+                    ->filter(fn ($row) => $row['score'] > 0)
+                    ->map(fn ($row) => ['name' => $row['user']->name, 'points' => (int) $row['score']])
+                    ->values()
+                    ->all(),
             ]];
         });
 
+        // Groups with flagged members first (the most flags first), then by subject and group name.
+        $groups = $groups->sortBy([
+            fn ($a, $b) => $summaries[$b->id]['flagged'] <=> $summaries[$a->id]['flagged'],
+            fn ($a, $b) => strcmp($a->subject->code, $b->subject->code),
+            fn ($a, $b) => strcmp($a->name, $b->name),
+        ])->values();
+
         return view('lecturer.reports.index', [
             'groups' => $groups,
-            'summaries' => $flagCounts,
+            'summaries' => $summaries,
         ]);
     }
-
     public function show(Group $group): View
     {
         $group = $this->ownedGroup($group);

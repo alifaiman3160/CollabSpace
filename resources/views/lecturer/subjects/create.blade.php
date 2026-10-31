@@ -1,6 +1,8 @@
 <x-layouts.app title="New subject — CollabSpace"
                heading="Create subject"
-               subtitle="Groups and students are added to the subject once it exists.">
+               subtitle="Groups and students are added to the subject once it exists."
+               :back="route('lecturer.subjects')"
+               back-label="My subjects">
 
     <form method="POST" action="{{ route('lecturer.subjects.store') }}" class="mx-auto flex w-full max-w-xl flex-col gap-7">
         @csrf

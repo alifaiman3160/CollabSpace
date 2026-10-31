@@ -60,6 +60,13 @@ class StyleAttributeSanitizer implements AttributeSanitizerInterface
     /** @var list<string> */
     public const LINE_HEIGHTS = ['1', '1.15', '1.5', '2'];
 
+    /** Space before/after a paragraph, in points; indents in centimetres. */
+    public const MAX_SPACE_PT = 72;
+
+    public const MAX_INDENT_CM = 12;
+
+    public const MAX_FIRST_LINE_CM = 3;
+
     /** @var list<string> */
     public const ALIGNMENTS = ['left', 'center', 'right', 'justify'];
 
@@ -111,6 +118,9 @@ class StyleAttributeSanitizer implements AttributeSanitizerInterface
                 'font-family' => $this->fontFamily($raw),
                 'font-size' => $this->fontSize($raw),
                 'line-height' => $this->lineHeight($raw),
+                'margin-top', 'margin-bottom' => $this->points($raw),
+                'margin-left' => $this->centimetres($raw, self::MAX_INDENT_CM),
+                'text-indent' => $this->centimetres($raw, self::MAX_FIRST_LINE_CM),
                 'color' => $this->colour($raw),
                 'background-color' => $this->colour($raw),
                 'text-align' => $this->alignment($raw),
@@ -153,12 +163,54 @@ class StyleAttributeSanitizer implements AttributeSanitizerInterface
         return null;
     }
 
+    /** A bare number from 1 to 3 with at most two decimals (the presets and the Custom choice). */
     protected function lineHeight(string $value): ?string
     {
-        $value = rtrim(mb_strtolower($value), '0');
-        $value = rtrim($value, '.') ?: $value;
+        $value = trim($value);
 
-        return in_array($value, self::LINE_HEIGHTS, true) ? $value : null;
+        if (! preg_match('/^\d(?:\.\d{1,2})?$/', $value)) {
+            return null;
+        }
+
+        $number = (float) $value;
+
+        if ($number < 1 || $number > 3) {
+            return null;
+        }
+
+        return rtrim(rtrim(number_format($number, 2, '.', ''), '0'), '.');
+    }
+
+    /** Space before or after a paragraph: points only, 0 to 72. */
+    protected function points(string $value): ?string
+    {
+        $value = mb_strtolower(trim($value));
+
+        if ($value === '0') {
+            return '0pt';
+        }
+
+        if (! preg_match('/^(\d{1,2}(?:\.\d)?)pt$/', $value, $m) || (float) $m[1] > self::MAX_SPACE_PT) {
+            return null;
+        }
+
+        return rtrim(rtrim($m[1], '0'), '.').'pt';
+    }
+
+    /** An indent: centimetres only, 0 up to $max. */
+    protected function centimetres(string $value, float $max): ?string
+    {
+        $value = mb_strtolower(trim($value));
+
+        if ($value === '0') {
+            return '0cm';
+        }
+
+        if (! preg_match('/^(\d{1,2}(?:\.\d{1,2})?)cm$/', $value, $m) || (float) $m[1] > $max) {
+            return null;
+        }
+
+        return rtrim(rtrim($m[1], '0'), '.').'cm';
     }
 
     /**

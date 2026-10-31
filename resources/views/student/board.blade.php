@@ -16,7 +16,7 @@
         </x-slot:actions>
 
         <div class="flex flex-col gap-[18px]">
-            <x-group-switcher :groups="$groups" :current="$group" route="student.board.show" />
+            <x-group-picker :groups="$groups" :current="$group" route="student.board.show" :secondary="$secondary" />
 
             {{-- Status changes run through Livewire, so the page never reloads. --}}
             <livewire:task-board :group="$group" />

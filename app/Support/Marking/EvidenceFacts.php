@@ -110,12 +110,46 @@ final class EvidenceFacts
     ];
 
     /**
-     * The facts a criterion was judged on, as one readable line:
-     * "Messages sent 10 (group average 5)".
+     * The records a criterion was judged on, as one plain line:
+     * "Tasks: 5 given, 4 done" or "Messages: 10 sent (group average 5)".
      *
      * @param  array<string, mixed>  $own  one student's facts as stored on a suggestion
      */
     public static function describe(?string $type, array $own): string
+    {
+        $n = fn (string $k) => self::canonical((float) ($own[$k] ?? 0));
+        $avg = fn (string $k) => self::canonical((float) (($own['group_average'] ?? [])[$k] ?? 0));
+
+        switch (EvidenceType::normalise($type)) {
+            case EvidenceType::TASK_COMPLETION:
+                return "Tasks: {$n('tasks_assigned')} given, {$n('tasks_completed')} done";
+
+            case EvidenceType::RELIABILITY:
+                $line = "Tasks: {$n('tasks_assigned')} given, {$n('tasks_completed_on_time')} done on time";
+
+                if ((int) ($own['tasks_completed_late'] ?? 0) > 0) {
+                    $line .= ", {$n('tasks_completed_late')} done late (".self::dayList($own['late_days'] ?? []).')';
+                }
+
+                return $line.((int) ($own['tasks_overdue'] ?? 0) > 0 ? ", {$n('tasks_overdue')} overdue now" : '');
+
+            case EvidenceType::COMMUNICATION:
+                return "Messages: {$n('messages_sent')} sent (group average {$avg('messages_sent')})";
+
+            case EvidenceType::COLLABORATION:
+                return "Edits: {$n('document_edits')} (group average {$avg('document_edits')}); Uploads: {$n('files_uploaded')} (group average {$avg('files_uploaded')})";
+        }
+
+        return self::describeLegacy($type, $own);
+    }
+
+    /**
+     * The wording used before the records line was simplified ("Messages sent 10 (group average 5)").
+     * An approval made before then is read back with this, so it shows what it was approved with.
+     *
+     * @param  array<string, mixed>  $own
+     */
+    public static function describeLegacy(?string $type, array $own): string
     {
         $facts = self::payload($type, $own);
         $average = $facts['group_average'] ?? [];
@@ -140,50 +174,78 @@ final class EvidenceFacts
     }
 
     /**
-     * One short, plain sentence for the row on the marking page: the figures and nothing else.
-     * The fuller wording stays in the suggestion's own note, under "Why?".
+     * The one plain sentence for a criterion, built from the figures alone, in short common words.
+     * It is the rule-based reason on the marking page and in the exports.
      *
      * @param  array<string, mixed>  $own  one student's facts as stored on a suggestion
      */
     public static function sentence(?string $type, array $own): ?string
     {
         $n = fn (string $k) => self::canonical((float) ($own[$k] ?? 0));
-        $s = fn (string $k, string $one, string $many) => (float) ($own[$k] ?? 0) === 1.0 ? $one : $many;
+        $plural = fn (string $k, string $one, string $many) => (float) ($own[$k] ?? 0) === 1.0 ? $one : $many;
         $avg = $own['group_average'] ?? [];
+        $assigned = (int) ($own['tasks_assigned'] ?? 0);
 
         switch (EvidenceType::normalise($type)) {
             case EvidenceType::TASK_COMPLETION:
-                if ((int) ($own['tasks_assigned'] ?? 0) === 0) {
+                if ($assigned === 0) {
                     return null;
                 }
 
-                return "Finished {$n('tasks_completed')} of {$n('tasks_assigned')} assigned ".$s('tasks_assigned', 'task', 'tasks').'.';
+                return "Finished {$n('tasks_completed')} of {$assigned} ".($assigned === 1 ? 'task' : 'tasks').' ('.round(((float) ($own['tasks_completed'] ?? 0)) / $assigned * 100).'%).';
 
             case EvidenceType::RELIABILITY:
-                if ((int) ($own['tasks_assigned'] ?? 0) === 0) {
+                if ($assigned === 0) {
                     return null;
                 }
 
-                $line = "{$n('tasks_completed_on_time')} of {$n('tasks_assigned')} tasks on time";
+                $onTime = (int) ($own['tasks_completed_on_time'] ?? 0);
+                $late = (int) ($own['tasks_completed_late'] ?? 0);
                 $overdue = (int) ($own['tasks_overdue'] ?? 0);
 
-                return $line.($overdue > 0 ? ", {$overdue} still overdue." : '.');
+                $parts = ["{$onTime} of {$assigned} ".($assigned === 1 ? 'task' : 'tasks').' '.($onTime === 1 ? 'was' : 'were').' done on time'];
+
+                if ($late > 0) {
+                    $parts[] = "{$late} ".($late === 1 ? 'was' : 'were').' late ('.self::dayList($own['late_days'] ?? []).')';
+                }
+
+                if ($overdue > 0) {
+                    $parts[] = "{$overdue} ".($overdue === 1 ? 'is' : 'are').' overdue now';
+                }
+
+                $last = array_pop($parts);
+                $line = $parts === [] ? $last : implode(', ', $parts).' and '.$last;
+                $percent = round($onTime / $assigned * 100).'%';
+
+                return $line.' ('.(count($parts) > 0 ? "{$percent} on time" : $percent).').';
 
             case EvidenceType::COMMUNICATION:
-                $mine = $n('messages_sent');
-
-                return "Sent {$mine} ".$s('messages_sent', 'message', 'messages').'; the group average is '.self::canonical((float) ($avg['messages_sent'] ?? 0)).'.';
+                return "Sent {$n('messages_sent')} ".$plural('messages_sent', 'message', 'messages').". The group's average is ".self::canonical((float) ($avg['messages_sent'] ?? 0)).'.';
 
             case EvidenceType::COLLABORATION:
                 $mine = (float) ($own['document_edits'] ?? 0) + (float) ($own['files_uploaded'] ?? 0);
                 $theirs = (float) ($avg['document_edits'] ?? 0) + (float) ($avg['files_uploaded'] ?? 0);
 
-                return self::canonical($mine).' edits and uploads; the group average is '.self::canonical($theirs).'.';
+                return 'Made '.self::canonical($mine).($mine === 1.0 ? ' edit or upload' : ' edits and uploads').". The group's average is ".self::canonical($theirs).'.';
         }
 
         return null;
     }
 
+    /** "10 days", "1 day", "2 and 5 days", "2, 3 and 5 days". @param  list<int|float>  $days */
+    private static function dayList(array $days): string
+    {
+        $days = array_values(array_map(fn ($d) => self::canonical((float) $d), $days));
+
+        if ($days === []) {
+            return '0 days';
+        }
+
+        $last = array_pop($days);
+        $text = $days === [] ? $last : implode(', ', $days).' and '.$last;
+
+        return $text.($text === '1' ? ' day' : ' days');
+    }
     /** The plain-words rule for each type, as given to the model. */
     public static function rule(string $type): string
     {

@@ -90,6 +90,18 @@
  * views look identical.
  */
 @layer components {
+    .doc-body h1 {
+        font-size: 26px;
+        line-height: 1.2;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 1.5em 0 0.5em;
+    }
+
+    .doc-body h1:first-child {
+        margin-top: 0;
+    }
+
     .doc-body h2 {
         font-size: 21px;
         line-height: 1.25;
@@ -167,10 +179,247 @@
     .doc-body strong, .doc-body b { font-weight: 700; }
     .doc-body em, .doc-body i { font-style: italic; }
     .doc-body u { text-decoration: underline; }
+    .doc-body sup { vertical-align: super; font-size: 75%; line-height: 0; }
+    .doc-body sub { vertical-align: sub; font-size: 75%; line-height: 0; }
 
     .doc-body:empty::before {
         content: attr(data-placeholder);
         color: #a3a3ad;
+    }
+
+    /*
+     * Pictures. The figure carries the width (small / medium / full of the text
+     * column); the print layout reads the same data-size.
+     */
+    .doc-body figure {
+        margin: 1em auto;
+        text-align: center;
+    }
+
+    .doc-body figure img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
+        border-radius: 6px;
+    }
+
+    .doc-body figure[data-size="small"] { width: 30%; }
+    .doc-body figure[data-size="medium"] { width: 60%; }
+    .doc-body figure[data-size="full"] { width: 100%; }
+
+    .doc-body figcaption {
+        margin-top: 0.4em;
+        font-size: 0.85em;
+        color: #4d4d57;
+    }
+
+    .doc-body figcaption:empty::before {
+        content: "Add a caption (optional)";
+        color: #a3a3ad;
+    }
+
+    /* Read-only views have nowhere to type a caption, so an empty one stays hidden. */
+    .doc-body:not([contenteditable]) figcaption:empty {
+        display: none;
+    }
+
+    .doc-body figure.is-picked img {
+        outline: 2px solid #4a5bd0;
+        outline-offset: 2px;
+    }
+
+    /*
+     * Page break. A dashed rule with a label, so the writer can see (and delete)
+     * it; the print layout turns the same marker into a real break.
+     */
+    .doc-body p[data-page-break] {
+        position: relative;
+        margin: 1.4em 0;
+        border-top: 2px dashed #b9bccf;
+        height: 0;
+        line-height: 0;
+        font-size: 0;
+    }
+
+    .doc-body p[data-page-break]::after {
+        content: "Page break";
+        position: absolute;
+        top: -0.8em;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 0 0.7em;
+        background: #ffffff;
+        font-size: 11px;
+        line-height: 1.6;
+        font-weight: 600;
+        color: #6b6b78;
+    }
+
+    /* Table of contents block. */
+    .doc-body blockquote[data-toc] {
+        border-left: 0;
+        border: 1px solid #ececf2;
+        border-radius: 12px;
+        background: #f7f7fa;
+        padding: 0.8em 1.1em 0.4em;
+        color: inherit;
+    }
+
+    .doc-body blockquote[data-toc] ul { list-style: none; padding-left: 0; margin-bottom: 0.5em; }
+    .doc-body blockquote[data-toc] ul ul { padding-left: 1.2em; margin-bottom: 0; }
+
+    /*
+     * The A4 page the editor sits on: a grey desk with a white sheet 21 cm wide
+     * and 2.5 cm margins, so what is written looks like what will be printed.
+     */
+    .doc-stage {
+        background: #ececf0;
+    }
+
+    /*
+     * The open book. The viewport clips everything (no horizontal scroll, no layout shift) and is a three-column
+     * grid: a side for the previous page, the sheet, a side for the next. Each side is 72px of a miniature of the
+     * neighbouring page plus up to three thin page edges beyond it, like the thickness of a book.
+     */
+    .doc-viewport {
+        position: relative;
+        display: grid;
+        grid-template-columns: 90px minmax(0, 21cm) 90px;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        padding: 24px 0;
+    }
+
+    .doc-side {
+        display: flex;
+        align-items: center;
+        align-self: stretch;
+        min-width: 0;
+    }
+
+    .doc-side-left { justify-content: flex-end; flex-direction: row; }
+    .doc-side-right { justify-content: flex-start; flex-direction: row; }
+
+    /* A page edge: thin, a touch darker than the desk, each layer a little shorter than the one before. */
+    .doc-edge {
+        display: block;
+        width: 4px;
+        height: calc(100% - 28px - var(--layer) * 16px);
+        margin: 0 1px;
+        border-radius: 2px;
+        background: color-mix(in srgb, #d4d6df calc(100% - var(--layer) * 8%), #ffffff);
+        box-shadow: 0 1px 2px rgba(17, 17, 20, 0.08);
+    }
+
+    .doc-side-left .doc-edge { order: -1; }
+
+    /* The neighbour: 72px of its page, slightly smaller (a window cut from a 0.94 scale copy), dimmed, softly shadowed. */
+    .doc-peek {
+        position: relative;
+        flex: none;
+        width: 72px;
+        height: calc(100% - 24px);
+        overflow: hidden;
+        cursor: pointer;
+        background: #ffffff;
+        opacity: 0.82;
+        box-shadow: 0 1px 3px rgba(17, 17, 20, 0.12), 0 6px 16px rgba(17, 17, 20, 0.06);
+        transition: opacity 150ms ease-out;
+    }
+
+    .doc-peek:hover { opacity: 1; }
+
+    /* A page that already exists is only a slim edge beside the sheet; the wide, bright one is the blank "new page" sheet. */
+    .doc-peek-right { width: 24px; border-radius: 0 6px 6px 0; }
+    .doc-peek-left { width: 24px; border-radius: 6px 0 0 6px; }
+
+    .doc-peek-inner {
+        position: absolute;
+        top: 0;
+        width: 21cm;
+        height: 29.7cm;
+        padding: 2.5cm;
+        box-sizing: border-box;
+        overflow: hidden;
+        pointer-events: none;
+        user-select: none;
+        font-size: 12pt;
+        line-height: 1.5;
+        transform: scale(0.94);
+        transform-origin: top left;
+        /* The neighbouring page is shown as a blank sheet edge: none of its writing may show beside the page being edited. */
+        visibility: hidden;
+    }
+
+    /* Show the start of the next page's lines, and the end of the previous page's lines. */
+    .doc-peek-right .doc-peek-inner { left: -82px; top: -8px; }
+    .doc-peek-left .doc-peek-inner { left: calc(-21cm * 0.94 + 106px); top: -8px; }
+
+    /* The last page: a faint blank sheet edge with a plus, which adds a page when pressed. */
+    .doc-peek-new {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 72px;
+        border-radius: 0 6px 6px 0;
+        background: #e3e4eb;
+        opacity: 1;
+        box-shadow: 0 1px 3px rgba(17, 17, 20, 0.10), 0 6px 16px rgba(17, 17, 20, 0.05);
+    }
+
+    .doc-peek-new:hover { background: #eaebf1; }
+
+    .doc-peek-plus {
+        font-size: 28px;
+        font-weight: 300;
+        line-height: 1;
+        color: #6b6b78;
+    }
+    /* Under the sheet, on the stage's grey, in the same three columns so they line up with the sheet. */
+    .doc-controls {
+        background: #ececf0;
+        padding: 4px 0 14px;
+    }
+
+    .doc-controls-grid {
+        display: grid;
+        grid-template-columns: 90px minmax(0, 21cm) 90px;
+        justify-content: center;
+    }
+
+    /*
+     * One A4 sheet, fixed at 21 x 29.7 cm with 2.5 cm margins. Content never makes it taller: what does not fit
+     * is moved to the next page by the editor. (A single block taller than a page scrolls inside its sheet.)
+     */
+    .doc-page {
+        width: 21cm;
+        max-width: 100%;
+        height: 29.7cm;
+        margin: 0 auto;
+        padding: 2.5cm;
+        overflow-y: auto;
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(17, 17, 20, 0.12), 0 8px 24px rgba(17, 17, 20, 0.06);
+        font-size: 12pt;
+        line-height: 1.5;
+        box-sizing: border-box;
+    }
+
+    /* The hidden twin used to measure a page; it never shows. */
+    .doc-page.doc-measure {
+        position: absolute;
+        left: -10000px;
+        top: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    /* A picture is scaled to fit the page's height as well as its width. */
+    .doc-page figure img {
+        max-height: 18cm;
+        width: auto;
     }
 }
 
@@ -535,6 +784,221 @@
     }
 }
 /*
+ * Level chips on the marking page. Written as plain rules, keyed off the radio's own state, so no
+ * hover rule can ever win over "selected": a selected chip is always dark with white text, and a
+ * hover only lightens the dark slightly. The press effect is a small scale and nothing moves in
+ * the layout.
+ */
+.cs-chip {
+    background: #ffffff;
+    border-color: #d0d0df;
+    color: #111114;
+    transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), border-color 150ms cubic-bezier(0.22, 1, 0.36, 1), transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-chip__marks { opacity: 0.7; }
+.cs-chip__tag { margin-top: 2px; color: #4a5bd0; }
+
+.cs-chip-input:not(:checked) + .cs-chip:hover {
+    background: #f2f2f5;
+    border-color: #cbcbda;
+    color: #111114;
+}
+
+.cs-chip-input:checked + .cs-chip,
+.cs-chip-input:checked + .cs-chip:hover {
+    border-color: #111114;
+    color: #ffffff;
+}
+
+.cs-chip-input:checked + .cs-chip { background: #111114; }
+.cs-chip-input:checked + .cs-chip:hover { background: #2a2a33; }
+.cs-chip-input:checked + .cs-chip .cs-chip__tag { color: #c3cff9; }
+
+.cs-chip-input:focus-visible + .cs-chip {
+    outline: 2px solid #4a5bd0;
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .cs-chip-input:active + .cs-chip { transform: scale(0.97); }
+}
+/*
+ * The announcements panel in a subject card on the student dashboard opens and closes by growing its
+ * row from 0fr to 1fr, so the cards and everything below them move with it and nothing jumps. The
+ * content fades a little behind the height. While it is closed it is invisible (and the page also marks
+ * it inert), so nothing in it can be focused or read out. With reduced motion the global rule at the
+ * foot of this file makes every one of these changes instant.
+ */
+.cs-collapse {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition: grid-template-rows 200ms ease-out, visibility 0s linear 200ms;
+}
+
+.cs-collapse.is-open {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows 280ms ease-out, visibility 0s;
+}
+
+.cs-collapse__inner {
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 140ms ease-out;
+}
+
+.cs-collapse.is-open > .cs-collapse__inner {
+    opacity: 1;
+    transition: opacity 220ms ease-out 70ms;
+}
+
+/* Arriving already open (a notification link): no movement at all. */
+.cs-collapse.cs-instant,
+.cs-collapse.cs-instant > .cs-collapse__inner {
+    transition: none;
+}
+
+.cs-chevron {
+    transition: rotate 220ms ease-out;
+}
+
+/* Something that comes and goes with x-show (see components/fade.blade.php). */
+.cs-t-enter { transition: opacity 150ms ease-out, transform 150ms ease-out; }
+.cs-t-leave { transition: opacity 120ms ease-in; }
+.cs-t-from { opacity: 0; transform: translateY(-4px); }
+.cs-t-to { opacity: 1; transform: none; }
+
+/*
+ * Page to page (wire:navigate). Calm and stable: ONE animation, on the content column only.
+ *
+ *   - The new page fades in (opacity 0 to 1, 180ms, ease-out) with a vertical shift of at most 6px.
+ *   - Nothing moves sideways, nothing is blurred, and there is no leave animation to fight the enter.
+ *   - Only opacity and transform change (never width, height, margin, filter or shadow). will-change is set on
+ *     the wrapper while it animates and taken away afterwards.
+ *   - The sidebar is outside the wrapper and is kept as it is, so it is never part of any of this.
+ *   - The scrollbar's space is always reserved (scrollbar-gutter on the one element that scrolls, the page),
+ *     so a longer or shorter page cannot change the content's width in the middle of the fade.
+ *
+ * The ease is the motion token's curve. Under reduced motion nothing is added or animated at all.
+ */
+html {
+    scrollbar-gutter: stable;
+}
+
+.cs-page-content {
+    view-transition-name: page-content;
+}
+
+/* Should a browser ever run a view transition for a page change, the page as a whole must not cross-fade (that
+   reads as blur); the wrapper above is the only thing that may animate. */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+.cs-page-in {
+    will-change: opacity, transform;
+    animation: cs-page-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes cs-page-in {
+    from { opacity: 0; transform: translateY(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-page-in {
+        will-change: auto;
+        animation: none;
+    }
+}
+/* A list item added after the page loaded (a new card, message or notification). The page script
+   adds .cs-in to items a Livewire update inserts, so nothing ever animates on first load. */
+.cs-in { animation: cs-enter 200ms ease-out; }
+
+@keyframes cs-enter {
+    from { opacity: 0; transform: translateY(-6px); }
+}
+
+/* A Livewire dialog or form that appears: it only exists once it is asked for, so it simply animates in. */
+.cs-pop-overlay { animation: cs-fade 160ms ease-out; }
+.cs-pop { animation: cs-pop 200ms ease-out; }
+
+@keyframes cs-fade {
+    from { opacity: 0; }
+}
+
+@keyframes cs-pop {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+}
+
+/* "Read more": the text that appears fades in gently. */
+.cs-reveal {
+    animation: cs-reveal 150ms ease-out;
+}
+
+@keyframes cs-reveal {
+    from { opacity: 0.35; transform: translateY(-3px); }
+}
+
+/*
+ * The soft surface behind the group chat's messages: the sign-in page's blue-and-white wash, held still.
+ * Four soft glows in the corners over a solid periwinkle, drawn with gradients alone: no dots, no
+ * animation, no transform, no script. Put it on a wrapper that does not scroll, with the scrolling
+ * element inside it left transparent, so it never moves with a long conversation and has no seam at
+ * the end. It is never a "fixed" background, which would follow the page and not the panel.
+ *
+ *   top left and bottom right   #8fa4f0 at about a third of its strength (the login's deeper blobs, faded)
+ *   top right                   soft white
+ *   bottom left                 #c3cff9, a touch deeper than the very pale base
+ *
+ * Nothing in a corner is flat white or flat dark. Text that sits straight on it (the times, the
+ * sender's name) carries its own small pale pill; see the chat view.
+ */
+.cs-surface-soft {
+    background-color: #eef1fc;
+    background-image:
+        radial-gradient(70% 60% at 0% 0%, rgba(143, 164, 240, 0.18), rgba(143, 164, 240, 0) 72%),
+        radial-gradient(70% 60% at 100% 100%, rgba(143, 164, 240, 0.18), rgba(143, 164, 240, 0) 72%),
+        radial-gradient(60% 55% at 100% 0%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 72%),
+        radial-gradient(60% 55% at 0% 100%, rgba(195, 207, 249, 0.6), rgba(195, 207, 249, 0) 72%);
+}
+
+.cs-pane {
+    transition: opacity 120ms ease-in;
+}
+
+.cs-pane.is-leaving {
+    opacity: 0;
+}
+
+.cs-swap-in {
+    animation: cs-swap-in 200ms ease-out;
+}
+
+@keyframes cs-swap-in {
+    from { opacity: 0; transform: translateY(6px); }
+}
+
+/* Message-shaped placeholder bars, shown only when a switch is slow. */
+.cs-shimmer {
+    background: linear-gradient(90deg, #e7ebfc 25%, #f7f8fe 50%, #e7ebfc 75%);
+    background-size: 200% 100%;
+    animation: cs-shimmer 1.2s linear infinite;
+}
+
+@keyframes cs-shimmer {
+    to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-shimmer { animation: none; }
+}
+
+/*
  * Reduced motion: no movement, no fading, no scaling. State changes (colour,
  * shadow) still happen, instantly. Alpine's x-transition ends immediately when
  * the duration is zero, so dialogs, menus and toasts simply appear.
@@ -549,4 +1013,117 @@
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
     }
+}
+
+/*
+ * The group picker (components/group-picker.blade.php): small cards in the group's own soft colour. Selected is the
+ * fuller fill with a ring in the colour's darker shade and a slight lift; the others are white with a quiet hover. The
+ * change of state eases over 220ms, and with reduced motion it is instant. Nothing moves sideways.
+ */
+.cs-group-card {
+    background-color: #ffffff;
+    border-color: #ececf2;
+    box-shadow: 0 1px 2px rgba(17, 17, 20, 0.04);
+    transition: background-color 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1), border-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-group-card:not(.is-solo):hover {
+    transform: translateY(-1px);
+    border-color: var(--pal-border);
+    box-shadow: 0 4px 12px rgba(17, 17, 20, 0.06);
+}
+
+.cs-group-card[aria-current='page'],
+.cs-group-card[aria-pressed='true'] {
+    background-color: var(--pal-bg);
+    border-color: var(--pal-accent);
+    box-shadow: 0 0 0 1px var(--pal-accent), 0 6px 16px rgba(17, 17, 20, 0.08);
+    transform: translateY(-2px);
+}
+
+.cs-group-card.is-solo { cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-group-card { transition: none; }
+}
+
+/*
+ * The Documents list's cards. The preview is the first page at its real size (A4, 2.5cm margins, 12pt), inside an A4
+ * portrait box as wide as its card, and scaled down to fit it. Read only, no pointer, no focus.
+ */
+.doc-thumb {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 210 / 297;
+}
+
+.doc-thumb-edge {
+    position: absolute;
+    inset: 0;
+    border: 1px solid #d4d6df;
+    border-radius: 4px;
+    background: #e3e4eb;
+}
+
+.doc-thumb-edge:nth-child(1) { transform: translate(4px, 3px); }
+.doc-thumb-edge:nth-child(2) { transform: translate(8px, 6px); background: #d9dbe4; }
+
+.doc-thumb-page {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border: 1px solid #ececf2;
+    border-radius: 4px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(17, 17, 20, 0.08);
+}
+
+.doc-thumb-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 21cm;
+    height: 29.7cm;
+    padding: 2.5cm;
+    box-sizing: border-box;
+    overflow: hidden;
+    font-size: 12pt;
+    line-height: 1.5;
+    pointer-events: none;
+    user-select: none;
+    /* --thumb-scale is the card's preview width over the page's 793.7px; the script keeps it right as the grid resizes. */
+    transform: scale(var(--thumb-scale, 0.34));
+    transform-origin: top left;
+}
+
+.doc-thumb-inner img { max-height: 12cm; width: auto; }
+
+/* A card that lifts a little when it is pointed at: a pixel or two up and a softer shadow, over about 200ms. */
+.cs-lift {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(17, 17, 20, 0.07);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-lift { transition: none; }
+    .cs-lift:hover { transform: none; }
+}
+
+/* Cards come in once, a step after one another: opacity and a few pixels up, never sideways. */
+.cs-card-in {
+    animation: cs-card-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i, 0) * 35ms);
+}
+
+@keyframes cs-card-in {
+    from { opacity: 0; transform: translateY(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-card-in { animation: none; }
 }

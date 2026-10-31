@@ -44,9 +44,17 @@ class WorkspaceController extends StudentController
             ->groupBy('user_id')
             ->pluck('score', 'user_id');
 
+        // The group average and the "low activity" line, from the same recorded points.
+        $memberCount = $group->members->count();
+        $average = $memberCount > 0 ? $scores->sum() / $memberCount : 0;
+
         return view('student.workspace', [
             'hasGroup' => true,
-            'groups' => $this->myGroups(),
+            'average' => $average,
+            'threshold' => $average * (float) config('contribution.low_participation_ratio'),
+            'progress' => $group->tasks_total > 0 ? (int) round($group->tasks_done / $group->tasks_total * 100) : 0,
+            'groups' => $groups = $this->myGroups(),
+            'secondary' => $this->groupSecondary($groups, 'members'),
             'group' => $group,
             'scores' => $scores,
             'openTasks' => $group->tasks()

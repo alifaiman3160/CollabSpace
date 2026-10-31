@@ -29,7 +29,7 @@ class MinimumActivityTest extends TestCase
     use BuildsMarkingFixture;
     use RefreshDatabase;
 
-    private const REASON = 'Not enough recorded activity in this group to compare students';
+    private const REASON = 'There is too little activity in this group to compare students.';
 
     protected function setUp(): void
     {
@@ -494,7 +494,7 @@ class MinimumActivityTest extends TestCase
         $out = Artisan::output();
 
         $this->assertStringContainsString('insufficient data: '.self::REASON, $out);
-        $this->assertStringNotContainsString('Rule-based : —', $out);
+        $this->assertStringNotContainsString('From the numbers: —', $out);
 
         // For Communication and Collaboration there is no rule-based line at all, only the reason.
         preg_match('/Communication  \[Communication\]\R(.*?)\R  \S/s', $out, $block);
@@ -521,7 +521,7 @@ class MinimumActivityTest extends TestCase
 
         foreach ($blocks[1] as $block) {
             $this->assertStringContainsString('insufficient data: '.self::REASON, $block);
-            $this->assertStringNotContainsString('AI-suggested', $block);
+            $this->assertStringNotContainsString("AI's view", $block);
             $this->assertStringNotContainsString('level ', $block);
         }
     }
@@ -534,7 +534,7 @@ class MinimumActivityTest extends TestCase
         $out = Artisan::output();
 
         $this->assertStringNotContainsString('insufficient data:', $out);
-        $this->assertStringContainsString('Rule-based :', $out);
+        $this->assertStringContainsString('From the numbers:', $out);
         $this->assertStringContainsString('insufficient data 0', $out);
     }
 }

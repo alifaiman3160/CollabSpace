@@ -85,14 +85,11 @@ class RevealRulesTest extends TestCase
             $this->assertStringContainsString($label, $html, $label);
         }
 
-        // Below 640px the extras sit behind a keyboard- and touch-reachable menu.
-        $this->assertStringContainsString('sm:hidden', $html);
-        $this->assertStringContainsString('aria-haspopup="true"', $html);
-        $this->assertStringContainsString('aria-label="More actions"', $html);
-        $this->assertStringContainsString('x-on:keydown.escape.window', $html);
-
-        // The primary action sits outside the collapsing group.
-        $this->assertMatchesRegularExpression('/role="group".*?Delete subject.*?<\/div>\s*<a[^>]*>\s*Edit/s', $html);
+        // On a subject card every action is on the card itself, none behind a menu or a hover; the primary one comes first.
+        $this->assertStringContainsString('Announcements', $html);
+        $this->assertStringContainsString('Rubric', $html);
+        $this->assertStringNotContainsString('<table', $html);
+        $this->assertMatchesRegularExpression('/<a[^>]*>\s*Edit\s*<\/a>.*?Auto-assign students.*?Delete subject/s', $html);
 
         $admin = User::factory()->admin()->create(['must_change_password' => false]);
         $users = $this->actingAs($admin)->get(route('admin.users'))->assertOk()->getContent();
@@ -109,9 +106,8 @@ class RevealRulesTest extends TestCase
         Subject::create(['lecturer_id' => $lecturer->id, 'code' => 'SECJ3104', 'name' => 'Application Development', 'group_size' => 4]);
 
         $this->actingAs($lecturer)->get(route('lecturer.subjects'))->assertOk()
-            ->assertSee('—')
-            ->assertDontSee('Not set')
-            ->assertDontSee('No deadline');
+            ->assertSee('No deadline')
+            ->assertDontSee('Not set');
     }
 
     public function test_the_seeded_subjects_are_in_title_case(): void

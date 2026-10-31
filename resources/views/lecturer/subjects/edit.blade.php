@@ -1,6 +1,8 @@
 <x-layouts.app title="Edit subject — CollabSpace"
                :heading="$subject->code"
-               :subtitle="$subject->name">
+               :subtitle="$subject->name"
+               :back="route('lecturer.subjects')"
+               back-label="My subjects">
 
     <div class="mx-auto flex w-full max-w-xl flex-col gap-7">
 

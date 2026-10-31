@@ -55,7 +55,7 @@ class PingAiProvider extends Command
                 ],
             );
         } catch (AiException $e) {
-            return $this->failed($started, $e->getMessage());
+            return $this->failed($started, trim($e->getMessage().' '.$e->detail));
         } catch (Throwable $e) {
             return $this->failed($started, 'Unexpected '.class_basename($e).' while calling the provider.');
         }

@@ -27,6 +27,8 @@ final class AiOutcome
         public readonly ?string $provider = null,
         public readonly ?string $model = null,
         public readonly ?int $latencyMs = null,
+        /** What went wrong in technical terms, for the log and for recognising a rate limit. Never shown. */
+        public readonly ?string $detail = null,
     ) {}
 
     public function ok(): bool

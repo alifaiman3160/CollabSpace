@@ -185,8 +185,10 @@ class PromptScopeTest extends TestCase
         $this->assertStringContainsString('communication: use only messages sent, never document edits or uploads', $system);
         $this->assertStringContainsString('collaboration: use only document edits and file uploads, never messages', $system);
         $this->assertStringContainsString('cites one or two of the supplied numbers', $system);
-        $this->assertStringContainsString('ONE short, warm sentence of about 15 words or fewer', $system);
-        $this->assertStringContainsString('plain everyday English', $system);
+        $this->assertStringContainsString('ONE short sentence of about 15 words or fewer', $system);
+        $this->assertStringContainsString('very simple English', $system);
+        $this->assertStringContainsString('reading level of a secondary school student', $system);
+        $this->assertStringContainsString('only common words', $system);
         foreach (['indicating', 'showcasing', 'demonstrating'] as $word) {
             $this->assertStringContainsString('"'.$word.'"', $system, 'Named as words not to use.');
         }
@@ -304,7 +306,7 @@ class PromptScopeTest extends TestCase
 
         $this->run_();
 
-        $this->assertStringContainsString('not one of this criterion', $this->row('s1', 'Contribution to tasks')->ai_message);
+        $this->assertStringContainsString('does not have', $this->row('s1', 'Contribution to tasks')->ai_message);
         $this->assertSame('ok', $this->row('s1', 'Communication')->ai_status);
     }
 }

@@ -9,6 +9,7 @@ use App\Support\GroupFiles;
 use App\Support\Notifier;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
@@ -76,6 +77,9 @@ class GroupChat extends Component
 
     public Group $group;
 
+    /** True when a switch asked for a group this student is not in: the pane says so instead of breaking. */
+    public bool $missing = false;
+
     public string $body = '';
 
     public $attachment = null;
@@ -83,6 +87,35 @@ class GroupChat extends Component
     public function mount(Group $group): void
     {
         $this->group = $this->authorizedGroup($group);
+    }
+
+    /**
+     * Opens another of the student's groups in place. The page's list calls this instead of reloading.
+     * Membership is checked here exactly as on a full page visit; a group that is not theirs does not
+     * load, and the pane shows a short message (the full-page route still answers 404).
+     */
+    #[On('open-group')]
+    public function openGroup(int $id): void
+    {
+        $group = Group::query()->with('subject')->find($id);
+
+        $allowed = $group !== null
+            && auth()->check()
+            && auth()->user()->groupMemberships()->where('group_id', $id)->exists();
+
+        if (! $allowed) {
+            $this->missing = true;
+            $this->dispatch('chat-missing');
+
+            return;
+        }
+
+        $this->missing = false;
+        $this->group = $group;
+        $this->reset(['body', 'attachment']);
+        $this->resetValidation();
+
+        $this->dispatch('chat-opened', id: $group->id, name: $group->name);
     }
 
     protected function authorizedGroup(Group $group): Group
@@ -207,7 +240,10 @@ class GroupChat extends Component
             ->oldest()
             ->get();
 
+        $this->group->loadMissing('subject');
+
         return view('livewire.group-chat', [
+            'memberCount' => $this->group->groupMembers()->count(),
             // Grouped by calendar day so the view can render a date divider.
             'days' => $messages->groupBy(fn (Message $m) => $m->created_at->toDateString()),
             'emoji' => self::EMOJI,

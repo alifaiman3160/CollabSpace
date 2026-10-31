@@ -88,11 +88,12 @@ class TaskProgressTest extends TestCase
 
     public function test_a_table_column_does_not_repeat_its_heading_on_every_row(): void
     {
+        // The dashboard lists the same progress cells without any column heading at all.
         foreach (['lecturer.dashboard', 'lecturer.groups'] as $screen) {
             $html = $this->actingAs($this->lecturer)->get(route($screen))->assertOk()->getContent();
 
             // Once as the column heading, and nowhere else.
-            $this->assertSame(1, substr_count($html, 'Task progress'),
+            $this->assertSame(0, substr_count($html, 'Task progress'),
                 "“Task progress” appears more than once on {$screen}.");
 
             // The number itself is still there — only the eyebrow went.

@@ -102,19 +102,25 @@ class ActivityRecorder
     }
 
     /**
-     * A deleted document takes its contribution rows with it, the same way
-     * taskDeleted() does: reference_id is a plain column rather than a foreign
-     * key — it points at several different tables — so nothing cascades for it.
+     * A deleted document is only hidden (it is soft deleted), and what it earned stays: the document_created and
+     * document_edited rows are NOT removed, so contribution points and the document_edits evidence count are exactly
+     * what they were. This writes the trail instead: who deleted which document, worth no points
+     * (config('contribution.weights.document_deleted') is 0) and not counted as evidence.
      *
-     * Leaving the rows would keep scoring writing that no longer exists, and
-     * worse, reference_id would eventually collide with a new document's id and
-     * the credit would resurface against the wrong piece of work.
+     * The rows are only removed with the document itself, by documents:purge-deleted. Because reference_id is a plain
+     * column, ids are never reused while the soft-deleted row exists, so credit cannot resurface on another document.
      */
-    public function documentDeleted(Document $document): int
+    public function documentDeleted(Document $document, User|int $actor, ?CarbonInterface $at = null): ActivityLog
+    {
+        return $this->record($actor, $document->group_id, 'document_deleted', $document->getKey(), $at);
+    }
+
+    /** Removes everything a document earned. Only for a permanent purge. */
+    public function documentPurged(Document $document): int
     {
         return ActivityLog::query()
             ->where('group_id', $document->group_id)
-            ->whereIn('activity_type', ['document_created', 'document_edited'])
+            ->whereIn('activity_type', ['document_created', 'document_edited', 'document_deleted'])
             ->where('reference_id', $document->getKey())
             ->delete();
     }

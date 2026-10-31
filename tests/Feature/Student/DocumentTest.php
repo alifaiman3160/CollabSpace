@@ -60,11 +60,11 @@ class DocumentTest extends TestCase
     | Deleting — use case 3.4.3.5, alternative flow A2
     */
 
-    public function test_deleting_a_document_removes_it_and_its_whole_history(): void
+    public function test_deleting_a_document_hides_it_but_keeps_it_and_its_history(): void
     {
         $document = $this->document();
 
-        // Give it a second version, so there is a history to lose.
+        // Give it a second version, so there is a history to keep.
         $this->actingAs($this->me)->put(route('student.documents.update', $document), [
             'title' => 'Chapter 1',
             'content' => '<p>Rewritten</p>',
@@ -77,11 +77,12 @@ class DocumentTest extends TestCase
             ->assertRedirect(route('student.documents.group', $this->group))
             ->assertSessionHas('status');
 
-        $this->assertDatabaseMissing('documents', ['id' => $document->id]);
-        $this->assertDatabaseMissing('document_versions', ['document_id' => $document->id]);
+        // Soft deleted: the row and its versions are still there.
+        $this->assertSoftDeleted('documents', ['id' => $document->id, 'deleted_by' => $this->me->id]);
+        $this->assertSame(2, DocumentVersion::where('document_id', $document->id)->count());
     }
 
-    public function test_deleting_a_document_removes_its_contribution_rows(): void
+    public function test_deleting_a_document_keeps_its_contribution_rows_and_scores_exactly(): void
     {
         // Create and edit through the application, so the activity rows are the
         // ones the real flow writes.
@@ -105,29 +106,29 @@ class DocumentTest extends TestCase
 
         $this->actingAs($this->me)->delete(route('student.documents.destroy', $document));
 
-        $this->assertSame(0, ActivityLog::where('reference_id', $document->id)
+        // The credit stays; a deletion row is added to the trail and is worth nothing.
+        $this->assertSame(2, ActivityLog::where('reference_id', $document->id)
             ->whereIn('activity_type', ['document_created', 'document_edited'])
             ->count());
-
-        $this->assertLessThan($scoreBefore, $this->me->contributionScoreFor($this->group));
+        $this->assertSame(1, ActivityLog::where('reference_id', $document->id)->where('activity_type', 'document_deleted')->count());
+        $this->assertSame(0, (int) ActivityLog::where('activity_type', 'document_deleted')->value('weight'));
+        $this->assertSame($scoreBefore, $this->me->contributionScoreFor($this->group));
     }
 
-    public function test_deleting_one_document_leaves_the_others_and_their_scores_alone(): void
+    public function test_deleting_one_document_leaves_the_others_alone(): void
     {
         $keep = $this->document('<p>Keep this</p>');
         $doomed = $this->document('<p>Delete this</p>');
 
-        // An activity row against each.
         app(\App\Support\ActivityRecorder::class)->documentCreated($keep, $this->me->id);
         app(\App\Support\ActivityRecorder::class)->documentCreated($doomed, $this->me->id);
 
         $this->actingAs($this->me)->delete(route('student.documents.destroy', $doomed));
 
-        $this->assertDatabaseHas('documents', ['id' => $keep->id]);
+        $this->assertDatabaseHas('documents', ['id' => $keep->id, 'deleted_at' => null]);
         $this->assertSame(1, ActivityLog::where('reference_id', $keep->id)->count());
-        $this->assertSame(0, ActivityLog::where('reference_id', $doomed->id)->count());
+        $this->assertSame(2, ActivityLog::where('reference_id', $doomed->id)->count(), 'Its credit stays, plus the deletion row.');
     }
-
     public function test_task_activity_with_the_same_reference_id_is_not_swept_up(): void
     {
         $document = $this->document();
@@ -191,7 +192,7 @@ class DocumentTest extends TestCase
             ->delete(route('student.documents.destroy', $document))
             ->assertRedirect(route('student.documents.group', $this->group));
 
-        $this->assertDatabaseMissing('documents', ['id' => $document->id]);
+        $this->assertSoftDeleted('documents', ['id' => $document->id]);
     }
 
     public function test_the_list_and_the_editor_both_offer_delete(): void
@@ -242,7 +243,7 @@ class DocumentTest extends TestCase
             ->get(route('student.documents.edit', $this->document()))
             ->assertOk()
             // Recounted on every keystroke, not on save.
-            ->assertSee('count()', false)
+            ->assertSee('x-on:input="onInput($event)"', false)
             ->assertSee('x-text="words"', false)
             ->assertSee('x-text="characters"', false)
             ->assertSee('aria-live="polite"', false);
@@ -255,20 +256,24 @@ class DocumentTest extends TestCase
         $this->actingAs($this->me)
             ->get(route('student.documents.edit', $this->document()))
             ->assertOk()
-            ->assertSee('pastePlain', false)
-            ->assertSee("getData('text/plain')", false);
+            ->assertSee('x-on:paste="pastePlain($event)"', false);
+
+        // The paste handler itself lives in the editor module.
+        $this->assertStringContainsString("getData('text/plain')", file_get_contents(resource_path('js/document-editor.js')));
     }
 
-    public function test_the_editor_offers_no_page_level_controls(): void
+    public function test_the_editor_offers_new_page_but_no_header_or_margin_controls(): void
     {
-        // A continuous flow, not a paginated document. These need a page model
-        // and a renderer that agrees with the browser about where a page ends.
+        // New page starts a page the print layout honours. Headers, footers and
+        // margin settings would need a page model the editor does not have.
         $html = $this->actingAs($this->me)
             ->get(route('student.documents.edit', $this->document()))
             ->assertOk()
             ->getContent();
 
-        foreach (['Page break', 'Header and footer', 'Page number', 'Margins'] as $absent) {
+        $this->assertStringContainsString('New page', $html);
+
+        foreach (['Header and footer', 'Page number', 'Margins'] as $absent) {
             $this->assertStringNotContainsString($absent, $html);
         }
     }
@@ -347,7 +352,8 @@ class DocumentTest extends TestCase
             ->get(route('student.documents.group', $this->group))
             ->assertOk()
             ->assertSee('Chapter 1')
-            ->assertSee('Last edited by');
+            ->assertSee('Started by')
+            ->assertSee('Edited');
     }
 
     public function test_an_empty_group_gets_an_empty_state(): void

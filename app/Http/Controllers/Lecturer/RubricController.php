@@ -166,7 +166,7 @@ class RubricController extends LecturerController
         if ($rubric->isLocked()) {
             return redirect()
                 ->route('lecturer.rubrics.show', [$subject, $rubric])
-                ->withErrors(['status' => 'This version has approved marks, so its evidence types and criterion modes can no longer be changed. Upload a new version instead.']);
+                ->withErrors(['status' => 'Some marks are already approved, so who decides each criterion, and what its suggestion is based on, can no longer be changed. Upload the rubric again as a new version instead.']);
         }
 
         $request->validate([
@@ -175,7 +175,7 @@ class RubricController extends LecturerController
             'mode' => ['nullable', 'array'],
             'mode.*' => ['nullable', Rule::in([RubricSection::SUGGESTED, RubricSection::MANUAL])],
         ], [
-            'evidence.*.in' => 'Choose one of the evidence types listed.',
+            'evidence.*.in' => 'Choose one of the options listed.',
             'mode.*.in' => 'Choose System-suggested or Manual.',
         ]);
 

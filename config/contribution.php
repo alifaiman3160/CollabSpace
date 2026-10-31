@@ -18,6 +18,8 @@ return [
         'task_created'     => 2,
         'document_created' => 3,
         'document_edited'  => 3,
+        // The audit trail of a deletion: worth nothing, and not evidence (GroupFacts counts only created and edited).
+        'document_deleted' => 0,
         'file_uploaded'    => 2,
         'message_sent'     => 1,
     ],

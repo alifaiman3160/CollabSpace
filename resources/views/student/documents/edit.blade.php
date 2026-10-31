@@ -28,7 +28,7 @@
                         <x-input-error :messages="$errors->get('title')" />
                     </div>
 
-                    <x-rich-text name="content" :value="$body" label="Body" />
+                    <x-rich-text name="content" :value="$body" label="Body" :upload-url="route('student.documents.images.store', $document)" />
                     <x-input-error :messages="$errors->get('content')" />
 
                     <div class="flex flex-wrap items-center gap-3">
@@ -53,23 +53,19 @@
                             url: '{{ route('student.documents.destroy', $document) }}',
                             method: 'DELETE',
                             title: 'Delete this document?',
-                            body: {{ Js::from('“'.$document->title.'” is your group\'s shared writing — everyone in '.$group->name.' loses it, not just you. This cannot be undone.') }},
-                            consequences: {{ Js::from([
-                                $versions->count().' '.str('version')->plural($versions->count()).' of history',
-                                'the contribution it earned its editors',
-                            ]) }},
+                            body: {{ Js::from('“'.$document->title.'” will be removed from your group. Your lecturer can still see it.') }},
                             action: 'Delete document',
                             tone: 'danger',
                         }">Delete</x-button>
 
                     <span class="text-meta text-ink-400">
-                        Removes the document and its whole history for everyone in the group.
+                        Removes the document from your group. Your lecturer can still see it.
                     </span>
                 </div>
             </div>
 
             {{-- Version history --}}
-            <aside class="w-full shrink-0 lg:w-[320px]" x-show="showHistory" x-cloak>
+            <aside class="w-full shrink-0 lg:w-[320px]" x-show="showHistory" x-cloak x-transition:enter="cs-t-enter" x-transition:enter-start="cs-t-from" x-transition:enter-end="cs-t-to" x-transition:leave="cs-t-leave" x-transition:leave-start="cs-t-to" x-transition:leave-end="cs-t-from">
                 <div class="flex flex-col gap-3 rounded-panel border border-surface-line bg-surface-soft p-4">
                     <div class="flex items-center justify-between gap-2">
                         <h2 class="text-h3 font-extrabold tracking-title">History</h2>

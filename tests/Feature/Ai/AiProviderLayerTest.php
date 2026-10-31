@@ -212,7 +212,9 @@ class AiProviderLayerTest extends TestCase
 
         $this->assertSame(AiOutcome::FAILED, $outcome->status);
         $this->assertSame([], $outcome->data);
-        $this->assertStringContainsString('Rule-based suggestions are shown instead', $outcome->message);
+        $this->assertStringContainsString('The AI could not answer just now', $outcome->message);
+        $this->assertStringNotContainsString('provider', strtolower($outcome->message), 'No technical words for the lecturer.');
+        $this->assertStringContainsString('529', (string) $outcome->detail, 'The detail is kept apart, for the log.');
     }
 
     public function test_a_timeout_falls_back(): void
@@ -400,7 +402,7 @@ class AiProviderLayerTest extends TestCase
 
         $third = $gateway->suggest($a, 's', [], self::SCHEMA);
         $this->assertSame(AiOutcome::LIMITED, $third->status);
-        $this->assertStringContainsString('daily limit of 2', $third->message);
+        $this->assertStringContainsString('limit of 2 AI requests', $third->message);
         $this->assertCount(2, FakeDriver::sent(), 'A refused request must not reach the provider.');
 
         // Another lecturer is unaffected.

@@ -88,11 +88,11 @@ class DocumentAccessTest extends TestCase
     public function test_the_list_shows_the_groups_documents(): void
     {
         $this->actingAs($this->lecturer)
-            ->get(route('lecturer.documents', $this->group))
+            ->get(route('lecturer.progress.documents', $this->group))
             ->assertOk()
             ->assertSee('Chapter 1')
             ->assertSee('Read-only', false)
-            ->assertSee($this->student->name);
+            ->assertSee('Started by '.e($this->student->name), false);
     }
 
     public function test_a_group_with_no_documents_gets_an_empty_state(): void
@@ -102,7 +102,7 @@ class DocumentAccessTest extends TestCase
         ]);
 
         $this->actingAs($this->lecturer)
-            ->get(route('lecturer.documents', $empty))
+            ->get(route('lecturer.progress.documents', $empty))
             ->assertOk()
             ->assertSee('No documents yet');
     }
@@ -110,7 +110,7 @@ class DocumentAccessTest extends TestCase
     public function test_the_lecturer_can_read_the_current_body(): void
     {
         $this->actingAs($this->lecturer)
-            ->get(route('lecturer.documents.show', $this->document))
+            ->get(route('lecturer.progress.documents.show', [$this->group, $this->document]))
             ->assertOk()
             ->assertSee('The current body')
             ->assertSee('Current content');
@@ -126,7 +126,7 @@ class DocumentAccessTest extends TestCase
         ]);
 
         $this->actingAs($this->lecturer)
-            ->get(route('lecturer.documents.version', [$this->document, $version]))
+            ->get(route('lecturer.progress.documents.version', [$this->group, $this->document, $version]))
             ->assertOk()
             ->assertSee('What it said before')
             ->assertSee('Version 2 of 2');
@@ -138,7 +138,7 @@ class DocumentAccessTest extends TestCase
             ->get(route('lecturer.progress.show', $this->group))
             ->assertOk()
             ->assertSee('Documents')
-            ->assertSee(route('lecturer.documents.show', $this->document), false);
+            ->assertSee(route('lecturer.progress.documents.show', [$this->group, $this->document]), false);
     }
 
     public function test_document_markup_is_sanitised_on_the_way_out(): void
@@ -146,7 +146,7 @@ class DocumentAccessTest extends TestCase
         $nasty = $this->document('Pasted from somewhere', '<p>Fine</p><script>alert(1)</script>');
 
         $this->actingAs($this->lecturer)
-            ->get(route('lecturer.documents.show', $nasty))
+            ->get(route('lecturer.progress.documents.show', [$this->group, $nasty]))
             ->assertOk()
             ->assertSee('Fine')
             ->assertDontSee('<script>', false);
@@ -158,8 +158,8 @@ class DocumentAccessTest extends TestCase
 
     public function test_reading_records_no_activity_against_the_students(): void
     {
-        $this->actingAs($this->lecturer)->get(route('lecturer.documents', $this->group));
-        $this->actingAs($this->lecturer)->get(route('lecturer.documents.show', $this->document));
+        $this->actingAs($this->lecturer)->get(route('lecturer.progress.documents', $this->group));
+        $this->actingAs($this->lecturer)->get(route('lecturer.progress.documents.show', [$this->group, $this->document]));
 
         $this->assertDatabaseCount('activity_logs', 0);
     }
@@ -167,7 +167,7 @@ class DocumentAccessTest extends TestCase
     public function test_there_is_no_write_route_in_the_lecturer_document_area(): void
     {
         $verbs = collect(app('router')->getRoutes()->getRoutes())
-            ->filter(fn ($route) => str_starts_with((string) $route->getName(), 'lecturer.documents'))
+            ->filter(fn ($route) => str_contains((string) $route->getName(), 'documents') && str_starts_with((string) $route->getName(), 'lecturer.'))
             ->flatMap(fn ($route) => $route->methods())
             ->unique()
             ->values();
@@ -198,11 +198,11 @@ class DocumentAccessTest extends TestCase
         $stranger = User::factory()->lecturer()->create(['must_change_password' => false]);
 
         $this->actingAs($stranger)
-            ->get(route('lecturer.documents.show', $this->document))
+            ->get(route('lecturer.progress.documents.show', [$this->group, $this->document]))
             ->assertNotFound();
 
         $this->actingAs($stranger)
-            ->get(route('lecturer.documents', $this->group))
+            ->get(route('lecturer.progress.documents', $this->group))
             ->assertNotFound();
     }
 
@@ -212,14 +212,14 @@ class DocumentAccessTest extends TestCase
         $itsVersion = $other->versions()->sole();
 
         $this->actingAs($this->lecturer)
-            ->get(route('lecturer.documents.version', [$this->document, $itsVersion]))
+            ->get(route('lecturer.progress.documents.version', [$this->group, $this->document, $itsVersion]))
             ->assertNotFound();
     }
 
     public function test_students_cannot_open_the_lecturer_screens(): void
     {
         $this->actingAs($this->student)
-            ->get(route('lecturer.documents.show', $this->document))
+            ->get(route('lecturer.progress.documents.show', [$this->group, $this->document]))
             ->assertForbidden();
     }
 }

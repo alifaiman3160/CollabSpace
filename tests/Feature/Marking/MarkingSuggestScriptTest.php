@@ -146,10 +146,10 @@ JS;
         $result = $this->run_($this->students(), ['*' => [$this->done()]]);
 
         $this->assertSame([
-            'Generating 1 of 4: Aminah Binti Rashid',
-            'Generating 2 of 4: Bakri Bin Hamdan',
-            'Generating 3 of 4: Chong Mei Ling',
-            'Generating 4 of 4: Devika Nair',
+            'Working on it... 1 of 4: Aminah Binti Rashid',
+            'Working on it... 2 of 4: Bakri Bin Hamdan',
+            'Working on it... 3 of 4: Chong Mei Ling',
+            'Working on it... 4 of 4: Devika Nair',
         ], $result['log']['headlines']);
     }
 
@@ -159,7 +159,7 @@ JS;
 
         $this->assertSame([1, 3, 4], $result['log']['requests']);
         $this->assertSame('skipped', $this->state($result, 2)['state']);
-        $this->assertSame('Approved, left as it is.', $this->state($result, 2)['note']);
+        $this->assertSame('Approved, so left as it is.', $this->state($result, 2)['note']);
         $this->assertSame(100, $result['percent'], 'A skipped student counts as finished.');
     }
 
@@ -189,7 +189,7 @@ JS;
         $failed = $this->state($result, 2);
         $this->assertSame('failed', $failed['state']);
         $this->assertTrue($failed['ruleOnly']);
-        $this->assertStringContainsString('keeps their rule-based suggestions', $failed['note']);
+        $this->assertStringContainsString('keeps the suggestions from the numbers', $failed['note']);
 
         $this->assertSame('done', $this->state($result, 3)['state']);
         $this->assertSame('done', $this->state($result, 4)['state']);
@@ -255,7 +255,7 @@ JS;
 
         $this->assertSame('failed', $this->state($result, 1)['state']);
         $this->assertStringContainsString('did not respond', $this->state($result, 1)['note']);
-        $this->assertStringContainsString('keeps their rule-based suggestions', $this->state($result, 1)['note']);
+        $this->assertStringContainsString('keeps the suggestions from the numbers', $this->state($result, 1)['note']);
     }
 
     public function test_stopping_leaves_the_rest_waiting_and_untouched(): void

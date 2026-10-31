@@ -35,7 +35,8 @@ class BoardController extends StudentController
             // Without this the board had no switcher, so a student in two
             // subjects could only ever reach the board of whichever group
             // sorted first — the other one was unreachable from the sidebar.
-            'groups' => $this->myGroups(),
+            'groups' => $groups = $this->myGroups(),
+            'secondary' => $this->groupSecondary($groups, 'tasks'),
         ]);
     }
 }

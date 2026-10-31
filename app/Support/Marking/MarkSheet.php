@@ -342,6 +342,8 @@ class MarkSheet
                             'confidence' => $sug?->confidence,
                             'differs' => $r['differs'],
                             'facts' => $sug?->facts,
+                            // The records line as worded when this was approved, so a later change of wording never rewrites it.
+                            'facts_text' => $c->isSuggested() && is_array($sug?->facts) ? EvidenceFacts::describe($c->evidence_type, $sug->facts) : null,
                             'provider' => $sug?->provider,
                             'model' => $sug?->model,
                             'run_id' => $sug?->marking_run_id,

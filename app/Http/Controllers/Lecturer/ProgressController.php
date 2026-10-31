@@ -26,7 +26,7 @@ class ProgressController extends LecturerController
     public function index(): View|RedirectResponse
     {
         $groups = $this->groups()
-            ->with(['subject', 'members:users.id,users.name'])
+            ->with(['subject.lecturer', 'members:users.id,users.name'])
             ->withCount([
                 'groupMembers as members_count',
                 'tasks as tasks_total',
@@ -37,11 +37,37 @@ class ProgressController extends LecturerController
             ->orderBy('name')
             ->get();
 
+        // Groups that need attention come first: most overdue tasks, then the lowest progress.
+        $groups = \App\Support\GroupNeed::sort($groups);
+
         if ($groups->count() === 1) {
             return redirect()->route('lecturer.progress.show', $groups->first());
         }
 
-        return view('lecturer.progress.index', ['groups' => $groups]);
+        // Members flagged for low participation: the contribution report's own rule and numbers, for all groups from
+        // one read of the log (see ContributionReport::forMany).
+        $reports = $this->reports->forMany($groups);
+        $ratio = (float) config('contribution.low_participation_ratio');
+
+        $flagged = $groups->flatMap(fn (Group $group) => $reports[$group->id]['flagged']->map(fn ($row) => [
+            'group' => $group,
+            'user' => $row['user'],
+            'score' => (int) $row['score'],
+        ]))->values();
+
+        return view('lecturer.progress.index', [
+            'groups' => $groups,
+            'subjects' => $groups->pluck('subject')->unique('id')->sortBy('code')->values(),
+            'flagged' => $flagged,
+            'reason' => 'Below '.($ratio === 0.5 ? 'half' : round($ratio * 100).'%').' the group average',
+            'latest' => ActivityLog::query()
+                ->whereIn('group_id', $groups->modelKeys())
+                ->with('user:id,name')
+                ->latest('created_at')
+                ->latest('id')
+                ->take(10)
+                ->get(),
+        ]);
     }
 
     public function show(Group $group): View
@@ -71,6 +97,7 @@ class ProgressController extends LecturerController
                 Task::STATUS_INPROGRESS => $tasks->where('status', Task::STATUS_INPROGRESS)->values(),
                 Task::STATUS_DONE => $tasks->where('status', Task::STATUS_DONE)->values(),
             ],
+            'taskProgress' => $tasks->count() > 0 ? (int) round($tasks->where('status', Task::STATUS_DONE)->count() / $tasks->count() * 100) : 0,
             'taskTotal' => $tasks->count(),
             'taskDone' => $tasks->where('status', Task::STATUS_DONE)->count(),
             'taskDoing' => $tasks->where('status', Task::STATUS_INPROGRESS)->count(),
@@ -79,7 +106,7 @@ class ProgressController extends LecturerController
             'recentMessages' => Message::where('group_id', $group->id)
                 ->with('user')
                 ->latest()
-                ->take(12)
+                ->take(30)
                 ->get(),
 
             // The group's shared writing, openable read-only — the counts in
@@ -90,10 +117,18 @@ class ProgressController extends LecturerController
                 ->orderByDesc('updated_at')
                 ->get(),
 
+            // Deleted by the group, kept for the lecturer: who removed it, when, and what it held.
+            'deletedDocuments' => $group->documents()
+                ->onlyTrashed()
+                ->with('deleter')
+                ->withCount('versions')
+                ->orderByDesc('deleted_at')
+                ->get(),
+
             'recentActivity' => ActivityLog::where('group_id', $group->id)
                 ->with('user')
                 ->latest('created_at')
-                ->take(15)
+                ->take(30)
                 ->get(),
         ]);
     }

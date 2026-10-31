@@ -25,11 +25,16 @@
 
             <x-flash />
 
-            <x-group-switcher :groups="$groups" :current="$group" route="student.documents.group" />
+            @php
+                $palette = \App\Support\SubjectPalette::for($group->subject_id);
+                $previews = app(\App\Support\DocumentPreview::class);
+            @endphp
 
-            {{-- New document: title only, then straight into the editor. --}}
+            {{-- The group picker, then the toolbar (search, sort, count), then the cards. --}}
+            <div class="flex flex-col gap-[18px]" x-data="documentGrid">
+                <x-group-picker :groups="$groups" :current="$group" route="student.documents.group" :secondary="$secondary" />
             <form method="POST" action="{{ route('student.documents.store', $group) }}"
-                  x-show="creating" x-cloak
+                  x-show="creating" x-cloak x-transition:enter="cs-t-enter" x-transition:enter-start="cs-t-from" x-transition:enter-end="cs-t-to" x-transition:leave="cs-t-leave" x-transition:leave-start="cs-t-to" x-transition:leave-end="cs-t-from"
                   class="flex flex-wrap items-start gap-3 rounded-panel border border-surface-line bg-surface shadow-subtle p-5">
                 @csrf
 
@@ -53,74 +58,70 @@
                 <div x-init="creating = true"></div>
             @endif
 
-            @if ($documents->isEmpty())
-                <x-empty-state
-                    icon="file"
-                    title="No documents yet"
-                    body="Documents are your group's shared writing — chapters, reports, meeting notes. Everyone in {{ $group->name }} can edit them, and every save is kept in the history.">
-                    <x-button class="mt-2" x-on:click="creating = true">Create the first document</x-button>
-                </x-empty-state>
-            @else
-                <x-data-table :headings="['Title', 'Last edited by', 'Last edited', ['Versions', 'right'], '']">
-                    @foreach ($documents as $document)
-                        <tr>
-                            <td>
-                                <x-table.stack icon="file" :href="route('student.documents.edit', $document)">
-                                    <x-slot:primary>{{ $document->title }}</x-slot:primary>
-                                    Started by {{ $document->creator?->name ?? '—' }}
-                                </x-table.stack>
-                            </td>
+                {{-- Search, sort and the count: one row, on the left edge with the cards, between the picker and the grid. --}}
+                @if ($documents->isEmpty())
+                    {{-- A friendly empty group: no dashed box, one clear next step. --}}
+                    <div class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center" data-documents-empty>
+                        <span class="flex size-14 items-center justify-center rounded-pill text-ink" style="background-color: {{ $palette['bg'] }};">
+                            <x-icon name="file" size="24" />
+                        </span>
+                        <h2 class="text-h3 font-extrabold tracking-title">No documents yet</h2>
+                        <p class="max-w-md text-body text-ink-400">
+                            Documents are your group's shared writing: chapters, reports, meeting notes. Everyone in {{ $group->name }} can edit them, and every save is kept in the history.
+                        </p>
+                        <x-button class="mt-1" icon="plus" x-on:click="creating = true; $nextTick(() => $refs.title?.focus())">New document</x-button>
+                    </div>
+                @else
+                    <x-document-list :count="$documents->count()">
+                        @foreach ($documents as $i => $document)
+                            @php
+                                $preview = $previews->for($document);
+                                $deleteBody = '“'.$document->title.'” will be removed from your group. Your lecturer can still see it.';
+                            @endphp
 
-                            <td>
-                                @if ($document->lastEditor)
-                                    <x-table.person :name="$document->lastEditor->name" />
-                                @else
-                                    <span class="text-meta text-ink-300">—</span>
-                                @endif
-                            </td>
+                            <x-document-card :document="$document" :preview="$preview" :palette="$palette" :i="$i"
+                                             :href="route('student.documents.edit', $document)" label="Open">
+                                <x-slot:actions>
+                                    <x-button :href="route('student.documents.edit', $document)" class="!px-4 !py-1.5 !text-meta">Open</x-button>
 
-                            <td class="whitespace-nowrap">
-                                <span class="text-meta text-ink-400" title="{{ $document->updated_at->format('j F Y, g:ia') }}">
-                                    {{ $document->updated_at->diffForHumans() }}
-                                </span>
-                            </td>
+                                    <div class="flex items-center gap-0.5">
+                                        {{-- A real link, so it works without JavaScript; the script fetches it to show "Preparing…" and a friendly message if it fails. --}}
+                                        <span x-data="pdfDownload" class="inline-flex">
+                                            <x-table.quiet-action tone="neutral" icon="download"
+                                                :href="route('student.documents.pdf', $document)"
+                                                x-on:click="start($event)"
+                                                x-bind:aria-busy="loading"
+                                                x-bind:class="loading ? 'pointer-events-none opacity-60' : ''"
+                                                title="Download PDF"
+                                                aria-label="Download {{ $document->title }} as a PDF"><span class="sr-only" x-text="loading ? 'Preparing…' : 'Download PDF'">Download PDF</span></x-table.quiet-action>
+                                        </span>
 
-                            <td class="num text-meta font-semibold text-ink-400">{{ $document->versions_count }}</td>
+                                        <x-table.quiet-action icon="trash" title="Delete" aria-label="Delete {{ $document->title }}"
+                                            x-on:click="confirm = {
+                                                url: '{{ route('student.documents.destroy', $document) }}',
+                                                method: 'DELETE',
+                                                title: 'Delete this document?',
+                                                body: {{ Js::from($deleteBody) }},
+                                                action: 'Delete document',
+                                                tone: 'danger',
+                                            }"><span class="sr-only">Delete</span></x-table.quiet-action>
+                                    </div>
+                                </x-slot:actions>
+                            </x-document-card>
+                        @endforeach
 
-                            <td>
-                                <div class="flex items-center justify-end gap-1.5">
-                                    @php
-                                        // Built here, then passed through Js::from below: Blade
-                                        // compiles {{ }} inside a component attribute but not
-                                        // @directives, so @js() there would render literally.
-                                        $deleteBody = '“'.$document->title.'” is your group’s shared writing — '
-                                            .'everyone in '.$group->name.' loses it, not just you. This cannot be undone.';
-                                        $deleteConsequences = [
-                                            $document->versions_count.' '.str('version')->plural($document->versions_count).' of history',
-                                            'the contribution it earned its editors',
-                                        ];
-                                    @endphp
-
-                                    <x-table.quiet-action icon="trash" aria-label="Delete {{ $document->title }}"
-                                        x-on:click="confirm = {
-                                            url: '{{ route('student.documents.destroy', $document) }}',
-                                            method: 'DELETE',
-                                            title: 'Delete this document?',
-                                            body: {{ Js::from($deleteBody) }},
-                                            consequences: {{ Js::from($deleteConsequences) }},
-                                            action: 'Delete document',
-                                            tone: 'danger',
-                                        }">Delete</x-table.quiet-action>
-
-                                    <x-button :href="route('student.documents.edit', $document)"
-                                              class="!px-4 !py-2 !text-meta">Open</x-button>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </x-data-table>
-            @endif
-
+                        {{-- The last item of the grid: starts a document, exactly like the New document button above (same event, same
+                             permission and route), and is not there while a search is active. Not a document: never counted. --}}
+                        <button type="button" x-show="query.trim() === ''" x-on:click="$dispatch('new-document')" data-new-tile
+                                class="cs-card-in interactive flex min-h-[20rem] flex-col items-center justify-center gap-3 rounded-panel border px-6 py-8 text-center"
+                                style="order: 100000; --i: {{ min($documents->count(), 12) }}; background-color: {{ $palette['bg'] }}; border-color: {{ $palette['accent'] }};">
+                            <span class="flex size-14 items-center justify-center rounded-pill bg-white/80 text-ink shadow-subtle"><x-icon name="plus" size="24" /></span>
+                            <span class="text-nav font-extrabold tracking-title">New document</span>
+                            <span class="text-label font-medium text-ink-600">Start a blank page</span>
+                        </button>
+                    </x-document-list>
+                @endif
+            </div>
             <x-confirm-dialog />
         </div>
 

@@ -22,12 +22,16 @@
     $isActive = $active ?? ($href !== '#' && $path !== '' && request()->is($path, $path.'/*'));
 @endphp
 
+{{-- The highlight is drawn from data-current (and aria-current), not from classes chosen here, because the
+     sidebar is kept across wire:navigate visits: wire:current moves the attribute when the address changes,
+     and the page script mirrors it onto aria-current. Rendered here too, so the first paint is right. --}}
 <a href="{{ $href }}"
-   @if($isActive) aria-current="page" @endif
+   @if($isActive) aria-current="page" data-current @endif
+   @if($href !== '#') wire:navigate wire:current="is-current" @endif
    {{ $attributes->class([
         'group flex items-center gap-3 rounded-pill px-[14px] py-[11px] text-nav motion-colors',
-        'bg-ink text-white font-bold shadow-raised' => $isActive,
-        'font-semibold text-ink/[.66] hover:bg-white/50 hover:text-ink' => ! $isActive,
+        'font-semibold text-ink/[.66] hover:bg-white/50 hover:text-ink',
+        'data-current:bg-ink data-current:text-white data-current:font-bold data-current:shadow-raised data-current:hover:bg-ink data-current:hover:text-white',
    ]) }}>
     <x-icon :name="$icon" />
     <span class="flex-1 truncate">{{ $label }}</span>

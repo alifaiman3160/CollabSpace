@@ -175,7 +175,10 @@ class MarkingScreensTest extends TestCase
         app()->forgetInstance(\App\Support\Ai\AiGateway::class);
 
         $this->actingAs($this->lecturer)->get($this->groupUrl())
-            ->assertSee('Rule-based suggestions only. AI suggestions are switched off');
+            ->assertSee('We suggest a level for each criterion from what every student did in the group. You make the final decision.')
+            ->assertDontSee('switched off')
+            ->assertDontSee('Groq')
+            ->assertDontSee('Rule-based');
     }
 
     /*
@@ -190,14 +193,18 @@ class MarkingScreensTest extends TestCase
 
         $this->assertStringContainsString('data-status="incomplete"', $html);
         $this->assertStringContainsString('Incomplete: 2 of 12 criteria decided.', $html);
-        $this->assertMatchesRegularExpression('/Marks so far: 6( of [\d.]+)?\./', $html);   // 1.6 × 3 + 0.6 × 2
+        // The banner counts and lists what is missing; it carries no figure that could pass for the total.
+        preg_match('/<section[^>]*data-status="incomplete".*?<\/section>/s', $html, $banner);
+        $this->assertStringNotContainsString('Marks so far', $banner[0]);
+        $this->assertStringContainsString('Still needed:', $banner[0]);
+        $this->assertMatchesRegularExpression('/data-overall.*?Not yet.*?Incomplete.*?2 of 12 decided/s', $html, 'The Total tile agrees with the banner.');
         $this->assertStringContainsString('There is no total, and it cannot be approved', $html);
         $this->assertStringContainsString('Approval is blocked until every criterion has a level', $html);
         $this->assertStringContainsString('disabled="disabled"', $this->tag($html, 'data-approve'), 'The server renders it disabled.');
         $this->assertStringContainsString('dirty || true', $this->tag($html, 'data-approve'));
 
         // Each section shows incomplete rather than a total.
-        $this->assertSame(3, substr_count($html, '>Incomplete<'), 'The overall tile and the two sections.');
+        $this->assertSame(5, substr_count($html, '>Incomplete<'), 'Three tile badges and two section headings.');
         $this->assertStringContainsString('so far', $html);
     }
 
@@ -249,10 +256,15 @@ class MarkingScreensTest extends TestCase
 
         $this->assertSame(5, substr_count($html, 'data-rule-based'), 'One for each System-suggested criterion.');
         $this->assertSame(5, substr_count($html, 'data-ai>'));
-        $this->assertStringContainsString('Completed 3 of 4 assigned tasks (75%).', $html, 'The full rule-based reason is kept, under Why?.');
+        $this->assertStringContainsString('Finished 3 of 4 tasks (75%).', $html, 'The reason from the numbers is in the Why? panel.');
         $this->assertStringContainsString('Based on the supplied counts', $html, 'And so does the AI reason.');
-        $this->assertStringContainsString('Facts:', $html);
-        $this->assertStringContainsString('Messages sent 10 (group average 5)', $html);
+        $this->assertStringContainsString('Records:', $html);
+        $this->assertStringContainsString('Messages: 10 sent (group average 5)', $html);
+        $this->assertStringContainsString('From the numbers', $html);
+        $this->assertStringContainsString("AI's view", $html);
+        $this->assertStringNotContainsString('Rule-based', $html);
+        $this->assertStringNotContainsString('AI-suggested', $html);
+        $this->assertStringNotContainsString('Facts:', $html);
     }
 
     public function test_each_criterion_is_one_row_of_level_chips_with_the_marks_in_small_text(): void
@@ -294,11 +306,11 @@ class MarkingScreensTest extends TestCase
 
         $card = $this->card($this->page(), 'Contribution to tasks');
 
-        $this->assertMatchesRegularExpression('/data-sentence>Finished 3 of 4 assigned tasks\.<\/p>/', $card);
+        $this->assertMatchesRegularExpression('/data-sentence>Finished 3 of 4 tasks \(75%\)\.<\/p>/', $card);
         $this->assertStringContainsString('data-why-toggle', $card);
-        $this->assertMatchesRegularExpression('/data-why>.*Completed 3 of 4 assigned tasks \(75%\)\./s', $card, 'The longer wording is in the folded part.');
+        $this->assertMatchesRegularExpression('/data-why[^>]*>.*From the numbers.*Finished 3 of 4 tasks \(75%\)\..*data-level-position>Level \d of 4</s', $card, 'The same sentence and the level\'s place are in the folded part.');
         $this->assertDoesNotMatchRegularExpression('/data-sentence>[^<]*This places it at level/', $card);
-        $this->assertStringContainsString('x-show="why"', $card);
+        $this->assertStringContainsString("'is-open': why", $card, 'The panel opens with the shared collapse.');
     }
 
     public function test_when_the_ai_differs_a_small_note_offers_its_level_and_when_they_agree_nothing_extra_shows(): void
@@ -309,7 +321,7 @@ class MarkingScreensTest extends TestCase
         $differs = $this->card($this->page(), 'Contribution to tasks');
         $ai = MarkSuggestion::where('student_id', $this->students['s1']->id)->where('rubric_criterion_id', $this->criterion('Contribution to tasks')->id)->first();
 
-        $this->assertMatchesRegularExpression('/data-ai-note[^>]*>\s*AI suggests (Poor|Fair|Good|Excellent)\s*</', $differs);
+        $this->assertMatchesRegularExpression('/data-ai-note[^>]*>\s*AI\'s view: ([A-Za-z ]+)\s*</', $differs);
         $this->assertStringContainsString("sel = '{$ai->ai_level_id}'", $differs, 'Clicking it selects the AI level.');
         $this->assertStringNotContainsString('Rule and AI agree', $differs);
 
@@ -351,15 +363,15 @@ class MarkingScreensTest extends TestCase
             $card = $this->card($html, $name);
 
             $this->assertSame('', $this->ticked($card), "{$name}: nothing preselected.");
-            $this->assertStringContainsString('data-you-choose>You choose this one.', $card);
+            $this->assertMatchesRegularExpression('/data-you-choose>(\QThere is too little activity in this group to compare students.\E )?You choose this one\.</', $card);
             $this->assertSame(5, substr_count($card, 'data-chip'));
             $this->assertStringNotContainsString('data-suggested', $card);
             $this->assertStringNotContainsString('text-danger', $card, 'Not styled as an error.');
             $this->assertStringNotContainsString('text-warning', $card);
         }
 
-        $this->assertStringContainsString('Not enough recorded activity in this group to compare students', $this->card($html, 'Communication'), 'The reason is under Why?.');
-        $this->assertStringContainsString('Not asked: too little group activity to compare students.', $html);
+        $this->assertStringContainsString('data-you-choose>There is too little activity in this group to compare students. You choose this one.', $this->card($html, 'Communication'), 'The calm line gives the reason in full.');
+        $this->assertStringContainsString('Not asked: there is too little activity in this group to compare students.', $html);
     }
 
     public function test_a_manual_criterion_has_chips_and_no_suggestions(): void
@@ -367,9 +379,10 @@ class MarkingScreensTest extends TestCase
         $html = $this->page();
 
         $this->assertSame('', $this->ticked($this->card($html, 'Design')));
-        // The five System-suggested criteria have a box under Why?, waiting for suggestions; the seven Manual ones have none.
-        $this->assertSame(5, substr_count($html, 'data-rule-based'));
-        $this->assertSame(5, substr_count($html, 'No suggestion yet'));
+        // Nothing has been suggested yet, so there is nothing to explain: no Why? link, and no empty boxes.
+        $this->assertSame(0, substr_count($html, 'data-rule-based'));
+        $this->assertStringNotContainsString('No suggestion yet', $html);
+        $this->assertStringNotContainsString('Why?', $this->card($html, 'Contribution to tasks'));
     }
 
     public function test_the_top_of_the_page_gives_the_totals_the_two_buttons_and_the_neighbours(): void
@@ -380,8 +393,11 @@ class MarkingScreensTest extends TestCase
 
         $this->assertStringContainsString('data-top', $html);
         $this->assertSame(1, substr_count($html, 'data-overall'));
-        $this->assertSame(2, substr_count($html, 'data-tile'), 'One per section.');
-        $this->assertMatchesRegularExpression('/data-overall.*?Total.*?of 40/s', $html);
+        $this->assertSame(2, substr_count($html, 'data-tile data-tile-box'), 'One per section.');
+        $this->assertSame(3, substr_count($html, 'data-tile-box'), 'Three equal tiles in one grid.');
+        $this->assertStringContainsString('sm:grid-flow-col sm:auto-cols-fr', $html);
+        $this->assertMatchesRegularExpression('/data-overall.*?Total/s', $html);
+        $this->assertMatchesRegularExpression('/data-overall.*?Total.*?of 40/s', $this->page('s1'));
         $this->assertStringContainsString('data-accept', $html);
         $this->assertStringContainsString('data-approve-top', $html);
         $this->assertStringContainsString('data-approve', $html, 'The sticky bar still has its own.');
@@ -391,6 +407,229 @@ class MarkingScreensTest extends TestCase
         $this->assertStringContainsString('data-all-students', $html);
     }
 
+    public function test_an_incomplete_total_reads_not_yet_with_an_incomplete_badge_and_the_tiles_line_up(): void
+    {
+        $html = $this->page();
+
+        $this->assertStringNotContainsString('>—<', $html, 'No heavy dash in place of a number.');
+        $this->assertSame(3, substr_count($html, 'data-not-yet'));
+        $this->assertSame(3, substr_count($html, 'data-incomplete-badge'));
+        // The same three lines (label, figure, caption) in every tile, with fixed heights.
+        $this->assertSame(3, substr_count($html, 'flex h-[30px] items-baseline'));
+        $this->assertSame(3, substr_count($html, 'flex min-h-[22px] items-center'));
+    }
+
+    public function test_accept_suggestions_has_a_short_hint_and_a_tooltip_instead_of_a_paragraph(): void
+    {
+        $html = $this->page();
+
+        $this->assertStringNotContainsString('data-accept-note', $html);
+        $this->assertStringNotContainsString('Accept suggestions saves the suggested level for each', $html, 'The long sentence is gone from the page body.');
+        $this->assertMatchesRegularExpression('/title="Saves the suggested level[^>]*data-accept/s', $html, 'The explanation is the button\'s tooltip.');
+        $this->assertStringContainsString('disabled="disabled"', $this->tag($html, 'data-accept'));
+        $this->assertStringContainsString('data-accept-hint>Nothing to accept', $html);
+
+        $this->aiPicks(position: 2);
+        $this->refresh();
+        $this->actingAs($this->lecturer)->post(route('lecturer.marking.accept', [$this->rubric, $this->group, $this->students['s1']]));
+
+        $this->assertStringContainsString('data-accept-hint>All suggestions accepted', $this->page());
+    }
+
+    public function test_why_is_only_offered_where_there_is_something_to_say_and_manual_rows_get_a_level_guide(): void
+    {
+        $this->aiPicks(position: 2);
+        $this->refresh();
+
+        $html = $this->page();
+
+        $suggested = $this->card($html, 'Contribution to tasks');
+        $this->assertStringContainsString('Why?', $suggested);
+        $this->assertStringNotContainsString('data-guide', $suggested);
+
+        $manual = $this->card($html, 'Design');
+        $this->assertStringNotContainsString('Why?', $manual);
+        $this->assertStringContainsString('Level guide', $manual);
+        $this->assertStringContainsString('data-guide', $manual);
+    }
+
+    public function test_the_level_guide_lists_only_levels_that_have_a_descriptor_and_is_absent_when_none_do(): void
+    {
+        $criterion = $this->criterion('Design');
+        $levels = $criterion->levels()->orderBy('marks')->get();
+        $levels->each(fn ($l, $i) => $l->update(['descriptor' => $i < 2 ? 'Meaning of '.$l->label : null]));
+
+        $card = $this->card($this->page(), 'Design');
+
+        preg_match('/data-guide.*?<\/div>/s', $card, $guide);
+        $this->assertSame(2, substr_count($guide[0], 'Meaning of '), 'The levels without a descriptor are left out.');
+
+        $criterion->levels()->update(['descriptor' => null]);
+
+        $bare = $this->card($this->page(), 'Design');
+        $this->assertStringNotContainsString('data-why-toggle', $bare);
+        $this->assertStringNotContainsString('Level guide', $bare);
+    }
+
+    public function test_a_suggested_row_with_no_suggestion_yet_shows_no_why(): void
+    {
+        $card = $this->card($this->page(), 'Contribution to tasks');
+
+        $this->assertStringNotContainsString('Why?', $card);
+        $this->assertStringNotContainsString('data-rule-based', $card);
+    }
+
+    public function test_chip_styles_never_let_hover_override_a_selected_chip(): void
+    {
+        $css = file_get_contents(resource_path('css/app.css'));
+
+        // Selected: dark with white text, and hover only lightens the dark slightly.
+        $this->assertMatchesRegularExpression('/\.cs-chip-input:checked \+ \.cs-chip:hover\s*\{\s*background:\s*#2a2a33;/', $css);
+        $this->assertMatchesRegularExpression('/\.cs-chip-input:checked \+ \.cs-chip,\s*\.cs-chip-input:checked \+ \.cs-chip:hover\s*\{[^}]*color:\s*#ffffff/s', $css);
+        // Unselected: hover changes the background but keeps dark text, and only applies when not checked.
+        $this->assertMatchesRegularExpression('/\.cs-chip-input:not\(:checked\) \+ \.cs-chip:hover\s*\{[^}]*color:\s*#111114/s', $css);
+        $this->assertStringContainsString('transition: background-color 150ms', $css);
+        $this->assertStringContainsString('.cs-chip-input:focus-visible + .cs-chip', $css);
+
+        // And the markup no longer carries a hover utility that could compete.
+        $card = $this->card($this->page(), 'Design');
+        $this->assertStringNotContainsString('hover:bg-', preg_replace('/<button.*?<\/button>/s', '', $card));
+        $this->assertStringNotContainsString('peer-checked', $card);
+    }
+
+    public function test_the_suggested_label_sits_inside_the_chip_not_over_its_border(): void
+    {
+        $this->aiPicks(position: 2);
+        $this->refresh();
+
+        $card = $this->card($this->page(), 'Contribution to tasks');
+
+        $this->assertStringNotContainsString('absolute', $card);
+        $this->assertMatchesRegularExpression('/<span class="cs-chip [^"]*">.*?data-suggested>Suggested<\/span>\s*<\/span>/s', $card);
+    }
+    public function test_the_total_tile_is_tinted_and_the_section_tiles_are_white_boxes(): void
+    {
+        $html = $this->page();
+
+        preg_match('/<div class="[^"]*"\s+data-overall data-tile-box>/', $html, $total);
+        $this->assertStringContainsString('bg-periwinkle-soft', $total[0]);
+        $this->assertStringContainsString('border border-periwinkle', $total[0]);
+        $this->assertStringContainsString('text-ink', $total[0]);
+        $this->assertStringNotContainsString('bg-ink', $total[0], 'No black tile.');
+
+        preg_match_all('/<div class="[^"]*"\s+data-tile data-tile-box>/', $html, $tiles);
+        $this->assertCount(2, $tiles[0]);
+
+        foreach ($tiles[0] as $tile) {
+            foreach (['bg-surface', 'border border-surface-line', 'rounded-card', 'shadow-subtle'] as $class) {
+                $this->assertStringContainsString($class, $tile);
+            }
+        }
+
+        // The badge stays amber on both kinds of tile.
+        $this->assertSame(3, substr_count($html, 'bg-warning-bg px-2 py-0.5 text-micro font-bold uppercase tracking-eyebrow text-warning-text" data-incomplete-badge'));
+    }
+
+    public function test_labels_on_the_page_use_plain_words(): void
+    {
+        $this->aiPicks(position: 3);
+        $this->refresh();
+
+        $html = $this->page('s4');
+
+        foreach (['Rule-based', 'AI-suggested', 'Facts:', 'AI suggests'] as $old) {
+            $this->assertStringNotContainsString($old, $html, $old);
+        }
+
+        foreach (['From the numbers', "AI's view", 'Records:'] as $new) {
+            $this->assertStringContainsString($new, $html, $new);
+        }
+    }
+
+    public function test_an_approval_keeps_the_records_line_it_was_approved_with_and_older_ones_read_in_the_old_wording(): void
+    {
+        $this->aiPicks(position: 2);
+        $this->refresh();
+        $this->saveEverything();
+        $this->actingAs($this->lecturer)->post(route('lecturer.marking.approve', [$this->rubric, $this->group, $this->students['s1']]))->assertRedirect();
+
+        $this->assertStringContainsString('Tasks: 4 given, 3 done', $this->csv(), 'New approvals carry the simple wording.');
+
+        // An approval made before the wording changed has no stored line and is read back as it was.
+        $approval = MarkApproval::first();
+        $snapshot = $approval->snapshot;
+        foreach ($snapshot['sections'] as &$section) {
+            foreach ($section['criteria'] as &$criterion) {
+                unset($criterion['facts_text']);
+            }
+        }
+        unset($section, $criterion);
+        $approval->update(['snapshot' => $snapshot]);
+
+        $csv = $this->csv();
+        $this->assertStringContainsString('Tasks assigned 4; Completed 3', $csv);
+        $this->assertStringContainsString('Messages sent 10 (group average 5)', $csv);
+    }
+    public function test_a_row_is_two_columns_when_wide_and_stacks_when_narrow(): void
+    {
+        $this->aiPicks(position: 2);
+        $this->refresh();
+
+        $card = $this->card($this->page(), 'Contribution to tasks');
+
+        // Measured on the row's own width, not the screen's, because the sidebar takes room.
+        $this->assertStringContainsString('<article class="@container', $card);
+        $this->assertStringContainsString('@[700px]:grid-cols-[38%_minmax(0,1fr)]', $card);
+        $this->assertStringContainsString('data-info', $card);
+        $this->assertStringContainsString('data-controls', $card);
+
+        // Left: name, kind and weight, the sentence and the Why? link. Right: the chips.
+        $info = substr($card, strpos($card, 'data-info'), strpos($card, 'data-controls') - strpos($card, 'data-info'));
+        foreach (['Contribution to tasks', 'System-suggested', 'data-sentence', 'data-why-toggle'] as $needle) {
+            $this->assertStringContainsString($needle, $info, $needle);
+        }
+        $this->assertStringNotContainsString('data-chip', $info);
+
+        $controls = substr($card, strpos($card, 'data-controls'));
+        $this->assertStringContainsString('data-chips', $controls);
+        $this->assertStringContainsString('@[700px]:justify-end', $controls, 'Right-aligned, not centred.');
+        $this->assertStringNotContainsString('justify-center', substr($controls, 0, strpos($controls, 'data-chip>') ?: 800));
+    }
+
+    public function test_chips_are_a_grid_of_three_or_two_when_stacked_and_a_fixed_width_range_when_wide(): void
+    {
+        $card = $this->card($this->page(), 'Design');
+
+        $this->assertStringContainsString('grid grid-cols-3 gap-2 max-[430px]:grid-cols-2', $card);
+        $this->assertStringContainsString('@[700px]:flex @[700px]:flex-nowrap', $card);
+        $this->assertStringContainsString('@[700px]:min-w-[110px] @[700px]:max-w-[150px] @[700px]:flex-[0_1_130px]', $card, 'Between 110 and 150px, never stretched.');
+        $this->assertStringContainsString('min-h-[44px]', $card, 'A comfortable touch target.');
+        $this->assertStringNotContainsString('flex-1', $card, 'No chip grows to fill the row.');
+        $this->assertStringNotContainsString('flex-grow', $card);
+    }
+
+    public function test_the_opened_why_panel_spans_the_row_below_both_columns(): void
+    {
+        $this->aiPicks(position: 2);
+        $this->refresh();
+
+        $card = $this->card($this->page(), 'Contribution to tasks');
+
+        $this->assertGreaterThan(strpos($card, 'data-controls'), strpos($card, 'id="why-'), 'After the columns.');
+        // The two columns are closed before the panel starts.
+        $before = substr($card, 0, strpos($card, 'id="why-'));
+        $this->assertStringContainsString('data-row', $before);
+        $this->assertGreaterThan(strrpos($before, 'data-controls'), strrpos($before, '</div>'));
+    }
+
+    public function test_rows_are_separated_by_light_lines_not_boxes(): void
+    {
+        $html = $this->page();
+
+        $this->assertStringContainsString('data-rows', $html);
+        $this->assertStringContainsString('divide-y divide-surface-strong', $html);
+        $this->assertStringNotContainsString('rounded-card border border-surface-line bg-surface-soft p-4', $this->card($html, 'Design'));
+    }
     public function test_the_first_and_last_students_have_only_one_neighbour(): void
     {
         $first = $this->page('s1');
@@ -490,7 +729,8 @@ class MarkingScreensTest extends TestCase
     {
         $html = $this->actingAs($this->lecturer)->get(route('lecturer.marking.group', [$this->rubric, $this->group]))->getContent();
 
-        $this->assertStringContainsString('Accept suggestions for all students', $html);
+        $this->assertStringContainsString('Use all suggestions', $html);
+        $this->assertStringContainsString('Fills in the suggested level for every student who is not approved yet. It does not approve anything.', $html);
         $this->assertStringContainsString('data-accept-all', $html);
     }
 
@@ -551,7 +791,7 @@ class MarkingScreensTest extends TestCase
 
         $this->assertStringContainsString('How is this section totalled?', $html);
         $this->assertSame(1, substr_count($html, 'data-method>'), 'Only the mixed section asks.');
-        $this->assertStringContainsString('data-method-default', $html, 'Add is chosen for a level-only section, and the page says so.');
+        $this->assertStringContainsString('data-method-default', $html, 'Add is picked for a level-only section, and the page says so.');
         $this->assertMatchesRegularExpression('/<option value="add"[^>]*selected/', $html);
 
         $levels = [];
@@ -565,12 +805,10 @@ class MarkingScreensTest extends TestCase
 
         $html = $this->actingAs($this->lecturer)->get(route('lecturer.marking.student', [$rubric, $this->group, $this->students['s1']]))->getContent();
 
-        $this->assertStringContainsString('Scaled: 6 of 8', $html);
-        $this->assertStringContainsString('× 10 ÷ 8', $html);
-        $this->assertStringContainsString('= 7.5.', $html);
-        $this->assertStringContainsString('data-scale-note', $html);
+        $this->assertStringContainsString('System-suggested marks: 6 out of 8.', $html);
+        $this->assertStringContainsString('Scaled to 10: 7.5.', $html);
         $this->assertStringContainsString('It is not counted in the total.', $html, 'The manual criterion says it is not counted.');
-        $this->assertStringContainsString('the manual criteria below are not counted', $html);
+        $this->assertStringContainsString('Manual ones are left out.', $html);
         $this->assertDoesNotMatchRegularExpression('/data-undecided/', $html, 'Nothing counted is left undecided.');
     }
 
@@ -588,8 +826,11 @@ class MarkingScreensTest extends TestCase
         $this->assertStringContainsString('w-full', $m[0]);
         $this->assertStringNotContainsString('max-w', $m[0]);
         $this->assertStringContainsString('data-method-help', $html);
-        $this->assertStringContainsString('only the System-suggested criteria count', $html);
-        $this->assertMatchesRegularExpression('/Add:.*every criterion counts/s', $html);
+        $this->assertStringContainsString('Only System-suggested criteria count. Manual ones are left out.', $html);
+        $this->assertStringContainsString('Every criterion counts. All the marks are added up.', $html);
+        $this->assertStringContainsString('Add up every criterion', $html);
+        $this->assertStringContainsString('Scale the System-suggested criteria', $html);
+        $this->assertStringNotContainsString('<ul', substr($html, strpos($html, 'data-method>'), 2500), 'One short line, not a list.');
     }
 
     public function test_an_approval_time_is_shown_in_malaysia_time(): void
@@ -647,7 +888,7 @@ class MarkingScreensTest extends TestCase
 
         preg_match_all('/data-section-total.*?<\/span>\s*<\/span>/s', $html, $m);
         $this->assertNotEmpty($m[0]);
-        $clo4 = collect($m[0])->first(fn ($s) => str_contains($s, 'scaled:'));
+        $clo4 = collect($m[0])->first(fn ($s) => str_contains($s, 'scaled up from'));
         $this->assertNotNull($clo4, 'The scaled total carries its working on the same line.');
         $this->assertStringContainsString('7.5', $clo4);
         $this->assertStringContainsString('Manual criteria are not counted', $clo4);
@@ -661,8 +902,8 @@ class MarkingScreensTest extends TestCase
 
         $student = $this->actingAs($this->lecturer)->get(route('lecturer.marking.student', [$rubric, $this->group, $this->students['s1']]))->getContent();
 
-        $this->assertStringContainsString('data-scaled-pending', $student);
         $this->assertStringNotContainsString('Marks so far', $student, 'No part-way figure while a scaled section is unfinished.');
+        $this->assertStringContainsString('data-not-yet', $student);
         $this->assertStringContainsString('2 of 4 System-suggested criteria chosen', $student);
 
         $group = $this->actingAs($this->lecturer)->get(route('lecturer.marking.group', [$rubric, $this->group]))->getContent();
@@ -684,11 +925,15 @@ class MarkingScreensTest extends TestCase
         $this->assertMatchesRegularExpression('/data-so-far>[\d.]+ of 40 so far</', $html);
     }
 
-    public function test_the_banner_on_a_student_page_gives_the_full_marks_too(): void
+    public function test_the_banner_gives_counts_not_a_figure_and_the_total_tile_agrees(): void
     {
         $this->choose('s1', ['Design' => 'Good']);
 
-        $this->assertMatchesRegularExpression('/Marks so far: [\d.]+ of 40\./', $this->page());
+        $html = $this->page();
+
+        $this->assertStringContainsString('Incomplete: 1 of 12 criteria decided.', $html);
+        $this->assertDoesNotMatchRegularExpression('/Marks so far/', $html);
+        $this->assertMatchesRegularExpression('/data-overall.*?Not yet/s', $html);
     }
 
     public function test_approving_freezes_the_sheet_and_the_page_becomes_read_only(): void
@@ -755,7 +1000,7 @@ class MarkingScreensTest extends TestCase
         $this->actingAs($this->lecturer)->postJson(route('lecturer.marking.suggest', [$this->rubric, $this->group, $this->students['s1']]))
             ->assertOk()
             ->assertJsonPath('status', 'disabled')
-            ->assertJson(fn ($json) => $json->where('message', fn ($m) => str_contains($m, 'switched off'))->etc());
+            ->assertJson(fn ($json) => $json->where('message', fn ($m) => str_contains($m, 'not turned on'))->etc());
 
         $row = MarkSuggestion::where('student_id', $this->students['s1']->id)->where('rubric_criterion_id', $this->criterion('Contribution to tasks')->id)->first();
 
@@ -791,7 +1036,7 @@ class MarkingScreensTest extends TestCase
 
         foreach ([
             'CollabSpace marking evidence report', 'Group Falcon', 'Marking Rubric', '"Rubric version",1', 'fake / fake-model',
-            'Tasks assigned 4; Completed 3', 'Rule-based level', 'AI-suggested level', 'Override reason', 'Cancelled by the client.',
+            'Tasks: 4 given, 3 done', 'Rule-based level', 'AI-suggested level', 'Override reason', 'Cancelled by the client.',
             "Lecturer's own choice", 'Draft (not approved)', 'Level × weight', 'Aminah Binti Rashid',
         ] as $needle) {
             $this->assertStringContainsString($needle, $csv, $needle);

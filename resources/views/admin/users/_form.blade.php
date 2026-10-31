@@ -72,7 +72,7 @@
     </div>
 
     {{-- Only students carry a matriculation number. --}}
-    <div class="flex flex-col gap-2" x-show="role === 'student'" x-cloak>
+    <div class="flex flex-col gap-2" x-show="role === 'student'" x-cloak x-transition:enter="cs-t-enter" x-transition:enter-start="cs-t-from" x-transition:enter-end="cs-t-to" x-transition:leave="cs-t-leave" x-transition:leave-start="cs-t-to" x-transition:leave-end="cs-t-from">
         <x-input-label for="matric_no" value="Matriculation number" />
         <x-text-input id="matric_no" name="matric_no" type="text"
                       :value="old('matric_no', $user?->matric_no)"
@@ -85,7 +85,7 @@
          CollabSpace is connected to an academic system, so the figure is only
          as current as the last time somebody edited this account. It is shown
          to lecturers, for forming balanced groups, and to nobody else. --}}
-    <div class="flex flex-col gap-2" x-show="role === 'student'" x-cloak>
+    <div class="flex flex-col gap-2" x-show="role === 'student'" x-cloak x-transition:enter="cs-t-enter" x-transition:enter-start="cs-t-from" x-transition:enter-end="cs-t-to" x-transition:leave="cs-t-leave" x-transition:leave-start="cs-t-to" x-transition:leave-end="cs-t-from">
         <x-input-label for="cgpa" value="CGPA (optional)" />
         <x-text-input id="cgpa" name="cgpa" type="number" step="0.01" min="0" max="4" inputmode="decimal"
                       :value="old('cgpa', $user?->cgpa)"

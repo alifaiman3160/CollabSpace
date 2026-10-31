@@ -38,6 +38,9 @@ use Illuminate\Support\Sleep;
  */
 class SuggestionService
 {
+    /** What a lecturer reads when no AI is set up: no provider name, no setup detail. */
+    public const AI_OFF = "The AI's view is not turned on. You still see the suggestions from the numbers.";
+
     /** The shape the model must answer in. Content is checked per criterion afterwards. */
     public const SCHEMA = [
         'type' => 'object',
@@ -63,7 +66,7 @@ You help a lecturer choose a performance level for a student, from recorded fact
 
 You are given a list of criteria for one student. Each criterion has the performance levels you may choose from, each with an id and a description, and its own facts: the counts for that criterion's evidence type, listed by name in permitted_facts, with the group average alongside where one applies.
 
-For EACH criterion, choose exactly one of the level ids listed under THAT criterion, and give a rationale that is ONE short, warm sentence of about 15 words or fewer, in plain everyday English, that cites one or two of the supplied numbers. Write it the way a kind colleague would say it, for example "Finished <their number> of <the number assigned> tasks, in step with the group." using the real figures. Do not use words such as "indicating", "showcasing", "demonstrating" or "highlighting". Never exceed 300 characters. Base the choice only on the supplied facts. Do not invent facts. Do not calculate marks.
+For EACH criterion, choose exactly one of the level ids listed under THAT criterion, and give a rationale that is ONE short sentence of about 15 words or fewer, in very simple English, at the reading level of a secondary school student, using only common words, that cites one or two of the supplied numbers. Write it the way you would say it to a friend, for example "Finished <their number> of <the number assigned> tasks, close to the group." using the real figures. Do not use hard words such as "indicating", "showcasing", "demonstrating", "highlighting" or "consistent". Never exceed 300 characters. Base the choice only on the supplied facts. Do not invent facts. Do not calculate marks.
 
 For each criterion use ONLY the facts supplied for that criterion, and nothing from any other criterion's facts:
 - task_completion: use only tasks completed against tasks assigned.
@@ -192,9 +195,10 @@ TXT;
         $provider = $this->gateway->status();
 
         if ($useAi && ! $provider['enabled']) {
-            $report->stopped = $provider['reason'];
+            // The setup problem itself is for whoever runs the server (php artisan ai:ping says what it is).
+            $report->stopped = self::AI_OFF;
 
-            return [AiOutcome::DISABLED, (string) $provider['reason']];
+            return [AiOutcome::DISABLED, self::AI_OFF];
         }
 
         return null;
@@ -280,10 +284,10 @@ TXT;
                 } elseif ($this->rateLimited($outcome, $captured)) {
                     $rateLimited = true;
                     $retryAfter = $captured['retry_after'];
-                    $message = "The provider's rate limit was reached. Rule-based suggestions are shown instead.";
+                    $message = 'The AI is busy right now. You still see the suggestions from the numbers.';
                     $stop = [AiOutcome::FAILED, $message];
                     $report->rateLimited = true;
-                    $report->stopped = "The provider's rate limit was reached after {$attempts} ".($attempts === 1 ? 'attempt' : 'attempts').'. Students from this point on have rule-based suggestions only.';
+                    $report->stopped = "The AI is busy. After {$attempts} ".($attempts === 1 ? 'try' : 'tries').', the students from here on only have the suggestions from the numbers.';
                 }
             } else {
                 [$status, $message] = $stop;
@@ -391,7 +395,7 @@ TXT;
     protected function rateLimited(AiOutcome $outcome, array $captured): bool
     {
         return $outcome->status === AiOutcome::FAILED
-            && ($captured['status'] === 429 || str_contains((string) $outcome->message, 'HTTP 429'));
+            && ($captured['status'] === 429 || str_contains((string) ($outcome->detail ?? ''), 'HTTP 429'));
     }
 
     /** Milliseconds to wait before attempt n+1. */
@@ -522,7 +526,7 @@ TXT;
             $offered = array_column($c['levels'], 'id');
 
             if ($level === null || ! in_array($level, $offered, true)) {
-                $verdicts[$id] = ['invalid' => 'The AI chose a level that is not one of this criterion\'s levels.'];
+                $verdicts[$id] = ['invalid' => 'The AI picked a level this criterion does not have.'];
 
                 continue;
             }
@@ -616,7 +620,7 @@ TXT;
                     $report->fromAi++;
                 } else {
                     $aiStatus = 'invalid';
-                    $aiMessage = ($verdict['invalid'] ?? 'The AI\'s answer could not be used.').' The rule-based suggestion is shown instead.';
+                    $aiMessage = ($verdict['invalid'] ?? 'The AI\'s answer could not be used.').' The suggestion from the numbers is shown instead.';
                     $report->discarded++;
                     $report->fromBaseline++;
                 }

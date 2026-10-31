@@ -76,8 +76,7 @@ class GroupsTableTest extends TestCase
 
         $this->assertStringContainsString('4/4', $html);
         $this->assertStringContainsString('Full', $html);
-        $this->assertStringNotContainsString('Needs members', $html);
-        $this->assertStringNotContainsString('slot left', $html);
+        $this->assertStringNotContainsString('Open</', $html);
     }
 
     public function test_the_capacity_status_follows_how_full_the_group_is(): void
@@ -85,11 +84,11 @@ class GroupsTableTest extends TestCase
         $this->group('Three', 3);   // one short
         $html = $this->page();
         $this->assertStringContainsString('3/4', $html);
-        $this->assertStringContainsString('1 slot left', $html);
-        $this->assertStringNotContainsString('Needs members', $html);
+        $this->assertMatchesRegularExpression('/>\s*Open\s*</', $html, 'A group with room says Open.');
+        $this->assertDoesNotMatchRegularExpression('/>\s*Full\s*</', $html);
 
-        $this->group('One', 1);     // under half
-        $this->assertStringContainsString('Needs members', $this->page());
+        $this->group('One', 1);
+        $this->assertStringContainsString('1/4', $this->page());
     }
 
     public function test_exactly_half_full_is_not_flagged(): void
@@ -99,7 +98,6 @@ class GroupsTableTest extends TestCase
         $html = $this->page();
 
         $this->assertStringContainsString('2/4', $html);
-        $this->assertStringNotContainsString('Needs members', $html);
     }
 
     public function test_more_than_four_members_collapse_into_a_plus_n(): void
@@ -169,14 +167,15 @@ class GroupsTableTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/aria-label="Delete Doomed"[^>]*(opacity-0|hidden|invisible)/', $html);
     }
 
-    public function test_the_table_scrolls_inside_its_card_instead_of_widening_the_page(): void
+    public function test_the_groups_are_cards_in_a_grid_not_a_table(): void
     {
         $this->group('Any', 2);
 
         $html = $this->page();
 
-        $this->assertStringContainsString('overflow-x-auto', $html);
-        $this->assertStringContainsString('min-width: 860px', $html);
+        $this->assertStringNotContainsString('<table', $html);
+        $this->assertStringContainsString('grid-cols-[repeat(auto-fill,minmax(20rem,1fr))]', $html);
+        $this->assertStringContainsString('data-group-card-block', $html);
     }
 
     public function test_another_lecturers_groups_never_appear(): void

@@ -17,7 +17,7 @@ namespace App\Support\Marking;
 class Baseline
 {
     /** What the lecturer is told when the group has recorded too little to compare students. */
-    public const INSUFFICIENT = 'Not enough recorded activity in this group to compare students';
+    public const INSUFFICIENT = 'There is too little activity in this group to compare students.';
 
     /**
      * @param  array<string, mixed>  $facts  one student's entry from GroupFacts
@@ -62,7 +62,8 @@ class Baseline
             'index' => $index,
             'level_id' => (int) $ordered[$index]['id'],
             'ratio' => round($ratio, 4),
-            'note' => $sentence.' This places it at level '.($index + 1).' of '.count($ordered).'.',
+            // Plain words, figures only. Which level it lands on is shown on its own line by the page.
+            'note' => EvidenceFacts::sentence($evidence, $facts) ?? $sentence,
         ];
     }
 
