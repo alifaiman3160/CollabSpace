@@ -104,6 +104,12 @@ class User extends Authenticatable
             ->as('membership');
     }
 
+    /** The subjects (and sections) an administrator has enrolled this student in. */
+    public function enrolments(): HasMany
+    {
+        return $this->hasMany(Enrolment::class);
+    }
+
     /** The membership rows themselves, when joined_at matters. */
     public function groupMemberships(): HasMany
     {

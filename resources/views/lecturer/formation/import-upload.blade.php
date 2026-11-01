@@ -1,7 +1,7 @@
 <x-layouts.app title="Import groups — CollabSpace"
-               heading="Import groups"
+               :heading="'Import groups — Section '.$section->name"
                :subtitle="$subject->code.' — '.$subject->name"
-               :back="route('lecturer.formation', $subject)"
+               :back="route('lecturer.formation', [$subject, 'section' => $section->id])"
                back-label="Auto-assign students">
 
     @php
@@ -16,6 +16,7 @@
               enctype="multipart/form-data"
               class="flex flex-col gap-6 rounded-panel border border-surface-line bg-surface p-6 shadow-subtle">
             @csrf
+            <input type="hidden" name="section" value="{{ $section->id }}">
 
             <div class="flex flex-col gap-1">
                 <h2 class="text-h3 font-bold tracking-title">Upload the form's responses</h2>
@@ -82,7 +83,7 @@
                 <span class="font-bold text-ink-600">How students are matched.</span>
                 By matric number first, then by email. Never by name: two students can share one, and a name can be
                 spelt a dozen ways, so a name on its own is never enough to put somebody in a group. Anyone who cannot
-                be matched is listed for you to sort out by hand.
+                be matched is listed for you to sort out by hand, and so is anyone who is not enrolled in section {{ $section->name }}: they are reported as not in this section.
             </p>
         </div>
     </div>

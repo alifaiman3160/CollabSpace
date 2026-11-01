@@ -53,7 +53,8 @@ class ReportCardsTest extends TestCase
 
     protected function page(): string
     {
-        return $this->actingAs($this->lecturer)->get(route('lecturer.reports'))->assertOk()->getContent();
+        // Without the sidebar, whose own group shortcuts are not the cards.
+        return preg_replace('#<aside x-persist.*?</aside>#s', '', $this->actingAs($this->lecturer)->get(route('lecturer.reports'))->assertOk()->getContent());
     }
 
     protected function card(string $html, string $name): string
@@ -170,7 +171,12 @@ class ReportCardsTest extends TestCase
         $this->assertSame([6, 3, 1], array_map('intval', $points[1]), 'One segment for each member with points; nobody with none.');
         $this->assertStringContainsString('10 points', $shared, 'The segments add up to the total.');
         $this->assertSame(10, array_sum(array_map('intval', $points[1])));
-        $this->assertMatchesRegularExpression('/title="[^"]+: 6 points"/', $shared, 'A tooltip with the name and points.');
+        $this->assertMatchesRegularExpression('/aria-label="[^"]+, 6 points, 60 percent"/', $shared, 'A label with the name, points and share.');
+        $this->assertStringNotContainsString('title="', $shared);
+
+        // The segments sit above the card's stretched link, so hovering one shows that member (not the group's name).
+        $this->assertStringContainsString('pointer-events-none relative z-[1]', $shared);
+        $this->assertStringContainsString('pointer-events-auto h-full', $shared);
 
         $silent = $this->card($html, 'Silent');
         $this->assertStringNotContainsString('data-segment', $silent);
@@ -233,5 +239,88 @@ class ReportCardsTest extends TestCase
         $group = $this->group($this->subject('AAA1111'), 'Same', [10, 0]);
 
         $this->actingAs($this->lecturer)->get(route('lecturer.reports.show', $group))->assertOk()->assertSee('Same');
+    }
+    protected function summary(string $html): string
+    {
+        preg_match('/<p[^>]*data-summary-line[^>]*>(.*?)<\/p>/s', $html, $m);
+
+        return trim(preg_replace('/\s+/', ' ', strip_tags($m[1] ?? '')));
+    }
+
+    public function test_the_summary_line_counts_groups_flagged_members_and_points(): void
+    {
+        $subject = $this->subject('AAA1111');
+        $this->group($subject, 'Uneven', [10, 0]);      // 1 flagged, 10 points
+        $this->group($subject, 'Also uneven', [20, 0, 0]); // 2 flagged, 20 points
+        $this->group($subject, 'Even', [5, 5]);          // 10 points
+
+        $this->assertSame('3 groups · 3 flagged members · 40 points in total', $this->summary($this->page()));
+    }
+
+    public function test_the_summary_line_pluralises_and_hides_a_zero_flag_count(): void
+    {
+        $this->group($this->subject('AAA1111'), 'Only', [1, 0]);   // 1 flagged, 1 point
+        $this->assertSame('1 group · 1 flagged member · 1 point in total', $this->summary($this->page()));
+
+        Group::query()->delete();
+        $this->group($this->subject('BBB2222'), 'Calm', [5, 5]);
+        $this->assertSame('1 group · 10 points in total', $this->summary($this->page()));
+
+        $this->group($this->subject('CCC3333'), 'Silent', [0, 0]);
+        $this->assertSame('2 groups · 10 points in total', $this->summary($this->page()));
+    }
+
+    public function test_the_points_strip_reads_the_weights_from_the_configuration(): void
+    {
+        $this->group($this->subject('AAA1111'), 'One', [1, 1]);
+
+        config(['contribution.weights' => ['task_completed' => 7, 'message_sent' => 1, 'document_edited' => 3, 'document_deleted' => 0, 'file_uploaded' => 0]]);
+        config(['contribution.message_cap_per_day' => 12]);
+
+        $html = $this->page();
+        preg_match('/<dl[^>]*data-weights>(.*?)<\/dl>/s', $html, $dl);
+        $text = trim(preg_replace('/\s+/', ' ', strip_tags($dl[1])));
+
+        $this->assertStringContainsString('Task completed 7 points', $text);
+        $this->assertStringContainsString('Message posted (up to 12 a day) 1 point', $text);
+        $this->assertStringContainsString('Document edited 3 points', $text);
+        $this->assertStringNotContainsString('File uploaded', $text, 'A weight of 0 is skipped.');
+        $this->assertStringNotContainsString('deleted', $text);
+        $this->assertStringNotContainsString('Task created', $text, 'Only what the configuration has.');
+
+        config(['contribution.weights' => ['task_completed' => 9]]);
+        $this->assertStringContainsString('Task completed 9 points', trim(preg_replace('/\s+/', ' ', strip_tags($this->page()))));
+    }
+
+    public function test_the_strip_is_closed_by_default_and_says_what_the_bar_does(): void
+    {
+        $this->group($this->subject('AAA1111'), 'One', [3, 3]);
+
+        $html = $this->page();
+
+        $this->assertStringContainsString("x-data=\"{ open: false }\"", $html);
+        $this->assertStringContainsString('x-bind:aria-expanded="open"', $html);
+        $this->assertStringContainsString('aria-controls="points-explained"', $html);
+        $this->assertStringContainsString('How points are counted', $html);
+        $this->assertStringContainsString('Points come from recorded activity in each group.', $html);
+        $this->assertStringContainsString('Each colour in the bar on a card is one member, hover to see the name and points.', $html);
+
+        // That claim is true: each segment carries the member's name and points as its tooltip.
+        $this->assertMatchesRegularExpression('/data-segment/', $html);
+        $this->assertMatchesRegularExpression('/aria-label="[^"]+, 3 points, 50 percent"/', $html);
+        $this->assertStringContainsString('50% of the group', $html);
+
+        // Below the cards, and closed (inert) until opened.
+        $this->assertGreaterThan(strrpos($html, 'data-report-grid'), strpos($html, 'data-points-strip'));
+        $this->assertMatchesRegularExpression('/id="points-explained"[^>]*inert/', $html);
+    }
+
+    public function test_with_no_groups_neither_addition_shows(): void
+    {
+        $html = $this->page();
+
+        $this->assertStringNotContainsString('data-summary-line', $html);
+        $this->assertStringNotContainsString('data-points-strip', $html);
+        $this->assertStringNotContainsString('How points are counted', $html);
     }
 }

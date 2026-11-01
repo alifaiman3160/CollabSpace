@@ -61,3 +61,27 @@ A short list of things a person acts on (My subjects, Groups, Marking, Monitor p
 ## Long feeds
 
 A feed that can grow (messages, activity, anything "recent") never stretches a page. Put it in an internal-scroll panel (`<x-panel>`, whose body scrolls inside the card), or, when two feeds belong together, in one card with two tabs (see Monitor progress, the single group page). Cap the query as well (the latest 30), so the page stays light however busy the group is.
+
+## Tooltips
+
+No native title tooltips: a hint is `data-tooltip="Text"` on any element, and a shortcut goes in brackets (`data-tooltip="Bold (Ctrl + B)"` draws "Bold" with key chips). A hint with structure uses `<x-tooltip label="…">` with an `<x-slot:content>` (see the contribution bar). An icon-only button needs an `aria-label` as well. A `title` that slips through is renamed to `data-tooltip` by the server (`UpgradeTitleAttributes`) and by `resources/js/tooltip.js` for anything drawn later in the browser, but write `data-tooltip` yourself. User content (`.doc-body`), frames and anything with `data-no-tooltip` are left alone.
+
+## The sidebar
+
+Its width is two CSS variables in `resources/css/app.css`, `--sidebar-w` (222px) and `--sidebar-w-collapsed` (76px); nothing else may hard-code the sidebar's width (the content column is a flex child and follows it). Collapsed and open-section state are two plain cookies (`cs_sidebar`, `cs_nav_open`) read by `App\Support\SidebarState` in `NavigationComposer`, written by `resources/js/sidebar.js` (its pure rules are in `sidebar-logic.js`, tested in `tests/js`). Item names, icons and order live only in `NavigationComposer::navFor()`.
+
+To make an item expandable, give it a key and rows in `NavigationComposer::withGroups()`: `group` (the key its open state is remembered under, letters only) and `children` (`label`, `suffix`, `href`, `match` (the path that lights the row, or null), `dot`). `<x-nav-item>` draws the chevron, the list and the floating card of the slim rail; an item that opens takes its highlight from the script, not `wire:current`. Rows are the person's own groups, read once for the whole sidebar (a fixed number of queries, never one per item).
+
+## Two traps
+
+**New class folders need an `@source` line, and class names must be written in full.** `resources/css/app.css` uses `source(none)`, so Tailwind reads only the folders named in its `@source` lines. A class that appears only in a folder not listed there, or that is assembled in a string (`'bg-'.$tone`), is never generated, and the control looks dead. Add the folder, write each class out whole, and check the `npm run build` output for it (`SidebarMenuTest` does this for the sidebar).
+
+**A kept element is started twice.** Anything under `x-persist` (the sidebar) is moved into the next page by wire:navigate and Alpine starts its `x-data` again on it, tearing down what the first start registered (watchers, effects). Keep such a component's state in one shared object (see `resources/js/sidebar.js`), add document listeners only on the first start, and draw state with `x-effect` / `x-bind` on the element, never with a `$watch` made in `init()`.
+
+## Group switcher
+
+A lecturer's single-group page (Monitor progress, Contribution report) puts `<x-lecturer.group-switcher :groups :current route />` in its header actions instead of a row of every group. The order and neighbours come from `App\Support\GroupSwitcher` (subject code, then group name, natural order; no wrap-around) working on the groups the page already loaded, so it costs no query. `resources/js/group-switcher.js` opens the fixed-position card (`placeBelow` in `group-switcher-logic.js`, animation `.cs-menu`), filters the options by `data-search`, and handles arrows / Escape; the options are plain `wire:navigate` links. `<x-group-picker>` stays for the student pages. Alt+Left / Alt+Right are not bound: browsers use them for Back / Forward.
+
+## Subject chips
+
+A subject's code is always drawn with `<x-subject-chip :subject="$subject" />`, which takes its colour from `SubjectPalette` (subject id mod 6), so a subject has the same colour on every screen. Never write a fixed chip colour (`<x-badge tone="info">` around a subject code). A list built in the browser (the Students search suggestions) gets `accent` and `palette` from the server, which reads them from the same helper.

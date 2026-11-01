@@ -41,6 +41,8 @@
 
             <div class="flex min-w-0 items-center gap-2">
                 <span class="shrink-0 rounded-pill px-2 py-0.5 text-label font-extrabold" style="background-color: {{ $colour['accent'] }};">{{ $group->subject->code }}</span>
+                {{-- Only where the page loaded the section with its groups (no query per card). --}}
+                @if ($group->relationLoaded('section'))<x-section-chip :section="$group->section" :code="$group->subject->code" class="shrink-0" />@endif
                 <span class="truncate text-label font-semibold text-ink-600" title="{{ $group->subject->name }}">{{ $group->subject->name }}</span>
             </div>
         </div>
@@ -53,7 +55,7 @@
                 <span class="text-meta font-semibold tabular-nums">{{ $count }}/{{ $size }}</span>
                 @if ($variant === 'full')
                     @if ($full)
-                        <x-table.dot-pill tone="success">Full</x-table.dot-pill>
+                        <x-table.dot-pill tone="success" data-tooltip="The group has all its members">Full</x-table.dot-pill>
                     @else
                         <x-table.dot-pill tone="neutral">Open</x-table.dot-pill>
                     @endif

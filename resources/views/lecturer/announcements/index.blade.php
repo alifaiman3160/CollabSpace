@@ -29,6 +29,21 @@
                 <x-input-error :messages="$errors->get('title')" />
             </div>
 
+            {{-- Aimed at one section, or at all of them. Only offered when the subject has several. --}}
+            @if ($sections->count() > 1)
+                <div class="flex flex-col gap-2" data-announcement-section>
+                    <x-input-label for="section_id" value="Send to section" />
+                    <select id="section_id" name="section_id"
+                            class="h-[52px] w-full max-w-xs rounded-[16px] bg-surface border border-surface-line px-[18px] text-[14px] font-medium text-ink focus:outline-none focus:ring-2 focus:ring-ink/10">
+                        <option value="">All sections</option>
+                        @foreach ($sections as $option)
+                            <option value="{{ $option->id }}" @selected((string) old('section_id', $editing?->section_id) === (string) $option->id)>Section {{ $option->name }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('section_id')" />
+                </div>
+            @endif
+
             <div class="flex flex-col gap-2">
                 <x-input-label for="body" value="Message" />
                 <textarea id="body" name="body" rows="5" maxlength="2000" required x-on:input="count = $event.target.value.length"
@@ -57,13 +72,14 @@
             @forelse ($announcements as $announcement)
                 <article class="flex flex-col gap-2 rounded-panel border border-surface-line bg-surface p-5 shadow-subtle" data-announcement>
                     <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                        <h3 class="text-nav font-bold">{{ $announcement->title }}</h3>
+                        <h3 class="flex flex-wrap items-center gap-2 text-nav font-bold">{{ $announcement->title }}
+                            @if ($announcement->section)<x-section-chip :section="$announcement->section" :code="$subject->code" />@endif</h3>
                         <span class="text-label text-ink-400" title="{{ $announcement->created_at->format('j F Y, g:ia') }}">{{ $announcement->created_at->diffForHumans() }}</span>
                     </div>
 
                     <p class="whitespace-pre-line break-words text-body leading-[1.6] text-ink-600">{{ $announcement->body }}</p>
 
-                    <p class="text-label font-semibold text-ink-400" data-opened-by>Opened by {{ $opened[$announcement->id] ?? 0 }} of {{ $audience }}</p>
+                    <p class="text-label font-semibold text-ink-400" data-opened-by>Opened by {{ $opened[$announcement->id] ?? 0 }} of {{ $audiences[$announcement->id] ?? $audience }}</p>
 
                     <div class="flex flex-wrap items-center gap-2.5">
                         <x-button variant="secondary" class="!px-4 !py-2 !text-meta"

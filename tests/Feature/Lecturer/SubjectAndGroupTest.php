@@ -5,6 +5,7 @@ namespace Tests\Feature\Lecturer;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Subject;
+use App\Support\Sections\Enrolments;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,6 +22,13 @@ class SubjectAndGroupTest extends TestCase
         parent::setUp();
 
         $this->lecturer = User::factory()->lecturer()->create(['must_change_password' => false]);
+    }
+
+    /** Enrols a student the way the administrator does: in the subject, with a section. */
+    protected function enrol(User $student, Subject $subject, string $section = '1A'): void
+    {
+        Enrolments::sync($student, $student->enrolments()->get()->map(fn ($e) => ['subject_id' => $e->subject_id, 'section' => $e->section->name])
+            ->push(['subject_id' => $subject->id, 'section' => $section])->all());
     }
 
     protected function subject(array $overrides = []): Subject
@@ -195,6 +203,7 @@ class SubjectAndGroupTest extends TestCase
         $subject = $this->subject();
         $group = Group::create(['subject_id' => $subject->id, 'name' => 'G1', 'group_size' => 4]);
         $student = User::factory()->student()->create();
+        $this->enrol($student, $subject);
 
         $this->actingAs($this->lecturer)
             ->post(route('lecturer.groups.members.store', $group), ['user_id' => $student->id])
@@ -239,6 +248,8 @@ class SubjectAndGroupTest extends TestCase
         $groupOne = Group::create(['subject_id' => $first->id, 'name' => 'G1', 'group_size' => 4]);
         $groupTwo = Group::create(['subject_id' => $second->id, 'name' => 'G1', 'group_size' => 4]);
         $student = User::factory()->student()->create();
+        $this->enrol($student, $first);
+        $this->enrol($student, $second);
         GroupMember::create(['group_id' => $groupOne->id, 'user_id' => $student->id, 'joined_at' => now()]);
 
         $this->actingAs($this->lecturer)
@@ -258,6 +269,7 @@ class SubjectAndGroupTest extends TestCase
         }
 
         $overflow = User::factory()->student()->create();
+        $this->enrol($overflow, $subject);
 
         $this->actingAs($this->lecturer)
             ->post(route('lecturer.groups.members.store', $group), ['user_id' => $overflow->id])
@@ -296,6 +308,8 @@ class SubjectAndGroupTest extends TestCase
 
         $taken = User::factory()->student()->create(['name' => 'Already Grouped']);
         $free = User::factory()->student()->create(['name' => 'Still Free']);
+        $this->enrol($taken, $subject);
+        $this->enrol($free, $subject);
         GroupMember::create(['group_id' => $one->id, 'user_id' => $taken->id, 'joined_at' => now()]);
 
         $this->actingAs($this->lecturer)

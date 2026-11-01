@@ -239,7 +239,7 @@ class AnnouncementTest extends TestCase
         $cards = array_map(fn ($c) => substr($c, 0, strpos($c, 'aria-label="My tasks"') ?: strlen($c)), $cards);
         $withStrip = array_values(array_filter($cards, fn ($c) => str_contains($c, 'data-announcement-strip')));
 
-        $this->assertCount(1, $withStrip, 'Only the subject that has announcements gets a strip.');
+        $this->assertCount(1, $withStrip, 'Only the subject that has announcements gets a clickable strip.');
         $this->assertStringContainsString('SECJ3104', $withStrip[0]);
         $this->assertStringContainsString('2 announcements', $withStrip[0]);
         $this->assertStringContainsString('Second', $withStrip[0], 'The collapsed strip names the latest one.');
@@ -267,7 +267,8 @@ class AnnouncementTest extends TestCase
 
         $html = $this->actingAs($this->ana)->get(route('student.dashboard'))->getContent();
 
-        $this->assertMatchesRegularExpression('/<section class="flex flex-wrap items-start gap-\[18px\]" aria-label="My groups">/', $html);
+        $this->assertMatchesRegularExpression('/<section class="grid grid-cols-1 items-stretch gap-\[18px\] md:grid-cols-2[^"]*" aria-label="My groups"/', $html);
+        $this->assertStringNotContainsString('items-start gap-[18px] md:grid-cols-2', $html, 'Cards in a row stretch equally; the strip sits at the bottom.');
     }
 
     public function test_the_card_opens_by_itself_for_a_notification_link(): void

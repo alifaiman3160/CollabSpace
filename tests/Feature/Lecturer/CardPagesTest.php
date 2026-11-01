@@ -52,7 +52,8 @@ class CardPagesTest extends TestCase
 
     protected function pageOf(string $name, array $params = []): string
     {
-        return $this->actingAs($this->lecturer)->get(route($name, $params))->assertOk()->getContent();
+        // Without the sidebar, whose own group shortcuts are not what these pages are being checked for.
+        return preg_replace('#<aside x-persist.*?</aside>#s', '', $this->actingAs($this->lecturer)->get(route($name, $params))->assertOk()->getContent());
     }
 
     /*

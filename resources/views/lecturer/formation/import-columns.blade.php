@@ -1,5 +1,5 @@
 <x-layouts.app title="Check the columns — CollabSpace"
-               heading="Check the columns"
+               :heading="'Check the columns'.($section ? ' — Section '.$section->name : '')"
                :subtitle="$subject->code.' — '.$held['filename']"
                :back="route('lecturer.formation.import', $subject)"
                back-label="Upload a different file">

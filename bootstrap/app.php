@@ -21,6 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // only on the routes that happen to carry a role guard.
         $middleware->appendToGroup('web', EnsureAccountActive::class);
 
+        // title="…" is sent as data-tooltip="…", so the browser's own tooltip never shows (the app draws its own).
+        $middleware->appendToGroup('web', \App\Http\Middleware\UpgradeTitleAttributes::class);
+
+        // The sidebar's two preferences are written by the page script, so they are plain (not encrypted) cookies.
+        $middleware->encryptCookies(except: [\App\Support\SidebarState::COLLAPSE_COOKIE, \App\Support\SidebarState::OPEN_COOKIE]);
+
         $middleware->alias([
             'role' => RoleMiddleware::class,
             'password.changed' => EnsurePasswordChanged::class,

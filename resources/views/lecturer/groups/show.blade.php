@@ -5,7 +5,7 @@
      this subject, which is the shelf this group was taken from. --}}
 <x-layouts.app title="{{ $group->name }} — CollabSpace"
                :heading="$group->name"
-               :subtitle="$group->subject->code.' — '.$group->subject->name"
+               :subtitle="$group->subject->code.' — '.$group->subject->name.($group->section ? ' · Section '.$group->section->name : '')"
                :back="route('lecturer.groups', ['subject' => $group->subject_id])"
                :back-label="$group->subject->code.' groups'">
 
@@ -67,7 +67,7 @@
                 <div class="flex items-center gap-2.5 rounded-card border border-surface-line bg-surface-soft px-4 py-3.5 text-body text-ink-400">
                     <x-icon name="users" size="17" class="shrink-0 text-ink-300" />
                     <span>
-                        Every active student already belongs to a group in {{ $group->subject->code }}.
+                        Every student enrolled in {{ $group->subject->code }}{{ $group->section ? ' section '.$group->section->name : '' }} already belongs to a group.
                     </span>
                 </div>
             @else
@@ -82,6 +82,7 @@
                             @foreach ($assignable as $student)
                                 <option value="{{ $student->id }}">
                                     {{ $student->name }}@if($student->matric_no) — {{ $student->matric_no }}@endif
+                                    @if ($sec = $student->enrolments->firstWhere('subject_id', $group->subject_id)?->section) · {{ $sec->name }}@endif
                                 </option>
                             @endforeach
                         </select>
@@ -91,8 +92,8 @@
                 </form>
 
                 <p class="text-meta text-ink-400">
-                    Only students with no group in {{ $group->subject->code }} are listed — a student
-                    belongs to one group per subject.
+                    Only students enrolled in {{ $group->subject->code }}{{ $group->section ? ', section '.$group->section->name.',' : '' }}
+                    with no group yet are listed — a student belongs to one group per subject, and a group holds one section.
                 </p>
             @endif
         </section>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Lecturer;
 
 use App\Models\Group;
+use App\Models\Section;
 use App\Models\Subject;
 use App\Support\Formation\BalancedAllocator;
 use App\Support\Formation\FormationException;
@@ -41,7 +42,13 @@ class BalancedFormationController extends LecturerController
     {
         $subject = $this->ownedSubject($subject);
 
-        $pool = Pool::for($subject)->keyBy('id');
+        $section = $this->sectionFor($subject, $request->input('section'));
+
+        if ($section === null) {
+            return back()->withInput()->withErrors(['students' => 'Choose a section first: groups are formed one section at a time.']);
+        }
+
+        $pool = Pool::for($subject, $section)->keyBy('id');
 
         $validated = $request->validate([
             'students' => ['required', 'array', 'min:2'],
@@ -73,6 +80,7 @@ class BalancedFormationController extends LecturerController
         $prefix = trim((string) ($validated['prefix'] ?? '')) ?: 'Group';
 
         $token = $this->held->put(self::KIND, $subject->getKey(), [
+            'section_id' => $section->getKey(),
             'students' => $students,
             'groups' => $groups,
             'prefix' => $prefix,
@@ -95,6 +103,7 @@ class BalancedFormationController extends LecturerController
 
         return view('lecturer.formation.balanced', [
             'subject' => $subject,
+            'section' => Section::query()->where('subject_id', $subject->getKey())->find($held['section_id'] ?? 0),
             'token' => $token,
             'proposal' => $held['proposal'],
             'students' => $held['students'],
@@ -157,7 +166,8 @@ class BalancedFormationController extends LecturerController
         ], $proposal['groups']);
 
         try {
-            $created = $this->formation->create($subject, auth()->user(), Group::FORMED_BALANCED, $plans);
+            $created = $this->formation->create($subject, auth()->user(), Group::FORMED_BALANCED, $plans,
+                Section::query()->where('subject_id', $subject->getKey())->find($held['section_id'] ?? 0));
         } catch (FormationException $e) {
             // The preview no longer matches reality, so it is discarded: the
             // lecturer would otherwise be one click from confirming something

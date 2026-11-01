@@ -1,5 +1,5 @@
 <x-layouts.app title="Review the import — CollabSpace"
-               heading="Review the import"
+               :heading="'Review the import'.($section ? ' — Section '.$section->name : '')"
                :subtitle="$subject->code.' — '.$held['filename']"
                :back="route('lecturer.formation.import.columns', [$subject, $token])"
                back-label="Change the columns">

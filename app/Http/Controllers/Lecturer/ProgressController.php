@@ -23,10 +23,13 @@ class ProgressController extends LecturerController
     public function __construct(protected ContributionReport $reports) {}
 
     /** Group picker; goes straight through when there is only one. */
-    public function index(): View|RedirectResponse
+    public function index(\Illuminate\Http\Request $request): View|RedirectResponse
     {
+        $filter = \App\Support\Sections\SubjectSectionFilter::for($request, $this->lecturer());
         $groups = $this->groups()
-            ->with(['subject.lecturer', 'members:users.id,users.name'])
+            ->when($filter['subjectId'], fn ($q, $id) => $q->where('subject_id', $id))
+            ->when($filter['sectionId'], fn ($q, $id) => $q->where('section_id', $id))
+            ->with(['subject.lecturer', 'section', 'members:users.id,users.name'])
             ->withCount([
                 'groupMembers as members_count',
                 'tasks as tasks_total',
@@ -40,7 +43,7 @@ class ProgressController extends LecturerController
         // Groups that need attention come first: most overdue tasks, then the lowest progress.
         $groups = \App\Support\GroupNeed::sort($groups);
 
-        if ($groups->count() === 1) {
+        if ($groups->count() === 1 && $filter['subjectId'] === null && $filter['sectionId'] === null) {
             return redirect()->route('lecturer.progress.show', $groups->first());
         }
 
@@ -56,6 +59,7 @@ class ProgressController extends LecturerController
         ]))->values();
 
         return view('lecturer.progress.index', [
+            'filter' => $filter,
             'groups' => $groups,
             'subjects' => $groups->pluck('subject')->unique('id')->sortBy('code')->values(),
             'flagged' => $flagged,
@@ -74,7 +78,7 @@ class ProgressController extends LecturerController
     {
         $group = $this->ownedGroup($group);
 
-        $group->load(['subject', 'members' => fn ($q) => $q->orderBy('name')]);
+        $group->load(['subject', 'section', 'members' => fn ($q) => $q->orderBy('name')]);
 
         $tasks = Task::query()
             ->where('group_id', $group->id)
@@ -88,7 +92,7 @@ class ProgressController extends LecturerController
 
         return view('lecturer.progress.show', [
             'group' => $group,
-            'groups' => $this->groups()->with('subject')->orderBy('name')->get(),
+            'groups' => $this->groups()->with(['subject', 'section'])->orderBy('name')->get(),
             'report' => $report,
 
             // Read-only board: the same three columns the students drag between.

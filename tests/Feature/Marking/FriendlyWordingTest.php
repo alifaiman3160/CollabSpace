@@ -65,7 +65,7 @@ class FriendlyWordingTest extends TestCase
         $this->assertStringContainsString('Refresh suggestions', $html);
         $this->assertStringContainsString('Use all suggestions', $html);
         $this->assertStringContainsString('Download evidence report', $html);
-        $this->assertStringContainsString('title="Fills in the suggested level for every student who is not approved yet. It does not approve anything."', $html);
+        $this->assertStringContainsString('data-tooltip="Fills in the suggested level for every student who is not approved yet. It does not approve anything."', $html);
         $this->assertStringNotContainsString('Export evidence report', $html);
         $this->assertPlain($html, 'the group page');
     }

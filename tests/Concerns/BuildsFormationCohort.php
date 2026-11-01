@@ -2,20 +2,24 @@
 
 namespace Tests\Concerns;
 
+use App\Models\Enrolment;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\Section;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
 /**
- * A lecturer, a subject and a cohort of students, for the formation tests.
+ * A lecturer, a subject (with one section, "1A") and a cohort of students enrolled in it, for the formation tests.
  */
 trait BuildsFormationCohort
 {
     protected User $lecturer;
 
     protected Subject $subject;
+
+    protected Section $section;
 
     /** @var Collection<int, User> */
     protected Collection $cohort;
@@ -34,6 +38,8 @@ trait BuildsFormationCohort
             'group_size' => $limit,
         ]);
 
+        $this->section = Section::create(['subject_id' => $this->subject->id, 'name' => '1A']);
+
         $this->cohort = $this->makeStudents($cgpas ?? $this->cgpas);
     }
 
@@ -43,18 +49,36 @@ trait BuildsFormationCohort
      */
     protected function makeStudents(array $cgpas, string $tag = 'A'): Collection
     {
-        return collect($cgpas)->map(fn ($cgpa, $i) => User::factory()->student()->create([
-            'name' => 'Student '.$tag.($i + 1),
-            'email' => strtolower($tag).($i + 1).'@student.test',
-            'matric_no' => sprintf('%s21EC%04d', $tag, $i + 1),
-            'cgpa' => $cgpa,
-            'must_change_password' => false,
-        ]));
+        return collect($cgpas)->map(function ($cgpa, $i) use ($tag) {
+            $student = User::factory()->student()->create([
+                'name' => 'Student '.$tag.($i + 1),
+                'email' => strtolower($tag).($i + 1).'@student.test',
+                'matric_no' => sprintf('%s21EC%04d', $tag, $i + 1),
+                'cgpa' => $cgpa,
+                'must_change_password' => false,
+            ]);
+
+            $this->enrol($student);
+
+            return $student;
+        });
+    }
+
+    /** Enrols a student in the cohort's subject, in the given section (default: the cohort's "1A"). */
+    protected function enrol(User $student, ?Section $section = null, ?Subject $subject = null): Enrolment
+    {
+        $subject ??= $this->subject;
+        $section ??= $this->section;
+
+        return Enrolment::updateOrCreate(
+            ['user_id' => $student->id, 'subject_id' => $subject->id],
+            ['section_id' => $section->id],
+        );
     }
 
     protected function makeGroup(string $name, array $members = [], int $size = 4): Group
     {
-        $group = Group::create(['subject_id' => $this->subject->id, 'name' => $name, 'group_size' => $size]);
+        $group = Group::create(['subject_id' => $this->subject->id, 'section_id' => $this->section->id, 'name' => $name, 'group_size' => $size]);
 
         foreach ($members as $member) {
             GroupMember::create(['group_id' => $group->id, 'user_id' => $member->id, 'joined_at' => now()]);

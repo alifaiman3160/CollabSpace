@@ -70,7 +70,7 @@ class DashboardAndAccountPolishTest extends TestCase
         preg_match('/data-announcements-empty>(.*?)<\/div>\s*<\/div>/s', $html, $quiet);
         $this->assertStringNotContainsString('<button', $quiet[1], 'The quiet strip is not clickable.');
         $this->assertSame(2, substr_count($html, 'min-h-[48px]'), 'The same height whether or not there is news.');
-        $this->assertStringContainsString('items-start', $html);
+        $this->assertStringContainsString('items-stretch', $html);
     }
 
     public function test_the_two_bottom_panels_share_a_height_and_each_has_its_footer_link(): void

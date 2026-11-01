@@ -46,10 +46,14 @@ class MarkingController extends LecturerController
         protected ApprovalService $approvals,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $filter = \App\Support\Sections\SubjectSectionFilter::for($request, $this->lecturer());
         $subjects = $this->subjects()
-            ->with(['groups' => fn ($q) => $q->withCount('groupMembers as members_count')->orderBy('name')])
+            ->when($filter['subjectId'], fn ($q, $id) => $q->where('id', $id))
+            ->with(['groups' => fn ($q) => $q->with('section')->withCount('groupMembers as members_count')
+                ->when($filter['sectionId'], fn ($q, $id) => $q->where('section_id', $id))
+                ->orderBy('name')])
             ->orderBy('code')
             ->get();
 
@@ -68,6 +72,7 @@ class MarkingController extends LecturerController
             ->map->count();
 
         return view('lecturer.marking.index', [
+            'filter' => $filter,
             'subjects' => $subjects,
             'rubrics' => $rubrics,
             'approved' => $approved,

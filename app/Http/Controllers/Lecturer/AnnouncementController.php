@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\AppNotification;
 use App\Models\Subject;
 use App\Support\Notifier;
+use App\Support\Sections\AnnouncementAudience;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -40,6 +41,7 @@ class AnnouncementController extends LecturerController
         $subject = $this->ownedSubject($subject);
 
         $announcement = $subject->announcements()->create($request->validated() + ['author_id' => $this->lecturer()->id]);
+        $announcement->loadMissing('section');
 
         $told = $notifier->announcementPosted($announcement);
 
@@ -81,22 +83,26 @@ class AnnouncementController extends LecturerController
     {
         $announcements = $subject->announcements()->latest()->latest('id')->get();
 
-        $students = GroupMember::query()
-            ->whereIn('group_id', $subject->groups()->select('id'))
-            ->whereIn('user_id', User::query()->where('is_active', true)->select('id'))
-            ->select('user_id');
+        // Who each announcement is for: every section's students, or one section's. One lookup per distinct
+        // audience (the whole subject, then each section an announcement was aimed at), never one per announcement.
+        $audiences = $announcements->pluck('section_id')->unique()
+            ->mapWithKeys(fn ($sectionId) => [($sectionId ?? 0) => AnnouncementAudience::studentIds($subject, $sectionId)]);
+
+        $reads = AnnouncementRead::query()
+            ->whereIn('announcement_id', $announcements->modelKeys())
+            ->get(['announcement_id', 'user_id'])
+            ->groupBy('announcement_id');
 
         return view('lecturer.announcements.index', [
             'subject' => $subject,
-            'announcements' => $announcements,
+            'announcements' => $announcements->load('section'),
             'editing' => $editing,
-            'audience' => (clone $students)->distinct()->count('user_id'),
-            'opened' => AnnouncementRead::query()
-                ->whereIn('announcement_id', $announcements->modelKeys())
-                ->whereIn('user_id', $students)
-                ->selectRaw('announcement_id, count(distinct user_id) as total')
-                ->groupBy('announcement_id')
-                ->pluck('total', 'announcement_id'),
+            'sections' => $subject->sections()->orderBy('name')->get(),
+            'audience' => AnnouncementAudience::studentIds($subject)->count(),
+            // The audience of each announcement, and how many of exactly those students opened it.
+            'audiences' => $announcements->mapWithKeys(fn ($a) => [$a->id => $audiences[$a->section_id ?? 0]->count()]),
+            'opened' => $announcements->mapWithKeys(fn ($a) => [$a->id => ($reads[$a->id] ?? collect())
+                ->pluck('user_id')->unique()->intersect($audiences[$a->section_id ?? 0])->count()]),
         ]);
     }
 

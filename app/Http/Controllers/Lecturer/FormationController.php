@@ -21,15 +21,19 @@ class FormationController extends LecturerController
     {
         $subject = $this->ownedSubject($subject);
 
-        $pool = Pool::for($subject);
+        $section = $this->sectionFor($subject, $request->query('section'));
+        $pool = Pool::for($subject, $section);
 
         $groups = Group::query()
             ->where('subject_id', $subject->getKey())
+            ->when($section, fn ($q) => $q->where('section_id', $section->getKey()))
             ->withCount('groupMembers as members_count')
             ->get();
 
         return view('lecturer.formation.index', [
             'subject' => $subject,
+            'section' => $section,
+            'sections' => $subject->sections()->withCount('enrolments')->orderBy('name')->get(),
             'pool' => $pool,
             'withCgpa' => $pool->filter(fn ($u) => $u->cgpa !== null)->count(),
             'bounds' => BalancedAllocator::bounds($pool->count(), $subject->group_size),

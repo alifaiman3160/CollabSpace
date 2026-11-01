@@ -123,3 +123,13 @@ php artisan documents:purge-deleted --days=365             # removes it
 
 - `--days` is required and has no default. Only documents deleted **more than** that many days ago are touched.
 - It is never scheduled. Run it by hand, after marking is finished and **after a fresh backup**: a purge cannot be undone.
+
+## Before the sections migration
+
+`2026_11_11_000001_create_sections_and_enrolments` adds the `sections` and `enrolments` tables and a nullable `section_id` on `groups` and `announcements`, then **writes data**: every subject gets a default section called "Main", its groups are put in it, and every student already in one of its groups is enrolled in that subject. It changes no existing column and is safe to run twice, but it is a data migration, so **take a backup first** (the dump above), then:
+
+```powershell
+php artisan migrate
+```
+
+To undo it, restore the backup (the migration's `down()` drops the two tables and the two columns, and the enrolments with them).

@@ -25,7 +25,7 @@
 <td>
     <x-table.stack>
         <x-slot:primary>
-            <x-badge tone="info">{{ $group->subject->code }}</x-badge>
+            <x-subject-chip :subject="$group->subject" />
         </x-slot:primary>
         <span class="truncate">{{ $group->subject->name }}</span>
     </x-table.stack>

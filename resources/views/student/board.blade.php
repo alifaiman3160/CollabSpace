@@ -1,6 +1,6 @@
 <x-layouts.app title="Task board — CollabSpace"
                heading="Task board"
-               :subtitle="$hasGroup ? $group->subject->code.' — '.$group->name : 'You are not in a group yet.'">
+               :subtitle="$hasGroup ? $group->subject->code.' — '.$group->name.($group->section ? ' · Section '.$group->section->name : '') : 'You are not in a group yet.'">
 
     @if (! $hasGroup)
 
@@ -17,6 +17,9 @@
 
         <div class="flex flex-col gap-[18px]">
             <x-group-picker :groups="$groups" :current="$group" route="student.board.show" :secondary="$secondary" />
+
+            {{-- The project brief for this group's subject, closed until opened. --}}
+            <x-project-brief :subject="$group->subject" />
 
             {{-- Status changes run through Livewire, so the page never reloads. --}}
             <livewire:task-board :group="$group" />

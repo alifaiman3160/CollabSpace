@@ -13,11 +13,17 @@ class Announcement extends Model
 {
     public const TYPE = 'announcement';
 
-    protected $fillable = ['subject_id', 'author_id', 'title', 'body'];
+    protected $fillable = ['subject_id', 'section_id', 'author_id', 'title', 'body'];
 
     public function subject(): BelongsTo
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    /** The one section it is for; empty means every section of the subject. */
+    public function section(): BelongsTo
+    {
+        return $this->belongsTo(Section::class);
     }
 
     public function author(): BelongsTo

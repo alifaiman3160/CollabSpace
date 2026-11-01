@@ -12,11 +12,14 @@ class ReportController extends LecturerController
     public function __construct(protected ContributionReport $reports) {}
 
     /** Group selection. */
-    public function index(): View
+    public function index(\Illuminate\Http\Request $request): View
     {
+        $filter = \App\Support\Sections\SubjectSectionFilter::for($request, $this->lecturer());
         $groups = $this->groups()
+            ->when($filter['subjectId'], fn ($q, $id) => $q->where('subject_id', $id))
+            ->when($filter['sectionId'], fn ($q, $id) => $q->where('section_id', $id))
             // Eager-loaded so building each summary below does not re-query.
-            ->with(['subject.lecturer', 'members'])
+            ->with(['subject.lecturer', 'section', 'members'])
             ->withCount('groupMembers as members_count')
             ->orderBy('subject_id')
             ->orderBy('name')
@@ -34,7 +37,7 @@ class ReportController extends LecturerController
                 'total' => $report['total'],
                 'segments' => $report['members']
                     ->filter(fn ($row) => $row['score'] > 0)
-                    ->map(fn ($row) => ['name' => $row['user']->name, 'points' => (int) $row['score']])
+                    ->map(fn ($row) => ['name' => $row['user']->name, 'points' => (int) $row['score'], 'flagged' => (bool) $row['flagged']])
                     ->values()
                     ->all(),
             ]];
@@ -50,15 +53,16 @@ class ReportController extends LecturerController
         return view('lecturer.reports.index', [
             'groups' => $groups,
             'summaries' => $summaries,
+            'filter' => $filter,
         ]);
     }
     public function show(Group $group): View
     {
-        $group = $this->ownedGroup($group);
+        $group = $this->ownedGroup($group)->load('section');
 
         return view('lecturer.reports.show', [
             'report' => $this->reports->for($group),
-            'groups' => $this->groups()->with('subject')->orderBy('name')->get(),
+            'groups' => $this->groups()->with(['subject', 'section'])->orderBy('name')->get(),
         ]);
     }
 

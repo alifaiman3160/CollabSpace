@@ -1,6 +1,6 @@
 <x-layouts.app title="Group documents — CollabSpace"
                heading="Documents"
-               :subtitle="$group->subject->code.' — '.$group->name">
+               :subtitle="$group->subject->code.' — '.$group->name.($group->section ? ' · Section '.$group->section->name : '')">
 
     <x-slot:breadcrumb>
         <x-breadcrumb :items="[['Monitor progress', route('lecturer.progress')], [$group->name, route('lecturer.progress.show', $group)], ['Documents', null]]" />

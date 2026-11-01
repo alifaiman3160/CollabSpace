@@ -98,4 +98,66 @@
         </p>
         <x-input-error :messages="$errors->get('cgpa')" />
     </div>
+
+    {{-- Only students are enrolled. One row per subject: the subject (with its lecturer, so two lecturers' "BCS3323"
+         can be told apart) and the section the student is in. Typing a section name that does not exist yet for
+         that subject creates it. A group only ever holds students of one section. --}}
+    @php($subjectChoices = $subjectChoices ?? collect())
+    @php($sectionNames = $sectionNames ?? [])
+    @php($enrolmentFormRows = collect(old('enrolments', $enrolmentRows ?? []))->map(fn ($row) => ['subject_id' => (string) ($row['subject_id'] ?? ''), 'section' => (string) ($row['section'] ?? '')])->values()->all())
+    @php($enrolmentErrors = collect($errors->get('enrolments.*'))->flatten()->merge($errors->get('enrolments'))->unique()->all())
+    <div class="flex flex-col gap-2" x-show="role === 'student'" x-cloak data-enrolments
+         x-data="{ rows: {{ Js::from($enrolmentFormRows) }}, add() { this.rows.push({ subject_id: '', section: '' }) } }"
+         x-transition:enter="cs-t-enter" x-transition:enter-start="cs-t-from" x-transition:enter-end="cs-t-to" x-transition:leave="cs-t-leave" x-transition:leave-start="cs-t-to" x-transition:leave-end="cs-t-from">
+        <x-input-label value="Subjects and sections" />
+        <input type="hidden" name="enrolments_form" value="1">
+
+        <p class="text-meta leading-[1.5] text-ink-400">
+            Which subjects this student takes, and the section in each (for example 1A). Groups are formed
+            within a section, and lecturers see the student only in the subjects listed here.
+        </p>
+
+        @foreach ($subjectChoices as $choice)
+            <datalist id="sections-{{ $choice->id }}">
+                @foreach ($sectionNames[$choice->id] ?? [] as $name)
+                    <option value="{{ $name }}"></option>
+                @endforeach
+            </datalist>
+        @endforeach
+
+        <div class="flex flex-col gap-2.5">
+            <template x-for="(row, i) in rows" :key="i">
+                <div class="flex flex-wrap items-center gap-2.5" data-enrolment-row>
+                    <select x-bind:name="'enrolments[' + i + '][subject_id]'" x-model="row.subject_id"
+                            aria-label="Subject"
+                            class="h-[52px] min-w-0 flex-1 basis-60 rounded-[16px] border border-surface-line bg-surface px-[18px] text-[14px] font-medium text-ink focus:outline-none focus:ring-2 focus:ring-ink/10">
+                        <option value="">Choose a subject…</option>
+                        @foreach ($subjectChoices as $choice)
+                            <option value="{{ $choice->id }}"
+                                    x-bind:disabled="rows.some((other, j) => j !== i && other.subject_id === '{{ $choice->id }}')">{{ $choice->code }} - {{ $choice->name }} ({{ $choice->lecturer?->name ?? 'no lecturer' }})</option>
+                        @endforeach
+                    </select>
+
+                    <input type="text" x-bind:name="'enrolments[' + i + '][section]'" x-model="row.section"
+                           x-bind:list="row.subject_id ? 'sections-' + row.subject_id : null"
+                           maxlength="20" placeholder="e.g. 1A" aria-label="Section" autocomplete="off"
+                           class="h-[52px] w-36 rounded-[16px] border border-surface-line bg-surface px-[18px] text-[14px] font-medium text-ink focus:outline-none focus:ring-2 focus:ring-ink/10">
+
+                    <x-button type="button" variant="secondary" class="!px-4 !py-2 !text-meta"
+                              x-on:click="rows.splice(i, 1)" x-bind:aria-label="'Remove subject row ' + (i + 1)">Remove</x-button>
+                </div>
+            </template>
+
+            <p class="text-meta text-ink-300" x-show="rows.length === 0" data-enrolments-empty>Not enrolled in any subject yet.</p>
+            <p class="text-meta text-ink-400" x-show="rows.length > 0" data-section-help><span class="font-bold text-ink-600">Section</span>: the class section the student registered for.</p>
+        </div>
+
+        <div>
+            <x-button type="button" variant="secondary" icon="plus" class="!px-4 !py-2 !text-meta" x-on:click="add()">Add subject</x-button>
+        </div>
+
+        @foreach ($enrolmentErrors as $message)
+            <p class="text-meta font-semibold text-danger-text">{{ $message }}</p>
+        @endforeach
+    </div>
 </div>

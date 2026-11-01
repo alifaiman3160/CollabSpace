@@ -2,8 +2,10 @@
 
 namespace App\Support\Formation;
 
+use App\Models\Enrolment;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\Section;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -39,7 +41,7 @@ class ImportReview
      * @param  array<string, array<string|int, mixed>>  $decisions
      * @return array<string, mixed>
      */
-    public function evaluate(array $draft, array $decisions, Subject $subject): array
+    public function evaluate(array $draft, array $decisions, Subject $subject, ?Section $section = null): array
     {
         $remove = $decisions['remove'] ?? [];
         $assign = $decisions['assign'] ?? [];
@@ -52,7 +54,10 @@ class ImportReview
         $inSubject = $this->alreadyInSubject($subject);
         $existingNames = Group::query()->where('subject_id', $subject->getKey())->pluck('name')
             ->map(fn (string $n) => mb_strtolower(trim($n)))->all();
-        $candidates = $this->candidates($subject);
+        $candidates = $this->candidates($subject, $section);
+        $sectionMates = $section === null ? null : Enrolment::query()->where('section_id', $section->getKey())->pluck('user_id')->flip();
+        $enrolledAnywhere = Enrolment::query()->where('subject_id', $subject->getKey())->pluck('section_id', 'user_id');
+        $sectionNames = Section::query()->where('subject_id', $subject->getKey())->pluck('name', 'id');
 
         // 1. Resolve every person to an account and a state.
         $groups = [];
@@ -72,6 +77,9 @@ class ImportReview
                     $user === null => ['not_found', 'No account has this matric number or email'],
                     $user->role !== 'student' => ['ineligible', 'This account belongs to a lecturer or administrator, not a student'],
                     ! $user->is_active => ['ineligible', 'This account has been deactivated'],
+                    $sectionMates !== null && ! $sectionMates->has($user->id) => ['ineligible', $enrolledAnywhere->has($user->id)
+                        ? 'Not in this section: enrolled in section '.($sectionNames[$enrolledAnywhere[$user->id]] ?? '?').' of this subject'
+                        : 'Not in this section: not enrolled in this subject'],
                     isset($inSubject[$user->id]) => ['ineligible', 'Already in '.$inSubject[$user->id].' for this subject'],
                     default => ['ok', null],
                 };
@@ -347,8 +355,8 @@ class ImportReview
     /**
      * @return Collection<int, User>
      */
-    public function candidates(Subject $subject): Collection
+    public function candidates(Subject $subject, ?Section $section = null): Collection
     {
-        return Pool::for($subject);
+        return Pool::for($subject, $section);
     }
 }

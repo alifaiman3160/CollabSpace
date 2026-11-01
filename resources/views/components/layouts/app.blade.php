@@ -29,49 +29,103 @@
 <body class="bg-surface-soft text-ink {{ $fit ? 'min-h-screen min-[900px]:h-dvh min-[900px]:overflow-hidden' : 'min-h-screen' }}">
 <div class="flex {{ $fit ? 'min-h-screen min-[900px]:h-dvh min-[900px]:overflow-hidden' : 'min-h-screen' }}">
 
-    {{-- Sidebar: 222px, sticky, periwinkle, rounded on the right edge only.
+    {{-- Sidebar: 222px wide (--sidebar-w), or the slim rail (--sidebar-w-collapsed); sticky, periwinkle, rounded on the right edge only.
          x-persist keeps this very element across wire:navigate visits, so the sidebar is neither
-         re-rendered nor re-animated; the highlighted item follows the address (wire:current on the links).
-         Put on the <aside> itself rather than a @persist wrapper, which would add a div and end the sticky. --}}
-    <aside x-persist="sidebar" class="sticky top-0 flex h-dvh min-h-0 w-sidebar shrink-0 self-start flex-col bg-periwinkle px-[14px] pb-[18px] pt-[22px] [border-radius:0_26px_26px_0]">
+         re-rendered nor re-animated; the highlighted item follows the address (wire:current on the plain links,
+         the sidebar script on the items that open). Put on the <aside> itself rather than a @persist wrapper,
+         which would add a div and end the sticky.
+         Collapsed and open-section state come from two cookies read in NavigationComposer, so the first paint is right. --}}
+    @php
+        $railed = $sidebar['collapsed'] ?? false;
+        $roleTones = [
+            'admin'    => ['classes' => 'bg-ink text-white', 'icon' => 'shield', 'letter' => 'A'],
+            'lecturer' => ['classes' => 'bg-success-bg text-success-text', 'icon' => 'book', 'letter' => 'L'],
+            'student'  => ['classes' => 'bg-white/70 text-periwinkle-link', 'icon' => 'graduation', 'letter' => 'S'],
+        ];
+        $tone = $roleTones[$role ?? 'student'] ?? $roleTones['student'];
+    @endphp
+    <aside x-persist="sidebar" x-data="csSidebar" x-effect="paint()"
+           data-open="{{ implode(',', $sidebar['open'] ?? []) }}"
+           @if ($railed) data-collapsed @endif
+           @if ($sidebar['auto'] ?? false) data-auto @endif
+           class="cs-sidebar sticky top-0 z-20 flex h-dvh min-h-0 shrink-0 self-start flex-col bg-periwinkle px-[14px] pb-[18px] pt-[22px] [border-radius:0_26px_26px_0]">
 
-        <a href="{{ url('/') }}" wire:navigate class="mb-6 flex items-center gap-2.5 px-[14px]">
+        {{-- The round toggle on the right edge, half over it. --}}
+        <button type="button" class="cs-toggle interactive btn-motion"
+                aria-controls="sidebar-nav"
+                aria-expanded="{{ $railed ? 'false' : 'true' }}" aria-label="{{ $railed ? 'Expand sidebar' : 'Collapse sidebar' }}"
+                x-bind:aria-expanded="collapsed ? 'false' : 'true'"
+                x-bind:aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                x-on:click="toggle()">
+            <x-icon name="chevron" size="14" class="cs-toggle__icon {{ $railed ? '' : 'rotate-180' }}" x-bind:class="collapsed ? '' : 'rotate-180'" />
+        </button>
+
+        <a href="{{ url('/') }}" wire:navigate class="cs-brand mb-4 flex items-center gap-2.5 px-[14px]" data-brand
+           data-rail-tip="CollabSpace">
             <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-pill bg-ink text-white">
                 <x-icon name="grid" size="16" />
             </span>
-            <span class="flex min-w-0 flex-col">
+            <span class="cs-label flex min-w-0 flex-col">
                 <span class="text-lead font-extrabold leading-tight tracking-title">CollabSpace</span>
-                <span class="truncate text-micro font-semibold text-ink/[.48]">{{ $roleLabel ?? 'Student Portal' }}</span>
             </span>
         </a>
 
-        <nav class="flex flex-1 flex-col gap-1 overflow-y-auto" aria-label="Main">
+        {{-- The role: a clear chip with a tiny icon; in the slim rail a small letter chip under the logo mark. --}}
+        <div class="cs-role mb-5 px-[14px]">
+            <span class="cs-role-chip inline-flex max-w-full items-center gap-1.5 rounded-pill px-2.5 py-[3px] text-[11.5px] font-semibold leading-tight {{ $tone['classes'] }}" data-role-chip="{{ $role ?? 'student' }}">
+                <x-icon :name="$tone['icon']" size="12" />
+                <span class="truncate">{{ $roleLabel ?? 'Student Portal' }}</span>
+            </span>
+            <span class="cs-role-dot {{ $tone['classes'] }}" data-role-dot="{{ $role ?? 'student' }}"
+                  data-rail-tip="{{ $roleLabel ?? 'Student Portal' }}" aria-hidden="true"
+                  @if ($railed) data-tooltip="{{ $roleLabel ?? 'Student Portal' }}" data-tooltip-side="right" @endif>{{ $tone['letter'] }}</span>
+        </div>
+
+        <nav id="sidebar-nav" class="-mx-[3px] flex flex-1 flex-col gap-1 overflow-y-auto overflow-x-hidden px-[3px]" aria-label="Main">
             @foreach($nav ?? [] as $item)
                 <x-nav-item
                     :icon="$item['icon']"
                     :label="$item['label']"
                     :route="$item['route']"
                     :badge="$item['badge'] ?? null"
-                    :live="$item['live'] ?? false" />
+                    :live="$item['live'] ?? false"
+                    :group="$item['group'] ?? null"
+                    :children="$item['children'] ?? []"
+                    :open="in_array($item['group'] ?? '', $sidebar['open'] ?? [], true)"
+                    :collapsed="$railed" />
             @endforeach
         </nav>
 
-        {{-- User block --}}
-        <div class="mt-4 flex items-center gap-3 rounded-card bg-white/50 p-3">
-            <x-avatar :name="auth()->user()->name ?? 'Guest User'" size="sm" />
-            <div class="min-w-0 flex-1">
+        {{-- User block: a row when wide, the avatar with the logout icon under it in the rail. --}}
+        <div class="cs-user mt-4 flex items-center gap-3 rounded-card bg-white/50 p-3">
+            <x-avatar :name="auth()->user()->name ?? 'Guest User'" size="sm" data-rail-tip="{{ auth()->user()->name ?? 'Guest User' }}" :data-tooltip-side="$railed ? 'right' : null" />
+            <div class="cs-label cs-user-text min-w-0 flex-1">
                 <p class="truncate text-nav font-bold">{{ auth()->user()->name ?? 'Guest User' }}</p>
                 <p class="truncate text-tiny font-semibold text-ink/[.5]">{{ auth()->user()->email ?? '' }}</p>
             </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" class="flex text-ink/[.55] interactive hover:text-ink" aria-label="Log out">
+                <button type="submit" class="flex text-ink/[.55] interactive hover:text-ink" aria-label="Log out" data-tooltip="Log out" data-rail-side
+                        @if ($railed) data-tooltip-side="right" @endif>
                     <x-icon name="logout" />
                 </button>
             </form>
         </div>
     </aside>
 
+    {{-- Nobody has chosen yet: a narrow screen starts as the slim rail, before the first paint. An explicit choice is in the cookie. --}}
+    @if ($sidebar['auto'] ?? false)
+        <script>
+            (function () {
+                var aside = document.querySelector('aside.cs-sidebar[data-auto]');
+                if (!aside) return;
+                var stored = null;
+                try { stored = window.localStorage.getItem('cs_sidebar'); } catch (e) {}
+                var collapsed = stored === 'collapsed' || stored === 'expanded' ? stored === 'collapsed' : window.innerWidth < 1200;
+                if (collapsed) aside.setAttribute('data-collapsed', '');
+            })();
+        </script>
+    @endif
     {{-- Content --}}
     {{-- Soft page background: white cards are defined by contrast against it,
          which is what makes them read as cards at all. --}}

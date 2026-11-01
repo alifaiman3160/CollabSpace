@@ -45,7 +45,8 @@ class ChatMessengerLayoutTest extends TestCase
 
     protected function page(?Group $group = null): string
     {
-        return $this->actingAs($this->me)->get(route('student.chat.show', $group ?? $this->falcon))->assertOk()->getContent();
+        // Without the sidebar, whose own group shortcuts are not the page's group list.
+        return preg_replace('#<aside x-persist.*?</aside>#s', '', $this->actingAs($this->me)->get(route('student.chat.show', $group ?? $this->falcon))->assertOk()->getContent());
     }
 
     public function test_the_page_is_one_card_with_a_group_list_and_a_conversation(): void

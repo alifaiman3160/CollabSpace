@@ -99,6 +99,16 @@ class Subject extends Model
         return $this->hasMany(Group::class);
     }
 
+    public function sections(): HasMany
+    {
+        return $this->hasMany(Section::class);
+    }
+
+    public function enrolments(): HasMany
+    {
+        return $this->hasMany(Enrolment::class);
+    }
+
     public function rubrics(): HasMany
     {
         return $this->hasMany(Rubric::class);

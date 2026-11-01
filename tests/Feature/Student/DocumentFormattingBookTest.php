@@ -281,7 +281,7 @@ class DocumentFormattingBookTest extends TestCase
         $html = $this->editorPage();
 
         foreach (['Undo (Ctrl + Z)', 'Redo (Ctrl + Y)', 'Bold (Ctrl + B)', 'Align left (Ctrl + L)', 'Bulleted list (Ctrl + Shift + 8)', 'Previous page (Alt + Left)', 'Next page (Alt + Right)'] as $title) {
-            $this->assertStringContainsString('title="'.$title.'"', $html);
+            $this->assertStringContainsString('data-tooltip="'.$title.'"', $html);
         }
     }
 }

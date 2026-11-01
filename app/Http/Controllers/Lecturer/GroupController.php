@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Lecturer;
 use App\Http\Requests\Lecturer\StoreGroupRequest;
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\Section;
 use App\Models\Subject;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\Notifier;
+use App\Support\Sections\Enrolments;
+use App\Support\Sections\SubjectSectionFilter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,9 +30,15 @@ class GroupController extends LecturerController
             abort(404);
         }
 
+        // The two-step filter (subject, then section), query string only.
+        $filter = SubjectSectionFilter::for($request, $this->lecturer());
+        $sectionId = $filter['sectionId'];
+        $sections = $filter['sections'];
+
         $groups = $this->groups()
-            ->with(['subject', 'members:users.id,users.name'])
+            ->with(['subject', 'section', 'members:users.id,users.name'])
             ->when($subjectId, fn ($q) => $q->where('subject_id', $subjectId))
+            ->when($sectionId, fn ($q) => $q->where('section_id', $sectionId))
             ->withCount([
                 'groupMembers as members_count',
                 'tasks as tasks_total',
@@ -47,7 +56,26 @@ class GroupController extends LecturerController
             'groups' => $groups,
             'subjects' => $subjects,
             'subjectId' => $subjectId,
+            'sectionId' => $sectionId,
+            'sections' => $sections,
+            'filter' => $filter,
+            'sectionCounts' => $this->sectionCounts($subjectId),
         ]);
+    }
+
+    /**
+     * "1A: 5 groups, 1B: 6 groups" for the quiet summary line: one grouped count over the lecturer's groups
+     * (of the chosen subject, if one is chosen), never one query per section.
+     *
+     * @return \Illuminate\Support\Collection<int, array{name: string, groups: int}>
+     */
+    protected function sectionCounts(?int $subjectId)
+    {
+        $counts = $this->groups()->when($subjectId, fn ($q) => $q->where('subject_id', $subjectId))
+            ->whereNotNull('section_id')->groupBy('section_id')->selectRaw('section_id, count(*) as total')->pluck('total', 'section_id');
+
+        return Section::query()->whereIn('id', $counts->keys())->orderBy('subject_id')->orderBy('name')->get()
+            ->map(fn (Section $s) => ['name' => $s->name, 'groups' => (int) $counts[$s->id]]);
     }
 
     public function create(Request $request): View
@@ -63,6 +91,7 @@ class GroupController extends LecturerController
 
         return view('lecturer.groups.create', [
             'subjects' => $subjects,
+            'sections' => Section::query()->whereIn('subject_id', $subjects->pluck('id'))->orderBy('name')->get(['id', 'subject_id', 'name']),
             'selected' => $selected ?? $subjects->first()->id,
         ]);
     }
@@ -71,8 +100,13 @@ class GroupController extends LecturerController
     {
         $subject = $this->ownedSubject(Subject::findOrFail($request->integer('subject_id')));
 
+        // The section: the one chosen, else the subject's only section; with several and none chosen it stays
+        // empty and the first member added decides it.
+        $section = $this->sectionFor($subject, $request->input('section_id'));
+
         $group = Group::create([
             'subject_id' => $subject->id,
+            'section_id' => $section?->id,
             'name' => $request->string('name')->trim()->value(),
             // Falls back to the subject's default when the field is left alone.
             'group_size' => $request->integer('group_size') ?: $subject->group_size,
@@ -91,7 +125,7 @@ class GroupController extends LecturerController
     {
         $group = $this->ownedGroup($group);
 
-        $group->load(['subject', 'members' => fn ($q) => $q->orderBy('name')])
+        $group->load(['subject', 'section', 'members' => fn ($q) => $q->orderBy('name')])
             ->loadCount([
                 'tasks as tasks_total',
                 'tasks as tasks_done' => fn ($q) => $q->where('status', Task::STATUS_DONE),
@@ -129,6 +163,7 @@ class GroupController extends LecturerController
     public function addMember(Request $request, Group $group): RedirectResponse
     {
         $group = $this->ownedGroup($group);
+        $group->loadMissing('section');
 
         $validated = $request->validate(
             ['user_id' => ['required', 'integer']],
@@ -148,6 +183,22 @@ class GroupController extends LecturerController
             return back()->withErrors(['user_id' => "{$student->name} is already in this group."]);
         }
 
+        // Groups hold students of one section. The student must be enrolled in this subject, and in this group's
+        // section (a group with no section yet takes the section of its first member).
+        $enrolled = Enrolments::sectionOf($student, $group->subject_id);
+
+        if ($enrolled === null) {
+            return back()->withErrors([
+                'user_id' => "{$student->name} is not enrolled in {$group->subject->code}. The administrator enrols students from User accounts.",
+            ]);
+        }
+
+        if ($group->section_id !== null && $enrolled->id !== $group->section_id) {
+            return back()->withErrors([
+                'user_id' => "{$student->name} is in section {$enrolled->name}, but {$group->name} is a section {$group->section->name} group.",
+            ]);
+        }
+
         if ($this->isInAnotherGroupOfSubject($student, $group)) {
             return back()->withErrors([
                 'user_id' => "{$student->name} already belongs to another group in {$group->subject->code}.",
@@ -165,6 +216,10 @@ class GroupController extends LecturerController
             'user_id' => $student->id,
             'joined_at' => now(),
         ]);
+
+        if ($group->section_id === null) {
+            $group->update(['section_id' => $enrolled->id]);
+        }
 
         app(Notifier::class)->addedToGroup($student, $group, $request->user());
 
@@ -187,16 +242,15 @@ class GroupController extends LecturerController
     }
 
     /**
-     * Active students who are not yet in any group of this group's subject.
-     * A student belongs to at most one group per subject.
+     * Active students enrolled in this group's subject (and, once the group has a section, in that section) who
+     * are not yet in any group of the subject. A student belongs to at most one group per subject.
      *
      * @return \Illuminate\Database\Eloquent\Collection<int, User>
      */
     protected function assignableStudents(Group $group)
     {
-        return User::query()
-            ->where('role', 'student')
-            ->where('is_active', true)
+        return Enrolments::students($group->subject, $group->section)
+            ->with('enrolments.section:id,name')
             ->whereDoesntHave('groups', fn ($q) => $q->where('subject_id', $group->subject_id))
             ->orderBy('name')
             ->get();

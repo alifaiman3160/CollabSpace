@@ -1,5 +1,5 @@
 <x-layouts.app title="Auto-assign students — CollabSpace"
-               heading="Auto-assign students"
+               :heading="'Auto-assign students'.($section ? ' — Section '.$section->name : '')"
                :subtitle="$subject->code.' — '.$subject->name"
                :back="route('lecturer.groups', ['subject' => $subject->id])"
                :back-label="$subject->code.' groups'">
@@ -22,6 +22,32 @@
 
         <x-flash />
 
+        {{-- Groups are formed one section at a time: pick which section first. --}}
+        @if ($sections->isEmpty())
+            <x-empty-state icon="users" title="No students are enrolled in this subject yet"
+                           body="The administrator enrols students in a subject, with a section, from User accounts. Once that is done, you can form groups here." />
+        @else
+            <div class="flex flex-wrap items-center gap-3" data-section-picker>
+                <span class="text-label font-bold uppercase tracking-eyebrow text-ink/[.55]">Section</span>
+                <div class="flex flex-wrap rounded-pill bg-surface-muted p-[3px]" role="group" aria-label="Section">
+                    @foreach ($sections as $option)
+                        <a href="{{ route('lecturer.formation', [$subject, 'section' => $option->id]) }}"
+                           @if ($section?->is($option)) aria-current="page" @endif
+                           class="flex h-8 items-center gap-1.5 rounded-pill px-[15px] text-meta font-bold interactive {{ $section?->is($option) ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
+                            Section {{ $option->name }}
+                            <span class="text-label font-semibold opacity-70">{{ $option->enrolments_count }}</span>
+                        </a>
+                    @endforeach
+                </div>
+                <span class="text-meta text-ink-400">Students are only taken from this section.</span>
+            </div>
+
+            @if ($section === null)
+                <p class="text-body text-ink-400" data-choose-section>Choose a section to see who still needs a group. Students of other sections are never mixed in.</p>
+            @endif
+        @endif
+
+        @if ($section)
         <section class="flex flex-wrap gap-3.5" aria-label="Where this subject stands">
             <x-stat-card size="sm" tone="periwinkle" icon="users" icon-tone="neutral"
                          label="Without a group" :value="$count"
@@ -91,7 +117,7 @@
                 </div>
 
                 <div class="mt-auto">
-                    <x-button variant="secondary" :href="route('lecturer.formation.import', $subject)" icon="plus">
+                    <x-button variant="secondary" :href="route('lecturer.formation.import', [$subject, 'section' => $section?->id])" icon="plus">
                         Import from CSV
                     </x-button>
                 </div>
@@ -124,6 +150,7 @@
                   },
               }">
             @csrf
+            <input type="hidden" name="section" value="{{ $section?->id }}">
 
             <div class="flex flex-col gap-2.5">
                 <div class="flex flex-wrap items-center justify-between gap-2">
@@ -135,7 +162,7 @@
                     </span>
                 </div>
 
-                <p class="text-meta text-ink-400">Untick anyone who is not taking {{ $subject->code }}.</p>
+                <p class="text-meta text-ink-400">Section {{ $section?->name }} only. Untick anyone you do not want to place now.</p>
 
                 <ul class="grid max-h-[320px] gap-1.5 overflow-y-auto rounded-card border border-surface-line bg-surface-soft p-2.5 sm:grid-cols-2"
                     aria-label="Students without a group">
@@ -201,6 +228,8 @@
             </section>
         @endif
 
+        @endif
+
         {{-- Collapsed by default: the caveats that matter, kept on this screen. --}}
         <details class="group rounded-card border border-surface-line bg-surface-soft px-5 py-3.5">
             <summary class="flex cursor-pointer list-none items-center gap-2.5 text-meta font-bold text-ink-600">
@@ -216,8 +245,8 @@
                     system, so it is only as current as the last time somebody edited the account.
                 </li>
                 <li>
-                    CollabSpace does not record who is enrolled in a subject, so every active student without a
-                    group here is listed. Untick anyone who is not taking {{ $subject->code }}.
+                    Only students the administrator enrolled in this section are listed, and only those without a
+                    group in {{ $subject->code }}. Another section is a separate run: its students are never mixed in.
                 </li>
                 <li>Both ways create new groups. Groups that already exist, and their members, are never changed.</li>
             </ul>

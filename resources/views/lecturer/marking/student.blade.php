@@ -1,6 +1,6 @@
 <x-layouts.app :title="$student->name.' — Marking — CollabSpace'"
                :heading="$student->name"
-               :subtitle="$group->name.' — '.$rubric->name.', version '.$rubric->version"
+               :subtitle="$group->name.' — '.($group->section ? 'Section '.$group->section->name.' — ' : '').$rubric->name.', version '.$rubric->version"
                :back="route('lecturer.marking.group', [$rubric, $group])"
                :back-label="$group->name">
 

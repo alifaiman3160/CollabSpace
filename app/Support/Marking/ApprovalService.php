@@ -44,6 +44,8 @@ class ApprovalService
             }
 
             $snapshot = $this->sheets->snapshot($rubric, $sheet);
+            // Context only, like the group's name: which class section these marks were approved for.
+            $snapshot['class_section'] = $group->section?->name;
 
             return MarkApproval::create([
                 'rubric_id' => $rubric->id,

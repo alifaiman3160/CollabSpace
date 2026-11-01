@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Models\Announcement;
 use App\Models\AnnouncementRead;
+use App\Support\Sections\AnnouncementAudience;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,9 +22,8 @@ class AnnouncementController extends StudentController
             'ids.*' => ['integer'],
         ])['ids'])->unique()->values();
 
-        $mine = $this->groups()->select('groups.subject_id');
-
-        $found = Announcement::query()->whereIn('id', $ids)->whereIn('subject_id', $mine)->pluck('id');
+        // Only announcements this student may see: their subjects, for every section or for their own.
+        $found = AnnouncementAudience::visibleTo($this->student())->whereIn('announcements.id', $ids)->pluck('announcements.id');
 
         abort_unless($found->count() === $ids->count(), 404);
 

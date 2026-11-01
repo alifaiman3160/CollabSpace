@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Lecturer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Group;
+use App\Models\Section;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -37,6 +38,23 @@ abstract class LecturerController extends Controller
     protected function groups(): Builder
     {
         return Group::query()->whereIn('subject_id', $this->subjects()->select('id'));
+    }
+
+    /**
+     * The section of this subject named by an id (404 when it belongs to another subject, so another lecturer's
+     * sections cannot be probed). With no id, the subject's only section; with several, none: the caller asks.
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+     */
+    protected function sectionFor(Subject $subject, mixed $id): ?Section
+    {
+        if (filled($id)) {
+            return Section::query()->where('subject_id', $subject->getKey())->findOrFail((int) $id);
+        }
+
+        $all = $subject->sections()->limit(2)->get();
+
+        return $all->count() === 1 ? $all->first() : null;
     }
 
     /** @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException */

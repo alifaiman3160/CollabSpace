@@ -99,29 +99,28 @@ class ProgressPagesTest extends TestCase
         $b = $this->subject('BBB2222');
         $this->group($a, 'Alpha');
         $this->group($b, 'Beta');
+        $this->group($b, 'Beta two', overdue: 1);
 
         $html = $this->list();
 
-        // Pills in each subject's colour, switching in place; the tiles are bound to what is showing.
-        $this->assertStringContainsString('x-data="progressFilter(', $html);
+        // One shared filter block above the tiles, in each subject's colour; no second subject row below them.
+        $this->assertSame(1, substr_count($html, 'data-subject-filter'));
+        $this->assertLessThan(strpos($html, 'data-tiles'), strpos($html, 'data-filter-block'));
         $this->assertStringContainsString('data-palette="'.SubjectPalette::for($a->id)['name'].'"', substr($html, strpos($html, 'data-subject-filter')));
-        $this->assertSame(2, preg_match_all('/x-on:click="pick\(\d+\)"/', $html));
-        $this->assertStringContainsString('x-on:click="pick(null)"', $html);
+        $this->assertStringNotContainsString('x-on:click="pick(', $html);
+        $this->assertSame(3, substr_count($html, 'data-pg="'));
 
-        foreach (['groups', 'attention', 'overdue', "average + '%'"] as $binding) {
-            $this->assertStringContainsString('x-text="'.e($binding).'"', $html);
-        }
+        // Choosing a subject narrows the cards and the tiles with them.
+        $one = $this->actingAs($this->lecturer)->get(route('lecturer.progress', ['subject' => $b->id]))->assertOk()->getContent();
+        $this->assertSame(2, substr_count($one, 'data-pg="'));
+        $this->assertStringContainsString('data-subject="'.$b->id.'"', $one);
+        $this->assertStringNotContainsString('data-subject="'.$a->id.'"', $one);
+        $this->assertStringContainsString('Groups 2 Being monitored', $this->tiles($one));
 
-        // Each card and row says which subject it belongs to, so the filter can show and hide them.
-        $this->assertSame(2, substr_count($html, 'data-pg="'));
-        $this->assertStringContainsString('data-subject="'.$a->id.'"', $html);
-
-        // One subject: nothing to filter by (and with a single group the list goes straight to it).
-        $this->group($a, 'Alpha two');
-        Subject::query()->whereKey($b->id)->delete();
-        $this->assertStringNotContainsString('data-subject-filter', $this->list());
+        // A subject that is not the lecturer's is ignored rather than an error.
+        $other = $this->subject('OTHER333', User::factory()->lecturer()->create());
+        $this->actingAs($this->lecturer)->get(route('lecturer.progress', ['subject' => $other->id]))->assertOk();
     }
-
     public function test_latest_activity_is_at_most_ten_rows_from_the_lecturers_own_groups(): void
     {
         $mineSubject = $this->subject('MINE1111');
@@ -240,7 +239,7 @@ class ProgressPagesTest extends TestCase
         $this->assertStringContainsString('Task board', $html);
         $this->assertSame(3, substr_count($html, 'data-column-cards'));
         $this->assertSame(3, substr_count($html, 'max-h-[26rem]'));
-        $this->assertSame(3, substr_count($html, 'overflow-y-auto" data-column-cards'), 'Each column scrolls itself.');
+        $this->assertSame(3, substr_count($html, 'overflow-y-auto pr-1" data-column-cards'), 'Each column scrolls itself.');
         $this->assertStringContainsString('Nothing here.', $this->show($this->group($this->subject('BBB2222'), 'Empty', [1])));
     }
 
@@ -287,20 +286,18 @@ class ProgressPagesTest extends TestCase
         $this->assertStringContainsString(route('lecturer.progress.documents.show', [$group, $document]), $html);
     }
 
-    public function test_the_shared_picker_replaces_the_pill_strip_when_there_are_several_groups(): void
+    public function test_the_group_page_no_longer_repeats_a_row_of_group_cards(): void
     {
         $subject = $this->subject('AAA1111');
         $a = $this->group($subject, 'Alpha');
-
-        $this->assertStringNotContainsString('data-group-picker', $this->show($a));
-
         $this->group($subject, 'Beta');
+
         $html = $this->show($a);
 
-        $this->assertSame(1, substr_count($html, 'data-group-picker'));
-        $this->assertSame(2, substr_count($html, 'data-group-card'));
-        $this->assertStringContainsString(route('lecturer.progress.show', Group::where('name', 'Beta')->first()), $html);
-        $this->assertStringNotContainsString('bg-surface-muted p-[3px]', substr($html, 0, strpos($html, 'data-tiles')));
+        $this->assertStringNotContainsString('data-group-picker', $html);
+        $this->assertStringNotContainsString('data-group-card', $html);
+        $this->assertStringNotContainsString('Your groups', $html);
+        $this->assertStringContainsString('data-group-switcher', $html);
     }
 
     public function test_access_rules_are_unchanged(): void

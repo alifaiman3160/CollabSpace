@@ -126,9 +126,9 @@ class Notifier
         $subject = $announcement->subject;
 
         return $this->writeMany(
-            $this->studentsOf($subject),
+            $this->studentsOf($subject, $announcement->section_id),
             Announcement::TYPE,
-            fn () => "{$subject->code}: {$announcement->title}",
+            fn () => $subject->code.($announcement->section_id ? ' (Section '.$announcement->section()->value('name').')' : '').": {$announcement->title}",
             route('student.dashboard', absolute: false).'#announcement-'.$announcement->getKey(),
             $announcement->getKey(),
         );
@@ -444,16 +444,11 @@ class Notifier
      *
      * @return list<int>
      */
-    protected function studentsOf(Subject $subject): array
+    protected function studentsOf(Subject $subject, ?int $sectionId = null): array
     {
-        return GroupMember::query()
-            ->whereIn('group_id', $subject->groups()->select('id'))
-            // A deactivated account cannot sign in, so there is nobody to tell.
-            ->whereIn('user_id', User::query()->where('is_active', true)->select('id'))
-            ->pluck('user_id')
-            ->unique()
-            ->values()
-            ->all();
+        // Enrolled students (one section, when it is aimed at one), plus anyone only known through a group. A
+        // deactivated account cannot sign in, so there is nobody to tell.
+        return \App\Support\Sections\AnnouncementAudience::studentIds($subject, $sectionId)->values()->all();
     }
 
     /** The lecturer who owns the subject this group sits under. */

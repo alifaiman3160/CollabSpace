@@ -149,7 +149,7 @@ class DocumentAccessTest extends TestCase
             ->get(route('lecturer.progress.documents.show', [$this->group, $nasty]))
             ->assertOk()
             ->assertSee('Fine')
-            ->assertDontSee('<script>', false);
+            ->assertDontSee('alert(1)', false);
     }
 
     /*

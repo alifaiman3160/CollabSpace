@@ -16,11 +16,12 @@
      a way out and land you back on the same screen. --}}
 <x-layouts.app title="Monitor progress — CollabSpace"
                :heading="$group->name"
-               :subtitle="$group->subject->code.' — '.$group->subject->name"
+               :subtitle="$group->subject->code.' — '.$group->subject->name.($group->section ? ' · Section '.$group->section->name : '')"
                :back="$groups->count() > 1 ? route('lecturer.progress') : null"
                back-label="All groups">
 
     <x-slot:actions>
+        <x-lecturer.group-switcher :groups="$groups" :current="$group" route="lecturer.progress.show" />
         <x-button variant="secondary" :href="route('lecturer.reports.show', $group)">
             <x-icon name="chart" size="16" />
             Contribution report
@@ -31,11 +32,6 @@
     <div class="flex flex-col gap-[18px]">
 
         <x-flash />
-
-        {{-- The same group cards the student pages use. --}}
-        @if ($groups->count() > 1)
-            <x-group-picker :groups="$groups" :current="$group" route="lecturer.progress.show" />
-        @endif
 
         {{-- Five tiles of one component and one height; the first wears the group's own colour. --}}
         <section class="grid grid-cols-2 gap-3.5 min-[900px]:grid-cols-5" aria-label="This group" data-tiles>
@@ -66,10 +62,11 @@
         <x-panel title="Task board" class="cs-card-in !min-h-0" style="--i: 5" data-board-panel>
             <x-slot:aside>Read-only — students move their own cards.</x-slot:aside>
 
-            <div class="grid items-stretch gap-3 pt-1 md:grid-cols-3" data-board>
+            <div class="grid items-stretch gap-3 pt-1 md:grid-cols-3" data-board
+                 x-data="{ doneOpen: null, toggleDone(id, el) { this.doneOpen = this.doneOpen === id ? null : id; if (this.doneOpen === null) return; setTimeout(() => el.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }), 300) } }">
                 @foreach ($columns as $status => $tasks)
                     @php($m = $meta[$status])
-                    <section class="flex min-w-0 flex-col gap-3 rounded-card p-3 {{ $m['well'] }}" aria-label="{{ $m['title'] }} column" data-column>
+                    <section class="flex min-h-0 min-w-0 flex-col gap-3 rounded-panel p-4 {{ $m['well'] }}" aria-label="{{ $m['title'] }} column" data-column>
                         <div class="flex items-center gap-2.5 px-1">
                             <h3 class="text-[16px] font-extrabold tracking-[-0.025em]">{{ $m['title'] }}</h3>
                             <span class="flex h-[22px] min-w-6 items-center justify-center rounded-pill bg-surface px-[7px] text-label font-bold text-ink-500">
@@ -77,9 +74,14 @@
                             </span>
                         </div>
 
-                        <div class="flex max-h-[26rem] min-h-[7rem] flex-1 flex-col gap-3 overflow-y-auto" data-column-cards>
+                        <div class="cs-scroll flex max-h-[26rem] min-h-[7rem] min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1" data-column-cards>
                             @forelse ($tasks as $task)
-                                <article class="relative flex flex-col gap-2.5 overflow-hidden rounded-card bg-surface p-[15px] shadow-subtle">
+                                @if ($status === Task::STATUS_DONE)
+                                    <x-task-done-row :task="$task" :readonly="true" wire:key="done-{{ $task->id }}" />
+                                    @continue
+                                @endif
+
+                                <article class="relative flex shrink-0 flex-col gap-3 overflow-hidden rounded-card bg-surface p-[15px] shadow-subtle" data-board-card>
                                     @if ($task->isOverdue())
                                         <span class="absolute inset-y-0 left-0 w-1 bg-danger" aria-hidden="true"></span>
                                     @endif
@@ -114,7 +116,7 @@
                                     </div>
                                 </article>
                             @empty
-                                <p class="rounded-card bg-surface px-4 py-6 text-center text-meta text-ink-400">Nothing here.</p>
+                                <p class="rounded-card bg-surface px-4 py-6 text-center text-meta text-ink-400">{{ $status === Task::STATUS_DONE ? 'Nothing done yet.' : 'Nothing here.' }}</p>
                             @endforelse
                         </div>
                     </section>
@@ -145,7 +147,7 @@
 
                                 <div class="flex shrink-0 items-center gap-2">
                                     @if ($member['flagged'])
-                                        <x-badge tone="danger">Low</x-badge>
+                                        <x-badge tone="danger" data-tooltip="Contribution is well below the rest of the group">Low</x-badge>
                                     @endif
                                     <span class="rounded-pill bg-surface-muted px-3 py-1.5 text-meta font-bold text-ink-600">{{ $member['score'] }} pts</span>
                                 </div>

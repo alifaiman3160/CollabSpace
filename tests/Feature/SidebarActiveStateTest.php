@@ -24,7 +24,7 @@ class SidebarActiveStateTest extends TestCase
         preg_match('/<nav[^>]*aria-label="Main".*?<\/nav>/s', $html, $nav);
         $this->assertNotEmpty($nav, 'No sidebar rendered.');
 
-        preg_match_all('/<a[^>]*aria-current="page"[^>]*>(.*?)<\/a>/s', $nav[0], $m);
+        preg_match_all('/<a(?=[^>]*data-nav-link)(?=[^>]*(?:\saria-current="page"|\sdata-parent-current[\s>]))[^>]*>(.*?)<\/a>/s', $nav[0], $m);
         $this->assertLessThanOrEqual(1, count($m[1]), 'More than one sidebar entry is marked current.');
 
         return isset($m[1][0]) ? trim(preg_replace('/\s+/', ' ', strip_tags($m[1][0]))) : null;

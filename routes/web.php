@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Account\AccountController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
+use App\Http\Controllers\Lecturer\ClassListController;
 use App\Http\Controllers\Lecturer\DashboardController as LecturerDashboardController;
 use App\Http\Controllers\Lecturer\AnnouncementController;
 use App\Http\Controllers\Lecturer\BalancedFormationController;
@@ -138,6 +139,7 @@ Route::middleware(['auth', 'password.changed', 'role:lecturer'])
 
         // Students across the lecturer's own subjects
         Route::get('students', [LecturerStudentController::class, 'index'])->name('students');
+        Route::get('students/suggestions', [LecturerStudentController::class, 'suggestions'])->middleware('throttle:60,1')->name('students.suggestions');
 
         // Monitor progress — read-only per-group detail
         Route::get('progress', [ProgressController::class, 'index'])->name('progress');
@@ -190,6 +192,9 @@ Route::middleware(['auth', 'password.changed', 'role:lecturer'])
         | confirm route at the end of each flow, and every route resolves the
         | subject through the signed-in lecturer's own subjects.
         */
+        // Read-only class list of a subject: enrolled students by section (enrolment itself is the administrator's).
+        Route::get('subjects/{subject}/class-list', [ClassListController::class, 'show'])->name('classlist');
+
         Route::get('subjects/{subject}/formation', [FormationController::class, 'index'])->name('formation');
 
         // Mode 1: balanced allocation by CGPA

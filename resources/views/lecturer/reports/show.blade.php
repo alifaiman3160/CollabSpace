@@ -19,21 +19,11 @@
                :back="route('lecturer.reports')"
                back-label="All groups">
 
-    <div class="flex flex-col gap-[18px]">
+    <x-slot:actions>
+        <x-lecturer.group-switcher :groups="$groups" :current="$group" route="lecturer.reports.show" />
+    </x-slot:actions>
 
-        {{-- Group switcher --}}
-        @if ($groups->count() > 1)
-            <div class="flex flex-wrap rounded-pill bg-surface-muted p-[3px]">
-                @foreach ($groups as $g)
-                    <a href="{{ route('lecturer.reports.show', $g) }}"
-                       title="{{ $g->subject->name }}"
-                       class="flex h-8 items-center rounded-pill px-[15px] text-meta font-bold interactive
-                              {{ $g->is($group) ? 'bg-ink text-white' : 'text-ink-600 hover:text-ink' }}">
-                        {{ $g->name }}
-                    </a>
-                @endforeach
-            </div>
-        @endif
+    <div class="flex flex-col gap-[18px]">
 
         <section class="flex flex-col gap-[22px] rounded-panel border border-surface-line bg-surface-soft p-[22px]">
 
@@ -41,7 +31,7 @@
             <div class="flex flex-wrap items-end justify-between gap-3.5">
                 <div class="flex min-w-0 flex-col gap-0.5">
                     <span class="text-label font-bold uppercase tracking-eyebrow text-ink-300">
-                        {{ $group->subject->code }} · {{ $group->subject->name }} · {{ $group->name }}
+                        {{ $group->subject->code }} · {{ $group->subject->name }} · {{ $group->name }}@if ($group->section) · Section {{ $group->section->name }}@endif
                     </span>
                     <h2 class="text-h2 font-extrabold tracking-title">Contribution report</h2>
                 </div>

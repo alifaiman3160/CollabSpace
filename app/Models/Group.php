@@ -20,6 +20,7 @@ class Group extends Model
 
     protected $fillable = [
         'subject_id',
+        'section_id',
         'name',
         'group_size',
         'formation_method',
@@ -80,6 +81,12 @@ class Group extends Model
     public function subject(): BelongsTo
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    /** The section its members are all enrolled in; empty until the first member decides it. */
+    public function section(): BelongsTo
+    {
+        return $this->belongsTo(Section::class);
     }
 
     /** The pivot rows themselves, when joined_at matters. */

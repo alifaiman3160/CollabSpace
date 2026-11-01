@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\Sections\EnrolmentRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -31,13 +32,16 @@ class UpdateUserRequest extends FormRequest
             // range is a typo, and a typo here silently skews every group the
             // balancer builds from it.
             'cgpa' => ['nullable', 'numeric', 'between:0,4', 'decimal:0,2'],
+
+            // The subjects and sections a student is enrolled in (students only).
+            ...EnrolmentRules::rules(),
         ];
     }
 
     /** @return array<string, string> */
     public function messages(): array
     {
-        return [
+        return EnrolmentRules::messages() + [
             'matric_no.required' => 'A student account needs a matriculation number.',
             'matric_no.unique' => 'That matriculation number already belongs to another account.',
             'cgpa.between' => 'A CGPA runs from 0.00 to 4.00.',
@@ -60,5 +64,7 @@ class UpdateUserRequest extends FormRequest
                 ? str_replace(',', '.', trim((string) $this->cgpa))
                 : null,
         ]);
+
+        EnrolmentRules::prepare($this);
     }
 }

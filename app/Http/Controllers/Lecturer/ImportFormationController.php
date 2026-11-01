@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Lecturer;
 
 use App\Models\Group;
+use App\Models\Section;
 use App\Models\Subject;
 use App\Support\Formation\CsvReader;
 use App\Support\Formation\FormationException;
@@ -50,10 +51,19 @@ class ImportFormationController extends LecturerController
     |--------------------------------------------------------------------------
     */
 
-    public function create(Subject $subject): View
+    public function create(Request $request, Subject $subject): View|RedirectResponse
     {
+        $subject = $this->ownedSubject($subject);
+        $section = $this->sectionFor($subject, $request->query('section'));
+
+        if ($section === null) {
+            return redirect()->route('lecturer.formation', $subject)
+                ->withErrors(['status' => 'Choose a section first: groups are imported one section at a time.']);
+        }
+
         return view('lecturer.formation.import-upload', [
-            'subject' => $this->ownedSubject($subject),
+            'subject' => $subject,
+            'section' => $section,
         ]);
     }
 
@@ -94,6 +104,12 @@ class ImportFormationController extends LecturerController
     public function store(Request $request, Subject $subject): RedirectResponse
     {
         $subject = $this->ownedSubject($subject);
+        $section = $this->sectionFor($subject, $request->input('section'));
+
+        if ($section === null) {
+            return redirect()->route('lecturer.formation', $subject)
+                ->withErrors(['status' => 'Choose a section first: groups are imported one section at a time.']);
+        }
 
         $validated = $request->validate([
             'file' => ['required', 'file', 'extensions:csv,txt', 'max:1024'],
@@ -112,6 +128,7 @@ class ImportFormationController extends LecturerController
 
         $token = $this->held->put(self::KIND, $subject->getKey(), [
             'stage' => 'columns',
+            'section_id' => $section->getKey(),
             'layout' => $validated['layout'],
             'filename' => $this->safeName($validated['file']->getClientOriginalName()),
             'headers' => $read['headers'],
@@ -142,6 +159,7 @@ class ImportFormationController extends LecturerController
 
         return view('lecturer.formation.import-columns', [
             'subject' => $subject,
+            'section' => $this->heldSection($held, $subject),
             'token' => $token,
             'held' => $held,
             'sample' => array_slice($held['rows'], 0, 3),
@@ -218,9 +236,10 @@ class ImportFormationController extends LecturerController
 
         return view('lecturer.formation.import-review', [
             'subject' => $subject,
+            'section' => $this->heldSection($held, $subject),
             'token' => $token,
             'held' => $held,
-            'review' => $this->review->evaluate($held['draft'], $held['decisions'], $subject),
+            'review' => $this->review->evaluate($held['draft'], $held['decisions'], $subject, $this->heldSection($held, $subject)),
             'decisions' => $held['decisions'],
             'notes' => $held['draft']['notes'],
             'limit' => ImportReview::HARD_LIMIT,
@@ -283,7 +302,8 @@ class ImportFormationController extends LecturerController
             $this->held->replace(self::KIND, $token, $held);
         }
 
-        $review = $this->review->evaluate($held['draft'], $held['decisions'], $subject);
+        $section = $this->heldSection($held, $subject);
+        $review = $this->review->evaluate($held['draft'], $held['decisions'], $subject, $section);
 
         $allowed = $mode === 'all' ? $review['can_import_all'] : $review['counts']['clean'] > 0;
 
@@ -297,7 +317,7 @@ class ImportFormationController extends LecturerController
         $plans = $this->review->plans($review, $held['filename'], $mode === 'clean' && $review['counts']['problem'] > 0);
 
         try {
-            $created = $this->formation->create($subject, auth()->user(), Group::FORMED_IMPORTED, $plans);
+            $created = $this->formation->create($subject, auth()->user(), Group::FORMED_IMPORTED, $plans, $section);
         } catch (FormationException $e) {
             // Kept, unlike a balanced preview: the lecturer's decisions are the
             // work here, and the fix is usually small.
@@ -308,9 +328,9 @@ class ImportFormationController extends LecturerController
         $this->held->forget(self::KIND, $token);
 
         $students = array_sum(array_map(fn (Group $g) => $g->groupMembers()->count(), $created));
-        $left = $this->review->candidates($subject)->count();
+        $left = $this->review->candidates($subject, $section)->count();
 
-        return redirect()->route('lecturer.formation', [$subject, 'after' => 'import'])
+        return redirect()->route('lecturer.formation', [$subject, 'section' => $section->getKey(), 'after' => 'import'])
             ->with('status', 'Imported '.count($created).' '.str('group')->plural(count($created))
                 .' with '.$students.' '.str('student')->plural($students).'.'
                 .($left > 0 ? " {$left} ".str('student')->plural($left).' still '.($left === 1 ? 'has' : 'have').' no group.' : ''));
@@ -425,6 +445,12 @@ class ImportFormationController extends LecturerController
     {
         return redirect()->route('lecturer.formation', $subject)
             ->withErrors(['status' => 'That import has expired, so nothing was created. Upload the file again.']);
+    }
+
+    /** The section this import was started for (it never changes while the import is held). */
+    protected function heldSection(array $held, Subject $subject): ?Section
+    {
+        return Section::query()->where('subject_id', $subject->getKey())->find($held['section_id'] ?? 0);
     }
 
     /** The file's name for the record, without anything that is not a name. */

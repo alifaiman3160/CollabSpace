@@ -153,7 +153,8 @@ class AssignmentBriefTest extends TestCase
         $this->actingAs($this->lecturer)
             ->get(route('lecturer.subjects.edit', $this->subject))
             ->assertOk()
-            ->assertSee('Assignment brief')
+            ->assertSee('Project brief')
+            ->assertDontSee('Assignment brief')
             ->assertSee('Group project due date')
             ->assertSee('The written brief')
             ->assertSee('2026-11-20', false);
@@ -177,14 +178,15 @@ class AssignmentBriefTest extends TestCase
     | The student reading it
     */
 
-    public function test_the_dashboard_shows_the_brief_and_the_days_remaining(): void
+    public function test_the_dashboard_shows_only_the_deadline_chip_not_the_brief(): void
     {
         $this->setAssignment('Build a working system.', now()->addDays(10)->toDateString());
 
         $this->actingAs($this->student)
             ->get(route('student.dashboard'))
             ->assertOk()
-            ->assertSee('Build a working system.')
+            ->assertDontSee('Build a working system.')
+            ->assertDontSee('data-project-brief', false)
             ->assertSee('10 days left')
             ->assertSee('SECJ3104');
     }
@@ -223,7 +225,7 @@ class AssignmentBriefTest extends TestCase
         $this->actingAs($this->student)
             ->get(route('student.dashboard'))
             ->assertOk()
-            ->assertDontSee('Assignment brief')
+            ->assertDontSee('Project brief')
             ->assertDontSee('days left');
     }
 
@@ -278,17 +280,15 @@ class AssignmentBriefTest extends TestCase
         Group::create(['subject_id' => $otherSubject->id, 'name' => 'Group X', 'group_size' => 4]);
 
         $this->actingAs($this->student)
-            ->get(route('student.dashboard'))
+            ->get(route('student.workspace.show', $this->group))
             ->assertOk()
             ->assertSee('My own subject brief')
             ->assertDontSee('Someone else');
     }
 
-    public function test_one_panel_per_subject_even_with_several_groups(): void
+    public function test_the_dashboard_never_repeats_the_brief_even_with_several_groups(): void
     {
-        // A student in two groups of the same subject would otherwise read the
-        // same brief twice. (They cannot be, today — but the dashboard should
-        // not rely on that rule being enforced elsewhere.)
+        // The brief lives on the group pages now; the dashboard shows none of it.
         $this->setAssignment('Written once', now()->addWeek()->toDateString());
 
         $second = Group::create([
@@ -300,6 +300,6 @@ class AssignmentBriefTest extends TestCase
 
         $response = $this->actingAs($this->student)->get(route('student.dashboard'))->assertOk();
 
-        $this->assertSame(1, substr_count($response->getContent(), 'Written once'));
+        $this->assertSame(0, substr_count($response->getContent(), 'Written once'));
     }
 }

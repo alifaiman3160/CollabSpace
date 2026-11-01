@@ -1,7 +1,7 @@
 <x-layouts.app title="Documents — CollabSpace"
                heading="Documents"
                :subtitle="$hasGroup
-                   ? $group->subject->code.' — '.$group->name
+                   ? $group->subject->code.' — '.$group->name.($group->section ? ' · Section '.$group->section->name : '')
                    : 'You are not in a group yet.'">
 
     @if (! $hasGroup)

@@ -151,6 +151,7 @@ class NotificationTest extends TestCase
     public function test_being_added_to_a_group_notifies_the_student(): void
     {
         $newcomer = User::factory()->student()->create(['name' => 'Farah']);
+        \App\Support\Sections\Enrolments::sync($newcomer, [['subject_id' => $this->group->subject_id, 'section' => '1A']]);
 
         $this->actingAs($this->lecturer)
             ->post(route('lecturer.groups.members.store', $this->group), ['user_id' => $newcomer->id]);

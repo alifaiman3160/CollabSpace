@@ -1,6 +1,6 @@
 <x-layouts.app title="My workspace — CollabSpace"
                :heading="$hasGroup ? $group->name : 'My workspace'"
-               :subtitle="$hasGroup ? $group->subject->code.' — '.$group->subject->name : 'You are not in a group yet.'">
+               :subtitle="$hasGroup ? $group->subject->code.' — '.$group->subject->name.($group->section ? ' · Section '.$group->section->name : '') : 'You are not in a group yet.'">
 
     @if (! $hasGroup)
 
@@ -45,7 +45,7 @@
 
             <x-group-picker :groups="$groups" :current="$group" route="student.workspace.show" :secondary="$secondary" />
 
-            {{-- The assignment this group exists to produce. --}}
+            {{-- The project this group exists to produce: a card that starts closed. --}}
             <x-project-brief :subject="$group->subject" />
 
             {{-- Five tiles of one component and one height. The first wears the group's own soft colour. --}}

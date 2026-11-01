@@ -72,7 +72,7 @@ class ProjectDueWordingTest extends TestCase
             ->assertDontSee('Project deadline');
 
         $this->actingAs($this->student)->get(route('student.dashboard'))->assertOk()
-            ->assertSee('Group project due 12 December 2026');
+            ->assertSee('Due 12 Dec');
         $this->actingAs($this->student)->get(route('student.workspace.show', $this->group))->assertOk()
             ->assertSee('Group project due 12 December 2026');
     }

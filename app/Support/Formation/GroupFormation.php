@@ -3,7 +3,9 @@
 namespace App\Support\Formation;
 
 use App\Models\Group;
+use App\Models\Enrolment;
 use App\Models\GroupMember;
+use App\Models\Section;
 use App\Models\Subject;
 use App\Models\User;
 use App\Support\Notifier;
@@ -34,7 +36,7 @@ class GroupFormation
      *
      * @throws FormationException
      */
-    public function create(Subject $subject, User $actor, string $method, array $plans): array
+    public function create(Subject $subject, User $actor, string $method, array $plans, ?Section $section = null): array
     {
         if ($plans === []) {
             throw new FormationException('There are no groups to create.');
@@ -42,19 +44,20 @@ class GroupFormation
 
         $batch = (string) Str::uuid();
 
-        $groups = DB::transaction(function () use ($subject, $actor, $method, $plans, $batch) {
+        $groups = DB::transaction(function () use ($subject, $actor, $method, $plans, $batch, $section) {
             // Serialises two formations running on the same subject at once:
             // the second waits here, then finds the first one's students
             // already placed and refuses cleanly rather than double-booking.
             Subject::query()->whereKey($subject->getKey())->lockForUpdate()->first();
 
-            $this->guard($subject, $plans);
+            $sections = $this->guard($subject, $plans, $section);
 
             $created = [];
 
-            foreach ($plans as $plan) {
+            foreach ($plans as $i => $plan) {
                 $group = Group::create([
                     'subject_id' => $subject->getKey(),
+                    'section_id' => $sections[$i] ?? $section?->getKey(),
                     'name' => trim($plan['name']),
                     'group_size' => $plan['size'],
                     'formation_method' => $method,
@@ -85,9 +88,11 @@ class GroupFormation
     /**
      * @param  list<array{name: string, size: int, member_ids: list<int>, meta: array}>  $plans
      *
+     * @return array<int, ?int>  the section each plan's group belongs to
+     *
      * @throws FormationException
      */
-    protected function guard(Subject $subject, array $plans): void
+    protected function guard(Subject $subject, array $plans, ?Section $section = null): array
     {
         $allIds = array_merge(...array_map(fn (array $p) => $p['member_ids'], $plans));
 
@@ -121,6 +126,36 @@ class GroupFormation
             );
         }
 
+        // Everyone is enrolled in this subject, and every group holds one section only (the chosen one, when one
+        // was chosen). Re-checked here, not trusted from the preview or the form.
+        $enrolled = Enrolment::query()->where('subject_id', $subject->getKey())->whereIn('user_id', $allIds)->pluck('section_id', 'user_id');
+        $sectionNames = Section::query()->where('subject_id', $subject->getKey())->pluck('name', 'id');
+        $planSections = [];
+
+        foreach ($plans as $i => $plan) {
+            $seen = [];
+
+            foreach ($plan['member_ids'] as $id) {
+                $user = $users->get($id);
+
+                if (! $enrolled->has($id)) {
+                    throw new FormationException("{$user->name} is not enrolled in {$subject->code}, so nothing was saved.");
+                }
+
+                if ($section !== null && (int) $enrolled[$id] !== $section->getKey()) {
+                    throw new FormationException("{$user->name} is in section ".($sectionNames[$enrolled[$id]] ?? '?').", not {$section->name}, so nothing was saved.");
+                }
+
+                $seen[(int) $enrolled[$id]] = true;
+            }
+
+            if (count($seen) > 1) {
+                throw new FormationException('"'.trim($plan['name']).'" would mix students of different sections ('.collect(array_keys($seen))->map(fn ($s) => $sectionNames[$s] ?? '?')->implode(', ').'), so nothing was saved.');
+            }
+
+            $planSections[$i] = $seen === [] ? $section?->getKey() : array_key_first($seen);
+        }
+
         $existing = Group::query()->where('subject_id', $subject->getKey())->pluck('name')
             ->map(fn (string $n) => mb_strtolower(trim($n)))->all();
 
@@ -152,6 +187,8 @@ class GroupFormation
                 throw new FormationException("\"{$name}\" has more members than its size limit allows, so nothing was saved.");
             }
         }
+
+        return $planSections;
     }
 
     /**

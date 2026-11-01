@@ -28,6 +28,8 @@ class StoreGroupRequest extends FormRequest
                 Rule::unique('groups', 'name')->where('subject_id', $this->input('subject_id')),
             ],
             'group_size' => ['required', 'integer', 'min:2', 'max:10'],
+            // Optional: left out, the first member added decides it. Must be a section of the chosen subject.
+            'section_id' => ['nullable', 'integer', Rule::exists('sections', 'id')->where('subject_id', $this->input('subject_id'))],
         ];
     }
 
@@ -37,6 +39,7 @@ class StoreGroupRequest extends FormRequest
         return [
             'subject_id.exists' => 'That subject is not one of yours.',
             'name.unique' => 'That subject already has a group with this name.',
+            'section_id.exists' => 'That section does not belong to the chosen subject.',
             'group_size.min' => 'A group needs at least 2 members.',
             'group_size.max' => 'Groups are capped at 10 members.',
         ];

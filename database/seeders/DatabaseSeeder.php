@@ -9,6 +9,8 @@ use App\Models\DocumentVersion;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Message;
+use App\Models\Enrolment;
+use App\Models\Section;
 use App\Models\Subject;
 use App\Models\Task;
 use App\Models\User;
@@ -69,9 +71,27 @@ class DatabaseSeeder extends Seeder
             'group_size' => 3,
         ]);
 
+        // Sections, and who the administrator has enrolled where: Application Development has two (1A and 1B), Human
+        // Computer Interaction one. Every student is enrolled in HCI, so its pool is as before.
+        $appA = Section::create(['subject_id' => $appDev->id, 'name' => '1A']);
+        $appB = Section::create(['subject_id' => $appDev->id, 'name' => '1B']);
+        $hciA = Section::create(['subject_id' => $hci->id, 'name' => '1A']);
+
+        foreach (['alif', 'nurul', 'weijie', 'farah', 'hana', 'zulhilmi', 'meiling'] as $key) {
+            Enrolment::create(['user_id' => $students[$key]->id, 'subject_id' => $appDev->id, 'section_id' => $appA->id]);
+        }
+
+        foreach (['danial', 'priya', 'kaiming', 'rajesh', 'aisyah', 'omar'] as $key) {
+            Enrolment::create(['user_id' => $students[$key]->id, 'subject_id' => $appDev->id, 'section_id' => $appB->id]);
+        }
+
+        foreach ($students as $student) {
+            Enrolment::create(['user_id' => $student->id, 'subject_id' => $hci->id, 'section_id' => $hciA->id]);
+        }
+
         $groupA = $this->createGroup($appDev, 'Group A - KampusEats', 4, [
             $students['alif'], $students['nurul'], $students['weijie'], $students['farah'],
-        ], $this->now->subDays(52));
+        ], $this->now->subDays(52), section: $appA);
 
         // One group of each origin, so the record has something to show: A was
         // built by hand, B was dealt out by the balancer, and C came from the
@@ -83,13 +103,40 @@ class DatabaseSeeder extends Seeder
             // (3.67 + 3.28 + 2.74) / 3, as it stood when the group was formed.
             'average_cgpa' => 3.23, 'cgpa_known' => 3, 'cgpa_unknown' => 0,
             'spread_across_batch' => null, 'cgpa_entered_manually' => true,
-        ]);
+        ], section: $appB);
 
         $groupC = $this->createGroup($hci, 'Group 1 - Campus Wayfinder', 3, [
             $students['alia'], $students['arvind'], $students['syafiq'],
         ], $this->now->subDays(44), Group::FORMED_IMPORTED, [
             'source' => 'group-form-responses.csv', 'rows' => [3], 'matched_by_hand' => 0,
+        ], section: $hciA);
+
+        // Two more subjects for Dr. Siti, so she teaches three. They have no groups yet: they are for trying section
+        // formation (each section's students are enrolled, none is grouped).
+        $database = Subject::create([
+            'lecturer_id' => $siti->id,
+            'code' => 'SECJ2203',
+            'name' => 'Database Systems',
+            'group_size' => 4,
         ]);
+        $networks = Subject::create([
+            'lecturer_id' => $siti->id,
+            'code' => 'SECR3013',
+            'name' => 'Computer Networks',
+            'group_size' => 3,
+        ]);
+
+        $dbA = Section::create(['subject_id' => $database->id, 'name' => '1A']);
+        $dbB = Section::create(['subject_id' => $database->id, 'name' => '1B']);
+        $netA = Section::create(['subject_id' => $networks->id, 'name' => '2A']);
+
+        $keys = array_keys($students);
+
+        foreach ($keys as $i => $key) {
+            // Database Systems: half and half. Computer Networks: everybody in one section.
+            Enrolment::create(['user_id' => $students[$key]->id, 'subject_id' => $database->id, 'section_id' => ($i % 2 === 0 ? $dbA : $dbB)->id]);
+            Enrolment::create(['user_id' => $students[$key]->id, 'subject_id' => $networks->id, 'section_id' => $netA->id]);
+        }
 
         $this->seedGroupA($groupA, $students);
         $this->seedGroupB($groupB, $students);
@@ -185,9 +232,11 @@ class DatabaseSeeder extends Seeder
         CarbonImmutable $joinedAt,
         string $method = Group::FORMED_MANUAL,
         array $meta = [],
+        ?Section $section = null,
     ): Group {
         $group = Group::create([
             'subject_id' => $subject->id,
+            'section_id' => $section?->id,
             'name' => $name,
             'group_size' => $size,
             'formation_method' => $method,

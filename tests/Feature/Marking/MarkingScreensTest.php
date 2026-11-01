@@ -143,7 +143,7 @@ class MarkingScreensTest extends TestCase
             $html = $this->actingAs($this->lecturer)->get($url)->assertOk()->getContent();
 
             preg_match('/<nav[^>]*aria-label="Main".*?<\/nav>/s', $html, $nav);
-            preg_match_all('/<a[^>]*aria-current="page"[^>]*>(.*?)<\/a>/s', $nav[0], $current);
+            preg_match_all('/<a(?=[^>]*data-nav-link)(?=[^>]*(?:\saria-current="page"|\sdata-parent-current[\s>]))[^>]*>(.*?)<\/a>/s', $nav[0], $current);
 
             $this->assertSame(['Marking'], array_map(fn ($c) => trim(preg_replace('/\s+/', ' ', strip_tags($c))), $current[1]), $url);
         }
@@ -425,7 +425,7 @@ class MarkingScreensTest extends TestCase
 
         $this->assertStringNotContainsString('data-accept-note', $html);
         $this->assertStringNotContainsString('Accept suggestions saves the suggested level for each', $html, 'The long sentence is gone from the page body.');
-        $this->assertMatchesRegularExpression('/title="Saves the suggested level[^>]*data-accept/s', $html, 'The explanation is the button\'s tooltip.');
+        $this->assertMatchesRegularExpression('/data-tooltip="Saves the suggested level[^>]*data-accept/s', $html, 'The explanation is the button\'s tooltip.');
         $this->assertStringContainsString('disabled="disabled"', $this->tag($html, 'data-accept'));
         $this->assertStringContainsString('data-accept-hint>Nothing to accept', $html);
 
@@ -1195,5 +1195,50 @@ class MarkingScreensTest extends TestCase
                 $this->assertStringNotContainsStringIgnoringCase($needle, $html, "{$needle} on {$url}");
             }
         }
+    }
+    /*
+    | The class section: a label only, never an input to the marks
+    */
+
+    public function test_the_class_section_is_a_label_on_the_marking_headers_the_export_and_the_frozen_snapshot(): void
+    {
+        $section = \App\Models\Section::create(['subject_id' => $this->subject->id, 'name' => '1B']);
+        $this->group->update(['section_id' => $section->id]);
+
+        $this->aiPicks(position: 2);
+        $this->refresh();
+        $this->saveEverything();
+
+        $this->assertStringContainsString('Section 1B', $this->actingAs($this->lecturer)->get($this->groupUrl())->assertOk()->getContent());
+        $this->assertStringContainsString('Section 1B', $this->page());
+
+        $this->actingAs($this->lecturer)->post(route('lecturer.marking.approve', [$this->rubric, $this->group, $this->students['s1']]))->assertRedirect();
+        $this->assertSame('1B', MarkApproval::first()->snapshot['class_section']);
+
+        // The export has the class section on its own line right after the subject, and the rubric's "Section"
+        // column is untouched.
+        $csv = $this->csv();
+        $this->assertMatchesRegularExpression('/Subject"?,[^
+]*?
+"?Class section"?,"?1B"??
+/', $csv);
+        $this->assertMatchesRegularExpression('/"?Student"?,"?Matric no\."?,"?Status"?,"?Section"?,"?Scoring formula"?/', $csv);
+    }
+
+    public function test_marks_do_not_depend_on_the_class_section(): void
+    {
+        $this->aiPicks(position: 2);
+        $this->refresh();
+        $this->saveEverything();
+        $before = $this->sheets()->build($this->rubric, $this->group->fresh(), $this->students['s1'])['total'];
+
+        $this->group->update(['section_id' => \App\Models\Section::create(['subject_id' => $this->subject->id, 'name' => '9Z'])->id]);
+
+        $this->assertSame($before, $this->sheets()->build($this->rubric, $this->group->fresh(), $this->students['s1'])['total']);
+    }
+
+    protected function sheets(): \App\Support\Marking\MarkSheet
+    {
+        return app(\App\Support\Marking\MarkSheet::class);
     }
 }

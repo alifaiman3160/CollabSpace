@@ -21,6 +21,10 @@ document.addEventListener('alpine:init', () => {
     window.Alpine.data('documentViewer', documentViewer);
 });
 
+import { startTooltips } from './tooltip';
+
+startTooltips();
+
 import progressFilter from './progress-filter';
 
 document.addEventListener('alpine:init', () => {
@@ -142,3 +146,21 @@ document.addEventListener('livewire:navigated', () => {
     content.classList.add('cs-page-in')
     content.addEventListener('animationend', () => content.classList.remove('cs-page-in'), { once: true })
 })
+
+import studentSearch from './student-search';
+
+document.addEventListener('alpine:init', () => {
+    window.Alpine.data('studentSearch', studentSearch);
+});
+
+import groupSwitcher from './group-switcher';
+
+document.addEventListener('alpine:init', () => {
+    window.Alpine.data('groupSwitcher', groupSwitcher);
+});
+
+import sidebar from './sidebar';
+
+document.addEventListener('alpine:init', () => {
+    window.Alpine.data('csSidebar', sidebar);
+});

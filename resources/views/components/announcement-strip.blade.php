@@ -59,7 +59,8 @@
                          class="flex flex-col gap-1.5 rounded-card bg-white/80 p-3.5 text-ink"
                          @if ($n >= 3) x-show="earlier" x-cloak x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-out duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @endif
                          x-data="{ more: false }" data-announcement>
-                    <h3 class="text-nav font-bold">{{ $announcement->title }}</h3>
+                    <h3 class="flex flex-wrap items-center gap-2 text-nav font-bold">{{ $announcement->title }}
+                        @if ($announcement->section_id && $announcement->relationLoaded('section'))<x-section-chip :section="$announcement->section" :code="$announcement->relationLoaded('subject') ? $announcement->subject?->code : null" />@endif</h3>
 
                     <p class="whitespace-pre-line break-words text-body leading-[1.6] text-ink-600"
                        @if ($announcement->isLong()) x-bind:class="more ? 'cs-reveal' : 'line-clamp-3'" @endif>{{ $announcement->body }}</p>

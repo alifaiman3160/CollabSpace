@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Models\Message;
+use App\Support\Sections\AnnouncementAudience;
 use App\Models\Task;
 use Illuminate\View\View;
 
@@ -13,12 +14,30 @@ class DashboardController extends StudentController
         $me = $this->student();
         $groups = $this->myGroups();
 
+        // The subjects the administrator enrolled this student in that have no group of theirs yet: they still get
+        // their subject card and its announcements.
+        $waiting = $me->enrolments()->with(['subject', 'section'])->get()
+            ->reject(fn ($enrolment) => $groups->contains('subject_id', $enrolment->subject_id))
+            ->sortBy(fn ($enrolment) => $enrolment->subject->code)
+            ->values();
+
+        // News from the subjects this student is enrolled or grouped in, newest first, for their own section.
+        $announcements = AnnouncementAudience::visibleTo($me)
+            ->with(['subject:id,code', 'author:id,name', 'section'])
+            ->latest()
+            ->latest('id')
+            ->get();
+        $readIds = \App\Models\AnnouncementRead::query()->where('user_id', $me->id)->pluck('announcement_id')->all();
+
         // A student with no group assignment yet gets a proper empty state
         // rather than a page full of zeroes and broken links.
         if ($groups->isEmpty()) {
             return view('student.dashboard', [
                 'groups' => $groups,
                 'hasGroup' => false,
+                'waiting' => $waiting,
+                'announcements' => $announcements,
+                'readAnnouncementIds' => $readIds,
             ]);
         }
 
@@ -34,6 +53,7 @@ class DashboardController extends StudentController
         return view('student.dashboard', [
             'hasGroup' => true,
             'groups' => $groups,
+            'waiting' => $waiting,
 
             'pendingCount' => (clone $mine)->where('status', '!=', Task::STATUS_DONE)->count(),
             'completedCount' => (clone $mine)->where('status', Task::STATUS_DONE)->count(),
@@ -55,15 +75,8 @@ class DashboardController extends StudentController
                 ->take(8)
                 ->get(),
 
-            // News from the subjects this student is grouped in, newest first.
-            'announcements' => \App\Models\Announcement::query()
-                ->whereIn('subject_id', $groups->pluck('subject_id')->unique())
-                ->with(['subject:id,code', 'author:id,name'])
-                ->latest()
-                ->latest('id')
-                ->get(),
-
-            'readAnnouncementIds' => \App\Models\AnnouncementRead::query()->where('user_id', $me->id)->pluck('announcement_id')->all(),
+            'announcements' => $announcements,
+            'readAnnouncementIds' => $readIds,
 
             'primaryGroup' => $groups->first(),
         ]);

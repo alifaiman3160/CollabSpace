@@ -6,6 +6,8 @@
 
         <x-flash />
 
+        <x-subject-section-filter :filter="$filter" route="lecturer.marking" />
+
         @if ($subjects->isEmpty())
             <x-empty-state
                 class="!border-solid !border-surface-line"

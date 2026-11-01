@@ -7,11 +7,16 @@ use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Mail\AccountCreated;
 use App\Mail\TemporaryPasswordIssued;
+use App\Models\Subject;
 use App\Models\User;
 use App\Support\Notifier;
+use App\Support\Sections\EnrolmentException;
+use App\Support\Sections\Enrolments;
 use App\Support\TemporaryPassword;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
@@ -23,8 +28,11 @@ class UserController extends Controller
     {
         $search = trim((string) $request->query('search', ''));
         $role = $request->query('role');
+        $subjectId = $request->integer('subject') ?: null;
 
         $users = User::query()
+            ->with(['enrolments.subject:id,code', 'enrolments.section:id,name'])
+            ->when($subjectId, fn ($query) => $query->whereHas('enrolments', fn ($q) => $q->where('subject_id', $subjectId)))
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
@@ -44,24 +52,36 @@ class UserController extends Controller
             'users' => $users,
             'search' => $search,
             'role' => $role,
+            'subjectId' => $subjectId,
+            'subjects' => $this->subjectChoices(),
         ]);
     }
 
     public function create(): View
     {
-        return view('admin.users.create');
+        return view('admin.users.create', $this->enrolmentForm(null));
     }
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
         $temporary = TemporaryPassword::generate();
 
-        $user = User::create([
-            ...$request->validated(),
+        $validated = $request->validated();
+
+        $user = DB::transaction(function () use ($request, $validated, $temporary) {
+            $user = User::create([
+            ...Arr::except($validated, ['enrolments']),
             'password' => $temporary,
             'must_change_password' => true,
             'is_active' => true,
-        ]);
+            ]);
+
+            if ($user->role === 'student' && $request->boolean('enrolments_form')) {
+                Enrolments::sync($user, $validated['enrolments'] ?? []);
+            }
+
+            return $user;
+        });
 
         // The account notification: login instructions and the temporary
         // password, to the address the account was created with. Failure to
@@ -81,7 +101,7 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
-        return view('admin.users.edit', ['user' => $user]);
+        return view('admin.users.edit', ['user' => $user] + $this->enrolmentForm($user));
     }
 
     /**
@@ -101,7 +121,18 @@ class UserController extends Controller
                 ->withErrors(['role' => 'You cannot change your own role. Another administrator can do it for you.']);
         }
 
-        $user->update($validated);
+        try {
+            DB::transaction(function () use ($request, $user, $validated) {
+                $user->update(Arr::except($validated, ['enrolments']));
+
+                if ($user->role === 'student' && $request->boolean('enrolments_form')) {
+                    Enrolments::sync($user, $validated['enrolments'] ?? []);
+                }
+            });
+        } catch (EnrolmentException $e) {
+            // Nothing was saved, not even the other fields: the form comes back as it was sent.
+            return back()->withInput()->withErrors(['enrolments' => $e->getMessage()]);
+        }
 
         return redirect()->route('admin.users')
             ->with('status', "{$user->name}'s account has been updated.");
@@ -149,6 +180,37 @@ class UserController extends Controller
             $this->handover($user, $temporary, $mailed,
                 "A new temporary password was issued for {$user->name} and emailed to {$user->email}.")
         );
+    }
+
+    /**
+     * Every subject, labelled so two lecturers' "BCS3323" can be told apart: id => label, in code order.
+     *
+     * @return \Illuminate\Support\Collection<int, Subject>
+     */
+    protected function subjectChoices()
+    {
+        return Subject::query()->with('lecturer:id,name')->orderBy('code')->orderBy('id')->get();
+    }
+
+    /**
+     * What the account form needs for the "Subjects and sections" block: the subjects to choose from, the section
+     * names that already exist for each, and this student's current rows.
+     *
+     * @return array<string, mixed>
+     */
+    protected function enrolmentForm(?User $user): array
+    {
+        $subjects = $this->subjectChoices();
+
+        return [
+            'subjectChoices' => $subjects,
+            'sectionNames' => \App\Models\Section::query()->orderBy('name')->get(['subject_id', 'name'])
+                ->groupBy('subject_id')->map(fn ($rows) => $rows->pluck('name')->all())->all(),
+            'enrolmentRows' => $user?->role === 'student'
+                ? $user->enrolments()->with('section:id,name')->get()
+                    ->map(fn ($e) => ['subject_id' => (string) $e->subject_id, 'section' => $e->section->name])->values()->all()
+                : [],
+        ];
     }
 
     /**

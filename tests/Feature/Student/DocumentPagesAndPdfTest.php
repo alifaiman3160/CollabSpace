@@ -70,7 +70,7 @@ class DocumentPagesAndPdfTest extends TestCase
             $this->markTestSkipped('Node is not available to run tests/js.');
         }
 
-        $run = new Process(['node', '--test', 'tests/js/document-pages.test.mjs', 'tests/js/document-format.test.mjs', 'tests/js/document-grid-logic.test.mjs', 'tests/js/progress-filter-logic.test.mjs'], base_path(), null, null, 60);
+        $run = new Process(['node', '--test', 'tests/js/document-pages.test.mjs', 'tests/js/document-format.test.mjs', 'tests/js/document-grid-logic.test.mjs', 'tests/js/progress-filter-logic.test.mjs', 'tests/js/tooltip-logic.test.mjs', 'tests/js/sidebar-logic.test.mjs', 'tests/js/student-search-logic.test.mjs', 'tests/js/group-switcher-logic.test.mjs'], base_path(), null, null, 60);
         $run->run();
 
         $this->assertTrue($run->isSuccessful(), $run->getOutput().$run->getErrorOutput());

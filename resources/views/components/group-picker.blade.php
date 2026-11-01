@@ -52,6 +52,7 @@
                     <span class="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span class="flex items-center gap-1.5">
                             <span class="rounded-pill bg-white/80 px-2 py-px text-label font-extrabold tracking-[-0.01em] text-ink">{{ $g->subject->code }}</span>
+                            @if ($g->relationLoaded('section'))<x-section-chip :section="$g->section" :code="$g->subject->code" compact />@endif
                         </span>
                         <span class="truncate text-nav font-bold" title="{{ $g->name }}">{{ $g->name }}</span>
                         @if ($text !== null)

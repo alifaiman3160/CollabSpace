@@ -20,7 +20,7 @@
     </div>
 
     @if ($size > 0 && $count >= $size)
-        <x-table.dot-pill tone="success" class="w-fit">Full</x-table.dot-pill>
+        <x-table.dot-pill tone="success" class="w-fit" data-tooltip="The group has all its members">Full</x-table.dot-pill>
     @elseif ($count * 2 < $size)
         <x-table.dot-pill tone="warning" class="w-fit">Needs members</x-table.dot-pill>
     @elseif ($left === 1)

@@ -159,7 +159,7 @@ class ImportFormationTest extends TestCase
             ->assertSee('Team Beta')
             ->assertSee('Create 2 groups');
 
-        $this->confirm($token)->assertRedirect(route('lecturer.formation', [$this->subject, 'after' => 'import']));
+        $this->confirm($token)->assertRedirect(route('lecturer.formation', [$this->subject, 'section' => $this->section->id, 'after' => 'import']));
 
         $this->assertSame(2, Group::count());
         $this->assertSame(8, GroupMember::count());

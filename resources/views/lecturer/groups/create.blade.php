@@ -10,10 +10,14 @@
     <form method="POST" action="{{ route('lecturer.groups.store') }}" class="mx-auto flex w-full max-w-xl flex-col gap-7"
           x-data="{
               defaults: {{ Js::from($defaults) }},
+              sections: {{ Js::from($sections) }},
+              section: '{{ old('section_id') }}',
               subject: '{{ old('subject_id', $selected) }}',
               size: '{{ old('group_size', $subjects->firstWhere('id', $selected)?->group_size ?? 4) }}',
               touched: {{ old('group_size') ? 'true' : 'false' }},
+              mine() { return this.sections.filter(s => String(s.subject_id) === String(this.subject)) },
               suggest() {
+                  this.section = ''
                   // Follow the subject's default until the lecturer types a size.
                   if (! this.touched) { this.size = this.defaults[this.subject] ?? this.size }
               },
@@ -31,6 +35,17 @@
                     @endforeach
                 </select>
                 <x-input-error :messages="$errors->get('subject_id')" />
+            </div>
+
+            <div class="flex flex-col gap-2" x-show="mine().length > 0" x-cloak data-section-field>
+                <x-input-label for="section_id" value="Section" />
+                <select id="section_id" name="section_id" x-model="section"
+                        class="h-[52px] w-full rounded-[16px] bg-surface border border-surface-line px-[18px] text-[14px] font-medium text-ink focus:outline-none focus:ring-2 focus:ring-ink/10">
+                    <option value="">Decided by the first member</option>
+                    <template x-for="s in mine()" :key="s.id"><option :value="s.id" x-text="s.name"></option></template>
+                </select>
+                <p class="text-meta text-ink-400">A group holds students of one section only.</p>
+                <x-input-error :messages="$errors->get('section_id')" />
             </div>
 
             <div class="flex flex-col gap-2">

@@ -21,6 +21,9 @@
                  vanish whenever no subject was chosen, which left a lecturer with
                  several subjects thinking the feature did not exist. --}}
             @if ($formationSubject)
+                <x-button variant="secondary" :href="route('lecturer.classlist', $formationSubject)" icon="graduation" data-class-list-link>
+                    Class list
+                </x-button>
                 <x-button variant="secondary" :href="route('lecturer.formation', $formationSubject)" icon="users"
                           title="{{ $autoHelp }}">
                     Auto-assign students
@@ -67,6 +70,8 @@
 
         <x-flash />
 
+        <x-subject-section-filter :filter="$filter" route="lecturer.groups" />
+
         @if ($subjects->isNotEmpty())
             {{-- The two buttons above look alike to someone new, so say what each does: two small tiles, side by side. --}}
             <div class="grid gap-3 md:grid-cols-2" data-group-help>
@@ -90,25 +95,13 @@
                 cta="Create a subject"
                 :href="route('lecturer.subjects.create')" />
         @else
-            {{-- Subject filter: pills in each subject's own colour. They switch in place (no reload, the content fades). --}}
-            <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by subject" data-subject-filter>
-                <a href="{{ route('lecturer.groups') }}" wire:navigate
-                   @if ($subjectId === null) aria-current="page" @endif
-                   class="interactive flex h-9 items-center rounded-pill border px-4 text-meta font-bold motion-colors
-                          {{ $subjectId === null ? 'border-ink bg-ink text-white' : 'border-surface-line bg-surface text-ink-600 hover:bg-surface-hover hover:text-ink' }}">
-                    All subjects
-                </a>
-                @foreach ($subjects as $subject)
-                    @php $pill = \App\Support\SubjectPalette::for($subject->id); $on = $subjectId === $subject->id; @endphp
-                    <a href="{{ route('lecturer.groups', ['subject' => $subject->id]) }}" wire:navigate
-                       title="{{ $subject->name }}" data-palette="{{ $pill['name'] }}"
-                       @if ($on) aria-current="page" @endif
-                       class="interactive flex h-9 items-center rounded-pill border px-4 text-meta font-bold text-ink motion-colors"
-                       style="background-color: {{ $on ? $pill['accent'] : $pill['bg'] }}; border-color: {{ $on ? $pill['accent'] : $pill['border'] }};">
-                        {{ $subject->code }}
-                    </a>
-                @endforeach
-            </div>
+            {{-- Only for a subject that has several sections; a single-section subject has nothing to compare. --}}
+            @if ($subjectId && $sections->isNotEmpty() && $sectionCounts->isNotEmpty())
+                <p class="text-meta font-medium text-ink-600" data-section-summary>
+                    {{ $sectionCounts->map(fn ($c) => 'Section '.$c['name'].': '.$c['groups'].' '.Str::plural('group', $c['groups']))->implode(' · ') }}
+                </p>
+            @endif
+
             @if ($groups->isEmpty())
                 <x-empty-state
                     class="!border-solid !border-surface-line"

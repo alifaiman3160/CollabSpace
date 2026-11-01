@@ -22,6 +22,15 @@
                        class="w-full min-w-0 border-none bg-transparent p-0 text-body text-ink outline-none placeholder:text-ink-300 focus:ring-0">
             </label>
 
+            {{-- Enrolled in one subject (the lecturer is shown so two "BCS3323" can be told apart). --}}
+            <select name="subject" aria-label="Filter by subject" x-on:change="$el.form.requestSubmit()"
+                    class="h-11 max-w-[260px] rounded-pill border-none bg-surface-muted px-4 text-meta font-bold text-ink-600 focus:ring-0">
+                <option value="">All subjects</option>
+                @foreach ($subjects as $choice)
+                    <option value="{{ $choice->id }}" @selected($subjectId === $choice->id)>{{ $choice->code }} - {{ $choice->name }} ({{ $choice->lecturer?->name }})</option>
+                @endforeach
+            </select>
+
             {{-- Role filter, styled as the design's segmented control --}}
             <div class="flex shrink-0 rounded-pill bg-surface-muted p-[3px]">
                 @foreach ([null => 'All', 'admin' => 'Admins', 'lecturer' => 'Lecturers', 'student' => 'Students'] as $value => $label)
@@ -35,13 +44,13 @@
                 @endforeach
             </div>
 
-            @if ($search !== '' || $role)
+            @if ($search !== '' || $role || $subjectId)
                 <x-button variant="secondary" :href="route('admin.users')">Clear</x-button>
             @endif
         </form>
 
         <x-data-table :headings="['Name', 'Role', 'Matric no.', 'Status', 'Added', '']"
-                      :empty="$search !== '' || $role
+                      				:empty="$search !== '' || $role || $subjectId
                           ? 'No accounts match that search.'
                           : 'No accounts have been created yet.'">
             @foreach ($users as $user)
@@ -68,7 +77,16 @@
 
                     <td><x-role-badge :role="$user->role" /></td>
 
-                    <td class="text-meta font-semibold text-ink-400">{{ $user->matric_no ?? '—' }}</td>
+                    <td class="text-meta font-semibold text-ink-400">
+                        {{ $user->matric_no ?? '—' }}
+                        @if ($user->role === 'student' && $user->enrolments->isNotEmpty())
+                            <span class="mt-1 flex flex-wrap gap-1" data-enrolment-chips>
+                                @foreach ($user->enrolments->sortBy(fn ($e) => $e->subject->code) as $enrolment)
+                                    <span class="inline-flex items-center rounded-pill px-2 py-px text-label font-extrabold text-ink" style="background-color: {{ \App\Support\SubjectPalette::for($enrolment->subject_id)['accent'] }};" data-enrolment-chip>{{ $enrolment->subject->code }} · Section {{ $enrolment->section->name }}</span>
+                                @endforeach
+                            </span>
+                        @endif
+                    </td>
 
                     <td>
                         <span class="flex flex-wrap gap-1.5">

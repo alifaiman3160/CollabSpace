@@ -23,6 +23,12 @@
                     should already be in a group, speak to your lecturer for the subject.
                 </p>
             </div>
+
+            @if ($waiting->isNotEmpty())
+                <section class="grid grid-cols-1 gap-[18px] md:grid-cols-2 {{ $waiting->count() > 4 ? 'xl:grid-cols-3' : '' }}" aria-label="My subjects" data-subject-grid data-waiting-subjects>
+                    @include('student._waiting-subjects')
+                </section>
+            @endif
         </div>
 
     @else
@@ -46,7 +52,7 @@
                 $announcementsBySubject = $announcements->groupBy('subject_id');
                 $readIds = collect($readAnnouncementIds);
             @endphp
-            <section class="flex flex-wrap items-start gap-[18px]" aria-label="My groups">
+            <section class="grid grid-cols-1 items-stretch gap-[18px] md:grid-cols-2 {{ ($groups->count() + $waiting->count()) > 4 ? 'xl:grid-cols-3' : '' }}" aria-label="My groups" data-subject-grid>
                 @foreach ($groups as $i => $g)
                     @php
                         $items = $announcementsBySubject->get($g->subject_id, collect());
@@ -55,15 +61,21 @@
                         // The first card stands out with a 2px ring in its accent, not a heavier fill.
                         $style = "background-color: {$colour['bg']}; border-color: {$colour['border']};".($i === 0 ? " box-shadow: 0 0 0 2px {$colour['accent']};" : '');
                     @endphp
-                    <div class="flex min-w-[150px] flex-1 flex-col rounded-panel border text-ink"
+                    <div class="flex min-w-0 flex-col rounded-panel border text-ink"
                          style="{{ $style }}" data-subject-card data-palette="{{ $colour['name'] }}">
 
                         <a href="{{ route('student.workspace.show', $g) }}"
-                           class="motion-colors flex flex-col justify-between gap-4 rounded-panel p-5 hover:bg-white/50"
+                           class="motion-colors flex flex-1 flex-col justify-between gap-4 rounded-panel p-5 hover:bg-white/50"
                            aria-label="Open {{ $g->name }} workspace, {{ $g->subject->code }}">
-                            <span class="flex items-start justify-between gap-2">
-                                <span class="rounded-pill px-2.5 py-0.5 text-nav font-extrabold tracking-[-0.02em]" style="background-color: {{ $colour['accent'] }};">{{ $g->subject->code }}</span>
-                                <span class="flex size-[22px] items-center justify-center rounded-pill bg-white/80 text-meta font-bold text-ink-600" aria-hidden="true">›</span>
+                            <span class="flex flex-wrap items-start justify-between gap-x-2 gap-y-1.5">
+                                <span class="flex min-w-0 items-center gap-1.5">
+                                    <span class="rounded-pill px-2.5 py-0.5 text-nav font-extrabold tracking-[-0.02em]" style="background-color: {{ $colour['accent'] }};">{{ $g->subject->code }}</span>
+                                    <x-section-chip :section="$g->section" :code="$g->subject->code" />
+                                </span>
+                                <span class="ml-auto flex items-center gap-2">
+                                    <x-deadline-chip :subject="$g->subject" />
+                                    <span class="flex size-[22px] items-center justify-center rounded-pill bg-white/80 text-meta font-bold text-ink-600" aria-hidden="true">›</span>
+                                </span>
                             </span>
 
                             <span class="flex flex-col gap-1">
@@ -83,14 +95,9 @@
                                               :unread-ids="$unreadIds" :read-url="route('student.announcements.read')" />
                     </div>
                 @endforeach
+                {{-- Enrolled, but not in a group of that subject yet: after the ones that have a group. --}}
+                @include('student._waiting-subjects')
             </section>
-            {{-- What each subject actually asked for. Sits directly under the
-                 group cards, because a deadline nobody sees until they open a
-                 workspace is one they find out about late. --}}
-            @foreach ($groups->pluck('subject')->unique('id') as $subject)
-                <x-project-brief :subject="$subject" show-code />
-            @endforeach
-
             {{-- My counts --}}
             <section class="flex flex-wrap gap-3.5" aria-label="My tasks">
                 <x-stat-card size="sm" icon="inbox" icon-tone="info"
@@ -119,7 +126,7 @@
             <div class="grid gap-[18px] lg:h-[26rem] lg:grid-cols-3 lg:items-stretch" data-bottom-panels>
 
                 {{-- Pending tasks: up to five, in columns that line up. --}}
-                <section class="flex min-h-[23.75rem] flex-col overflow-hidden rounded-panel border border-surface-line bg-surface shadow-subtle lg:col-span-2" aria-label="My pending tasks">
+                <section class="flex max-h-[26rem] min-h-[23.75rem] flex-col overflow-hidden rounded-panel border border-surface-line bg-surface shadow-subtle lg:col-span-2" aria-label="My pending tasks">
                     <h2 class="px-5 pb-2 pt-4 text-h3 font-extrabold tracking-title">My pending tasks</h2>
 
                     @php
@@ -209,7 +216,7 @@
                     </div>
                 </section>
                 {{-- Recent chat: scrolls inside its panel. --}}
-                <section class="flex min-h-[23.75rem] flex-col overflow-hidden rounded-panel border border-surface-line bg-surface shadow-subtle" aria-label="Recent chat">
+                <section class="flex max-h-[26rem] min-h-[23.75rem] flex-col overflow-hidden rounded-panel border border-surface-line bg-surface shadow-subtle" aria-label="Recent chat">
                     <h2 class="px-5 pb-2 pt-4 text-h3 font-extrabold tracking-title">Recent chat</h2>
 
                     <div class="flex max-h-[26rem] min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-4 pb-3" data-chat-list>

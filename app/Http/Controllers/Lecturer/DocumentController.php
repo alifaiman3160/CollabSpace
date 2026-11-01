@@ -54,7 +54,7 @@ class DocumentController extends LecturerController
     /** The group's documents, as cards. */
     public function index(Group $group): View
     {
-        $group = $this->ownedGroup($group)->load('subject');
+        $group = $this->ownedGroup($group)->load(['subject', 'section']);
 
         return view('lecturer.documents.index', [
             'group' => $group,

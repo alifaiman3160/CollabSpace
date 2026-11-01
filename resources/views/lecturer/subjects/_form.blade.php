@@ -20,15 +20,15 @@
         <x-input-error :messages="$errors->get('name')" />
     </div>
 
-    {{-- The assignment. Both optional: a subject is usually created so groups
+    {{-- The project. Both optional: a subject is usually created so groups
          can be set up, and the brief is written afterwards. --}}
     <div class="flex flex-col gap-2">
-        <x-input-label for="brief" value="Assignment brief" />
+        <x-input-label for="brief" value="Project brief" />
         <textarea id="brief" name="brief" rows="5"
                   placeholder="What the groups have to produce, and what it is marked on."
                   class="w-full rounded-[16px] bg-surface border border-surface-line px-[18px] py-3.5 text-[14px] font-medium text-ink placeholder:text-ink-300 focus:outline-none focus:ring-2 focus:ring-ink/10">{{ old('brief', $subject?->brief) }}</textarea>
         <p class="text-meta text-ink-400">
-            Shown to every student in this subject, on their dashboard and their workspace.
+            Shown to every student in this subject, at the top of their workspace and task board.
             Leave blank until you have written it.
         </p>
         <x-input-error :messages="$errors->get('brief')" />

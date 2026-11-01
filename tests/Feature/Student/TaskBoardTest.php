@@ -806,7 +806,7 @@ class TaskBoardTest extends TestCase
         $html = $this->boardHtml();
 
         $this->assertSame(3, substr_count($html, 'h-[var(--board-h)]'), 'Every column keeps the same fixed height.');
-        $this->assertSame(3, preg_match_all('/<div class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1" data-column-body>/', $html), 'Each body scrolls inside it.');
+        $this->assertSame(3, preg_match_all('/<div class="cs-scroll flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1" data-column-body>/', $html), 'Each body scrolls inside it.');
 
         preg_match_all('/<article\s[^>]*data-cs-item[^>]*>/s', $html, $cards);
         $this->assertCount(3, $cards[0]);

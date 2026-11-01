@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Lecturer;
 
 use App\Models\ActivityLog;
 use App\Models\GroupMember;
+use App\Models\User;
+use App\Support\SubjectPalette;
 use App\Support\ContributionReport;
+use App\Support\Sections\SubjectSectionFilter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -24,12 +28,20 @@ class StudentController extends LecturerController
     {
         $search = trim((string) $request->query('search', ''));
 
-        $groups = $this->groups()->with('subject')->get()->keyBy('id');
+        // A group or a subject picked from the search suggestions; ids outside the lecturer's own simply match nothing.
+        $groupFilter = (int) $request->query('group', 0);
+        $subjectFilter = (int) $request->query('subject', 0);
+
+        $groups = $this->groups()->with(['subject', 'section'])->get()->keyBy('id');
+        $filter = SubjectSectionFilter::for($request, $this->lecturer());
 
         if ($groups->isEmpty()) {
             return view('lecturer.students', [
+                'filter' => $filter,
                 'rows' => collect(),
                 'search' => $search,
+                'filterGroup' => null,
+                'filterSubject' => null,
                 'hasGroups' => false,
             ]);
         }
@@ -79,6 +91,9 @@ class StudentController extends LecturerController
                     'last_at' => $lastActive[$membership->user_id.':'.$membership->group_id] ?? null,
                 ];
             })
+            ->when($groupFilter > 0, fn ($rows) => $rows->filter(fn (array $row) => $row['group']->id === $groupFilter))
+            ->when($subjectFilter > 0, fn ($rows) => $rows->filter(fn (array $row) => $row['group']->subject_id === $subjectFilter))
+            ->when($filter['sectionId'], fn ($rows, $id) => $rows->filter(fn (array $row) => $row['group']->section_id === $id))
             ->when($search !== '', fn ($rows) => $rows->filter(function (array $row) use ($search) {
                 $needle = mb_strtolower($search);
 
@@ -86,7 +101,9 @@ class StudentController extends LecturerController
                     || str_contains(mb_strtolower((string) $row['user']->email), $needle)
                     || str_contains(mb_strtolower((string) $row['user']->matric_no), $needle)
                     || str_contains(mb_strtolower($row['group']->name), $needle)
-                    || str_contains(mb_strtolower($row['group']->subject->code), $needle);
+                    || str_contains(mb_strtolower($row['group']->subject->code), $needle)
+                    || str_contains(mb_strtolower($row['group']->subject->name), $needle)
+                    || str_contains(mb_strtolower((string) $row['group']->section?->name), $needle);
             }))
             ->sortBy([
                 fn ($a, $b) => $a['group']->subject->code <=> $b['group']->subject->code,
@@ -95,12 +112,99 @@ class StudentController extends LecturerController
             ->values();
 
         return view('lecturer.students', [
+            'filter' => $filter,
             'rows' => $rows,
             'search' => $search,
+            'filterGroup' => $groupFilter > 0 ? $groups->get($groupFilter) : null,
+            'filterSubject' => $subjectFilter > 0 ? $groups->pluck('subject')->unique('id')->firstWhere('id', $subjectFilter) : null,
             'hasGroups' => true,
             'flaggedCount' => $rows->where('flagged', true)->count(),
             'studentCount' => $rows->pluck('user.id')->unique()->count(),
         ]);
     }
 
+    /** The most suggestions one request returns. */
+    public const SUGGESTIONS = 8;
+
+    /**
+     * What the search box offers after one typed character: groups and subjects that match (each labelled as such, to
+     * filter the table by), then students, the names that start with the text before those that merely contain it.
+     * Only people in groups of this lecturer's own subjects. One row per membership, like the table.
+     */
+    public function suggestions(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        if ($q === '') {
+            return response()->json(['results' => []]);
+        }
+
+        $q = mb_substr($q, 0, 60);
+        $groups = $this->groups()->with('subject:id,code,name')->get()->keyBy('id');
+
+        if ($groups->isEmpty()) {
+            return response()->json(['results' => []]);
+        }
+
+        $needle = mb_strtolower($q);
+        $results = [];
+
+        $subjects = $groups->pluck('subject')->unique('id')->sortBy('code');
+
+        foreach ($subjects as $subject) {
+            if (str_contains(mb_strtolower($subject->code), $needle) || str_contains(mb_strtolower($subject->name), $needle)) {
+                $results[] = ['type' => 'subject', 'label' => $subject->code.' - '.$subject->name] + $this->subjectPart($subject) + ['subject_id' => $subject->id];
+            }
+        }
+
+        foreach ($groups->sortBy('name') as $group) {
+            if (str_contains(mb_strtolower($group->name), $needle)) {
+                $results[] = ['type' => 'group', 'label' => $group->name, 'group_id' => $group->id, 'group' => $group->name] + $this->subjectPart($group->subject);
+            }
+        }
+
+        $results = array_slice($results, 0, 3);   // never let labels crowd out the students
+
+        // Escape the characters LIKE treats as wildcards; "!" is the escape character, which every database accepts.
+        $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $needle).'%';
+        $starts = str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $needle).'%';
+
+        $students = User::query()
+            ->join('group_members', 'group_members.user_id', '=', 'users.id')
+            ->whereIn('group_members.group_id', $groups->keys())
+            ->where(function ($query) use ($like) {
+                $query->whereRaw("LOWER(users.name) LIKE ? ESCAPE '!'", [$like])
+                    ->orWhereRaw("LOWER(COALESCE(users.matric_no, '')) LIKE ? ESCAPE '!'", [$like])
+                    ->orWhereRaw("LOWER(users.email) LIKE ? ESCAPE '!'", [$like]);
+            })
+            ->orderByRaw("CASE WHEN LOWER(users.name) LIKE ? ESCAPE '!' OR LOWER(COALESCE(users.matric_no, '')) LIKE ? ESCAPE '!' THEN 0 ELSE 1 END", [$starts, $starts])
+            ->orderBy('users.name')
+            ->orderBy('group_members.group_id')
+            ->limit(self::SUGGESTIONS - count($results))
+            ->get(['users.id', 'users.name', 'users.matric_no', 'users.email', 'group_members.group_id']);
+
+        foreach ($students as $student) {
+            $group = $groups[$student->group_id];
+
+            $results[] = [
+                'type' => 'student',
+                'label' => $student->name,
+                'student_id' => $student->id,
+                'name' => $student->name,
+                'matric' => $student->matric_no ?? $student->email,
+                'group_id' => $group->id,
+                'group' => $group->name,
+            ] + $this->subjectPart($group->subject);
+        }
+
+        return response()->json(['results' => $results]);
+    }
+
+    /** @return array{subject_id: int, subject_code: string, subject_name: string, accent: string, palette: string} */
+    protected function subjectPart($subject): array
+    {
+        $colour = SubjectPalette::for($subject->id);
+
+        return ['subject_id' => $subject->id, 'subject_code' => $subject->code, 'subject_name' => $subject->name, 'accent' => $colour['accent'], 'palette' => $colour['name']];
+    }
 }

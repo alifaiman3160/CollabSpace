@@ -106,7 +106,7 @@ class DashboardTest extends TestCase
         $this->group($subject, 'Delta Later', done: 0, overdue: 3);        // 3 overdue
         $this->group($subject, 'Echo Late Too', done: 3, overdue: 1);      // 1 overdue, better progress
 
-        $html = $this->page()->getContent();
+        $html = preg_replace('#<aside x-persist.*?</aside>#s', '', $this->page()->getContent());   // not the sidebar's own group shortcuts
         $order = ['Delta Later', 'Charlie Late', 'Echo Late Too', 'Bravo Behind', 'Alpha Steady'];
 
         $positions = array_map(fn ($name) => strpos($html, 'data-attention-row') === false ? false : strpos($html, '>'.$name.'<'), $order);

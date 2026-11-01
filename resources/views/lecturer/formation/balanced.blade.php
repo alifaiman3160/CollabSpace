@@ -1,5 +1,5 @@
 <x-layouts.app title="Preview groups — CollabSpace"
-               heading="Preview groups"
+               :heading="'Preview groups'.($section ? ' — Section '.$section->name : '')"
                :subtitle="$subject->code.' — '.$subject->name"
                :back="route('lecturer.formation', $subject)"
                back-label="Auto-assign students">

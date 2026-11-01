@@ -6,6 +6,8 @@
 
         <x-flash />
 
+        <x-subject-section-filter :filter="$filter" route="lecturer.progress" />
+
         @if ($groups->isEmpty())
             <x-empty-state
                 class="!border-solid !border-surface-line"
@@ -28,7 +30,7 @@
 
             <div class="flex flex-col gap-[18px]" x-data="progressFilter(@js($initial))">
 
-                {{-- Four tiles that follow the subject chosen below. --}}
+                {{-- Four tiles that follow the subject and section chosen above. --}}
                 <section class="grid grid-cols-2 gap-3.5 min-[900px]:grid-cols-4" aria-label="Across your groups" data-tiles>
                     <x-stat-card size="sm" icon="folder" icon-tone="info" class="cs-card-in" style="--i: 0"
                                  label="Groups" :value="$initial['groups']" bind="groups" meta="Being monitored" />
@@ -46,25 +48,6 @@
                         </div>
                     </x-stat-card>
                 </section>
-
-                {{-- Subject filter: pills in each subject's colour. Nothing reloads. --}}
-                @if ($subjects->count() > 1)
-                    <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by subject" data-subject-filter>
-                        <button type="button" x-on:click="pick(null)" x-bind:aria-pressed="subject === null"
-                                x-bind:class="subject === null ? 'border-ink bg-ink text-white' : 'border-surface-line bg-surface text-ink-600 hover:bg-surface-hover hover:text-ink'"
-                                class="interactive flex h-9 items-center rounded-pill border px-4 text-meta font-bold motion-colors">All subjects</button>
-
-                        @foreach ($subjects as $subject)
-                            @php $pill = \App\Support\SubjectPalette::for($subject->id); @endphp
-                            <button type="button" x-on:click="pick({{ $subject->id }})" x-bind:aria-pressed="subject === {{ $subject->id }}"
-                                    title="{{ $subject->name }}" data-palette="{{ $pill['name'] }}"
-                                    x-bind:style="subject === {{ $subject->id }}
-                                        ? 'background-color: {{ $pill['accent'] }}; border-color: {{ $pill['accent'] }};'
-                                        : 'background-color: {{ $pill['bg'] }}; border-color: {{ $pill['border'] }};'"
-                                    class="interactive flex h-9 items-center rounded-pill border px-4 text-meta font-bold text-ink motion-colors">{{ $subject->code }}</button>
-                        @endforeach
-                    </div>
-                @endif
 
                 <p class="-mt-2 text-meta font-medium text-ink-400" data-order-note>Groups that need attention come first.</p>
 

@@ -935,6 +935,17 @@ html {
     from { opacity: 0; transform: translateY(8px) scale(0.97); }
 }
 
+/* A small floating card (the group switcher): a quick fade with a 4px rise, nothing sideways. */
+.cs-menu { animation: cs-menu-in 140ms ease-out; }
+
+@keyframes cs-menu-in {
+    from { opacity: 0; transform: translateY(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-menu { animation: none; }
+}
+
 /* "Read more": the text that appears fades in gently. */
 .cs-reveal {
     animation: cs-reveal 150ms ease-out;
@@ -1127,3 +1138,305 @@ html {
 @media (prefers-reduced-motion: reduce) {
     .cs-card-in { animation: none; }
 }
+
+/*
+ * The one tooltip (resources/js/tooltip.js). A small light card on a layer of its own on the body, so nothing clips it.
+ * It fades in and rises 4px over 150ms, and out in 100ms; with reduced motion it only fades. Never any sideways movement.
+ */
+.cs-tooltip {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    max-width: 15rem;
+    padding: 8px 12px;
+    border: 1px solid #ececf2;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(17, 17, 20, 0.1), 0 1px 3px rgba(17, 17, 20, 0.06);
+    color: #111114;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 100ms ease-out, transform 100ms ease-out;
+}
+
+.cs-tooltip[data-side='bottom'] { transform: translateY(-4px); }
+.cs-tooltip[data-side='right'],
+.cs-tooltip[data-side='left'] { transform: translateY(4px); }
+
+.cs-tooltip.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1), transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-tooltip-arrow {
+    position: absolute;
+    left: var(--arrow, 50%);
+    width: 10px;
+    height: 10px;
+    margin-left: -5px;
+    background: #ffffff;
+    border: 1px solid #ececf2;
+    transform: rotate(45deg);
+}
+
+.cs-tooltip[data-side='top'] .cs-tooltip-arrow { bottom: -6px; border-top: 0; border-left: 0; }
+.cs-tooltip[data-side='bottom'] .cs-tooltip-arrow { top: -6px; border-bottom: 0; border-right: 0; }
+.cs-tooltip[data-side='right'] .cs-tooltip-arrow { left: -6px; top: var(--arrow, 50%); margin: -5px 0 0 0; border-top: 0; border-right: 0; }
+.cs-tooltip[data-side='left'] .cs-tooltip-arrow { left: auto; right: -6px; top: var(--arrow, 50%); margin: -5px 0 0 0; border-bottom: 0; border-left: 0; }
+
+.cs-tooltip-keys { display: inline-flex; gap: 4px; margin-left: 8px; vertical-align: middle; }
+
+.cs-tooltip-keys kbd {
+    padding: 1px 6px;
+    border: 1px solid #ececf2;
+    border-radius: 6px;
+    background: #f1f1f5;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    color: #4d4d57;
+}
+
+/* The contribution bar's tooltip: an initials chip, the name, and the share. */
+.cs-tt-row { display: flex; align-items: center; gap: 10px; }
+.cs-tt-chip { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #111114; }
+.cs-tt-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cs-tt-name { font-weight: 800; }
+.cs-tt-sub { font-weight: 500; color: #6b6b78; }
+.cs-tt-low { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: #fdeae8; color: #b7291f; font-size: 11px; font-weight: 700; }
+
+/* The segment being looked at is full strength with a thin white ring; the others in its bar step back. */
+.cs-segment { transition: opacity 120ms ease-out, box-shadow 120ms ease-out; }
+[data-distribution]:has([data-tip-active]) .cs-segment:not([data-tip-active]) { opacity: 0.55; }
+.cs-segment[data-tip-active] { opacity: 1; box-shadow: inset 0 0 0 2px #ffffff; }
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-tooltip,
+    .cs-tooltip[data-side='bottom'],
+    .cs-tooltip.is-visible { transform: none; transition: opacity 80ms linear; }
+    .cs-segment { transition: none; }
+}
+
+/*
+ * The sidebar: 222px wide, or a slim rail of 76px. The width is two variables, so the one place that decides it is here.
+ * It animates over 260ms; the labels fade out first (120ms) and in after the width has grown, so no text is ever
+ * squeezed. The content column is a flex child, so it follows the width with no jump of its own. With reduced
+ * motion nothing animates. The curved right edge is the aside's own radius, so it is the same in both states.
+ */
+:root {
+    --sidebar-w: 222px;
+    --sidebar-w-collapsed: 76px;
+}
+
+.cs-sidebar {
+    width: var(--sidebar-w);
+    transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cs-sidebar[data-collapsed] {
+    width: var(--sidebar-w-collapsed);
+}
+
+.cs-label {
+    transition: opacity 140ms ease-out 120ms;
+}
+
+.cs-sidebar[data-collapsed] .cs-label {
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+    pointer-events: none;
+}
+
+/* The round toggle, half over the right edge. */
+.cs-toggle {
+    position: absolute;
+    top: 26px;
+    right: -12px;
+    z-index: 30;
+    display: flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #111114;
+    box-shadow: 0 1px 4px rgba(17, 17, 20, 0.18);
+}
+
+.cs-toggle:hover { box-shadow: 0 2px 8px rgba(17, 17, 20, 0.24); }
+
+.cs-toggle:focus-visible { outline: 2px solid #4a5bd0; outline-offset: 2px; }
+
+.cs-toggle__icon { transition: rotate 260ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* Brand and role: the logo mark stays, the words fade; the role is a chip wide, a letter chip in the rail. */
+.cs-brand { transition: padding 260ms cubic-bezier(0.22, 1, 0.36, 1); }
+.cs-sidebar[data-collapsed] .cs-brand { padding-left: 8px; padding-right: 0; }
+.cs-sidebar[data-collapsed] .cs-brand .cs-label { display: none; }
+
+.cs-role-dot {
+    display: none;
+    width: 20px;
+    height: 20px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+.cs-sidebar[data-collapsed] .cs-role { display: flex; justify-content: center; padding-left: 0; padding-right: 0; margin-bottom: 18px; }
+.cs-sidebar[data-collapsed] .cs-role-chip { display: none; }
+.cs-sidebar[data-collapsed] .cs-role-dot { display: inline-flex; }
+
+/* Items: equal rounded tiles in the rail, the label (clipped by the nav) and the chevron gone. */
+.cs-navlink { white-space: nowrap; }
+.cs-sidebar[data-collapsed] .cs-navlink { border-radius: 16px; padding-right: 14px; }
+.cs-sidebar[data-collapsed] .cs-chev { display: none; }
+
+/* The count: a pill after the label, a small red badge on the bell icon in the rail. */
+.cs-nav-badge { display: contents; }
+
+.cs-sidebar[data-collapsed] .cs-nav-badge {
+    position: absolute;
+    top: 3px;
+    left: 26px;
+    display: block;
+    pointer-events: none;
+}
+
+.cs-sidebar[data-collapsed] .cs-nav-badge span {
+    height: 15px;
+    min-width: 15px;
+    padding: 0 4px;
+    font-size: 9.5px;
+    line-height: 15px;
+    box-shadow: 0 0 0 2px #c3cff9;   /* the sidebar's own colour, so the badge reads as cut out of the tile */
+}
+
+.cs-sidebar[data-collapsed] .cs-navlink[data-current] .cs-nav-badge span { box-shadow: 0 0 0 2px #111114; }
+
+/* The user block: avatar with the logout icon under it. */
+.cs-sidebar[data-collapsed] .cs-user { flex-direction: column; gap: 10px; padding: 10px 0; }
+.cs-sidebar[data-collapsed] .cs-user-text { display: none; }
+
+/* A chevron down when the section is shut, up when it is open: drawn from aria-expanded alone (the server and the script both set it), so no second class can fight it. */
+.cs-chev__icon { rotate: 90deg; }
+.cs-chev[aria-expanded='true'] .cs-chev__icon { rotate: -90deg; }
+
+.cs-navgroup [data-current] ~ .cs-chev { color: #ffffff; }
+.cs-navgroup [data-current] ~ .cs-chev:hover { background: rgba(255, 255, 255, 0.16); color: #ffffff; }
+
+/*
+ * The sub-menu under an item that opens: its height grows from 0fr to 1fr (260ms open, 200ms close) and its rows
+ * fade a little behind; closed, it is invisible and inert. Rows are small, with a thin guide line on the left.
+ * In the slim rail the same list is the floating card beside the rail (a quick fade and 4px lift).
+ */
+.cs-subnav {
+    display: grid;
+    grid-template-rows: 0fr;
+    visibility: hidden;
+    transition: grid-template-rows 200ms ease-out, visibility 0s linear 200ms;
+}
+
+.cs-subnav.is-open {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows 260ms ease-out, visibility 0s;
+}
+
+.cs-subnav__inner {
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+}
+
+.cs-subnav.is-open > .cs-subnav__inner {
+    opacity: 1;
+    transition: opacity 200ms ease-out 60ms;
+}
+
+.cs-fly-title { display: none; }
+
+.cs-sublist {
+    margin: 4px 0 2px 28px;
+    padding: 0 0 0 8px;
+    border-left: 1px solid rgba(17, 17, 20, 0.14);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    list-style: none;
+}
+
+.cs-sublink:focus-visible,
+.cs-navlink:focus-visible,
+.cs-chev:focus-visible { outline: 2px solid #4a5bd0; outline-offset: 1px; }
+
+.cs-sidebar[data-collapsed] .cs-subnav {
+    position: fixed;
+    left: var(--fly-left, 84px);
+    top: var(--fly-top, 0);
+    z-index: 60;
+    display: block;
+    width: max-content;
+    min-width: 11rem;
+    max-width: 15rem;
+    max-height: calc(100dvh - 16px);
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #ececf2;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(17, 17, 20, 0.1), 0 1px 3px rgba(17, 17, 20, 0.06);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 100ms ease-out, transform 100ms ease-out, visibility 0s linear 100ms;
+}
+
+.cs-sidebar[data-collapsed] .cs-subnav.is-open {
+    opacity: 1;
+    transform: none;
+    transition: opacity 150ms ease-out, transform 150ms ease-out, visibility 0s;
+}
+
+.cs-sidebar[data-collapsed] .cs-subnav__inner { overflow: visible; opacity: 1; transition: none; }
+.cs-sidebar[data-collapsed] .cs-fly-title { display: block; margin: 0 0 6px; padding: 4px 8px; border-radius: 999px; font-size: 13px; font-weight: 800; color: #111114; }
+.cs-sidebar[data-collapsed] .cs-fly-title:hover { background: #f1f1f5; }
+.cs-sidebar[data-collapsed] .cs-fly-title:focus-visible { outline: 2px solid #4a5bd0; outline-offset: 1px; }
+
+/* A bridge over the gap between the icon and the card, so the pointer can travel across it without the card closing. */
+.cs-sidebar[data-collapsed] .cs-subnav::before { content: ''; position: absolute; top: 0; bottom: 0; left: -12px; width: 12px; }
+
+/* A small notch pointing at the icon; kept level with it by the same placement (--fly-arrow). */
+.cs-sidebar[data-collapsed] .cs-subnav::after { content: ''; position: absolute; left: -6px; top: var(--fly-arrow, 24px); width: 10px; height: 10px; margin-top: -5px; background: #ffffff; border-left: 1px solid #ececf2; border-bottom: 1px solid #ececf2; transform: rotate(45deg); }
+.cs-sidebar[data-collapsed] .cs-sublist { margin: 0; padding: 0; border-left: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .cs-sidebar,
+    .cs-label,
+    .cs-brand,
+    .cs-toggle__icon,
+    .cs-subnav,
+    .cs-subnav__inner,
+    .cs-sidebar[data-collapsed] .cs-subnav { transition: none !important; }
+    .cs-sidebar[data-collapsed] .cs-subnav { transform: none; }
+}
+
+/* A list that scrolls inside its card (the task boards' columns): a thin scrollbar that is always visible when it is needed. */
+.cs-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #cbcbda transparent;
+}
+
+.cs-scroll::-webkit-scrollbar { width: 8px; }
+.cs-scroll::-webkit-scrollbar-track { background: transparent; }
+.cs-scroll::-webkit-scrollbar-thumb { background: #cbcbda; border-radius: 999px; }
+.cs-scroll::-webkit-scrollbar-thumb:hover { background: #b0b0c2; }

@@ -157,7 +157,7 @@ class DocumentListLayoutTest extends TestCase
     protected function currentNav(string $html): ?string
     {
         preg_match('/<nav[^>]*aria-label="Main".*?<\/nav>/s', $html, $nav);
-        preg_match_all('/<a[^>]*aria-current="page"[^>]*>(.*?)<\/a>/s', $nav[0], $m);
+        preg_match_all('/<a(?=[^>]*data-nav-link)(?=[^>]*(?:\saria-current="page"|\sdata-parent-current[\s>]))[^>]*>(.*?)<\/a>/s', $nav[0], $m);
 
         return isset($m[1][0]) ? trim(preg_replace('/\s+/', ' ', strip_tags($m[1][0]))) : null;
     }
