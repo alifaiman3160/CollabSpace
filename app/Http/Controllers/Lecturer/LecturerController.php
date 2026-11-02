@@ -57,6 +57,40 @@ abstract class LecturerController extends Controller
         return $all->count() === 1 ? $all->first() : null;
     }
 
+    /**
+     * The contribution reports of several groups, each counted for its own subject's assessment: the one chosen on the
+     * page when the subject is the chosen one, otherwise the subject's active assessment. One read of the log per subject.
+     *
+     * @param  \Illuminate\Support\Collection<int, Group>  $groups  with their subject
+     * @return \Illuminate\Support\Collection<int, array>  keyed by group id
+     */
+    protected function contributionFor(\App\Support\ContributionReport $reports, \Illuminate\Support\Collection $groups, ?int $chosenSubject, mixed $asked): \Illuminate\Support\Collection
+    {
+        $all = [];
+        $plain = new \Illuminate\Database\Eloquent\Collection;
+
+        foreach ($groups->groupBy('subject_id') as $subjectId => $list) {
+            $subject = $list->first()->subject;
+            $assessment = \App\Support\Sections\SubjectSectionFilter::assessmentFor($subject, $chosenSubject === $subject->getKey() ? $asked : null);
+
+            // Subjects whose activity is not split by dates share one read of the log; only a subject with several
+            // dated assessments needs its own.
+            if ($assessment?->activityWindow() === null) {
+                $plain = $plain->merge($list);
+
+                continue;
+            }
+
+            $all += $reports->forMany($list, $assessment)->all();
+        }
+
+        if ($plain->isNotEmpty()) {
+            $all += $reports->forMany($plain)->all();
+        }
+
+        return collect($all);
+    }
+
     /** @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException */
     protected function ownedSubject(Subject $subject): Subject
     {

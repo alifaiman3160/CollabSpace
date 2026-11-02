@@ -27,7 +27,7 @@ class EvidenceReport
     /** @return list<list<string|int|float>> */
     public function rows(Rubric $rubric, Group $group): array
     {
-        $rubric->loadMissing('sections.criteria.levels', 'subject');
+        $rubric->loadMissing('sections.criteria.levels', 'subject', 'assessment');
         $group->loadMissing('members', 'subject', 'section');
 
         $criterionIds = $rubric->criteria()->pluck('rubric_criteria.id');
@@ -48,6 +48,8 @@ class EvidenceReport
             ['Subject', $this->text($group->subject->code.' - '.$group->subject->name)],
             // The class section (1A, 1B). Named so it is not mistaken for the rubric's "Section" column below.
             ['Class section', $this->text($group->section?->name ?? '')],
+            // Which assessment's rubric and dates these marks are for.
+            ['Assessment', $this->text($rubric->assessment?->title ?? '')],
             ['Rubric', $this->text($rubric->name)],
             ['Rubric version', $rubric->version],
             ['Generated', now()->format('Y-m-d H:i:s')],

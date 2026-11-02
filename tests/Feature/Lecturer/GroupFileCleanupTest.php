@@ -129,9 +129,16 @@ class GroupFileCleanupTest extends TestCase
         $fromA = $this->uploadTo($this->group);
         $fromB = $this->uploadTo($second);
 
-        $this->actingAs($this->lecturer)
-            ->delete(route('lecturer.subjects.destroy', $this->subject))
-            ->assertRedirect(route('lecturer.subjects'));
+        // A subject can only be deleted (by the administrator) once it has no groups, so its groups go first, and
+        // each one takes its files with it.
+        foreach ([$this->group, $second] as $group) {
+            $this->actingAs($this->lecturer)->delete(route('lecturer.groups.destroy', $group))->assertRedirect();
+        }
+
+        $admin = User::factory()->admin()->create(['must_change_password' => false]);
+        $this->actingAs($admin)
+            ->delete(route('admin.subjects.destroy', $this->subject))
+            ->assertRedirect(route('admin.subjects'));
 
         Storage::disk(GroupFiles::DISK)->assertMissing($fromA);
         Storage::disk(GroupFiles::DISK)->assertMissing($fromB);

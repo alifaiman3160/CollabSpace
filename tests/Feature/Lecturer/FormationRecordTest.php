@@ -124,7 +124,7 @@ class FormationRecordTest extends TestCase
         $this->actingAs($newcomer)
             ->get(route('lecturer.groups'))
             ->assertOk()
-            ->assertSee('No subjects yet')
+            ->assertSee('No subjects assigned yet')
             ->assertDontSee('Auto-assign students');
     }
     public function test_the_subjects_screen_links_to_formation(): void

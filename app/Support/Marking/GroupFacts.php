@@ -3,6 +3,7 @@
 namespace App\Support\Marking;
 
 use App\Models\ActivityLog;
+use App\Models\Assessment;
 use App\Models\Group;
 use App\Models\Task;
 
@@ -21,6 +22,10 @@ use App\Models\Task;
  * Task facts come from the tasks table, because deadlines live there, but a
  * task only counts as completed if the log also records the completion for that
  * student. A task that is done but whose credit was withdrawn is not evidence.
+ *
+ * For one assessment of a subject that has several, only what falls inside that assessment's dates counts: the log
+ * entries by their time, and the tasks by when they were created. Nothing is changed in the log; this is only a filter on
+ * what is read. With a single assessment (or none) everything counts, as before.
  *
  * Averages are over the group's current members, so a student is compared with
  * the group as it stands.
@@ -42,7 +47,7 @@ class GroupFacts
     /**
      * @return array<int, array<string, mixed>>  facts keyed by user id
      */
-    public function forGroup(Group $group): array
+    public function forGroup(Group $group, ?Assessment $assessment = null): array
     {
         $group->loadMissing('members');
         $memberIds = $group->members->pluck('id')->all();
@@ -54,20 +59,20 @@ class GroupFacts
         $today = now()->startOfDay();
 
         // Credit as recorded: task id => the user it was credited to.
-        $credited = ActivityLog::query()
+        $credited = Assessment::limit(ActivityLog::query(), $assessment)
             ->where('group_id', $group->id)
             ->where('activity_type', 'task_completed')
             ->get(['user_id', 'reference_id'])
             ->mapWithKeys(fn ($log) => [$log->reference_id => $log->user_id]);
 
-        $tasks = Task::query()
+        $tasks = Assessment::limit(Task::query(), $assessment)
             ->where('group_id', $group->id)
             ->whereIn('assigned_to', $memberIds)
             ->get()
             ->groupBy('assigned_to');
 
         // Counts out of the log, as the contribution report does.
-        $logs = ActivityLog::query()
+        $logs = Assessment::limit(ActivityLog::query(), $assessment)
             ->where('group_id', $group->id)
             ->whereIn('user_id', $memberIds)
             ->whereIn('activity_type', ['message_sent', 'document_created', 'document_edited', 'file_uploaded'])
@@ -123,7 +128,15 @@ class GroupFacts
             $average[$key] = round($total[$key] / $size, 2);
         }
 
+        // Plain context only: which assessment these figures are for, when the subject has several. It is not a fact and
+        // is never judged on (EvidenceFacts only passes on the names a criterion is allowed to use).
+        $label = $assessment !== null && $assessment->subject?->assessments->count() > 1 ? $assessment->title : null;
+
         foreach ($facts as $id => $own) {
+            if ($label !== null) {
+                $facts[$id]['assessment'] = $label;
+            }
+
             $facts[$id]['group_average'] = $average;
             $facts[$id]['group_total'] = $total;
             $facts[$id]['group_size'] = $size;

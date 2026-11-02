@@ -205,7 +205,7 @@ class DashboardCleanupTest extends TestCase
             $this->assertStringContainsString('9 days left', $html);
 
             // Closed until opened: the trigger says so, and the body sits in the shared collapse.
-            $this->assertStringContainsString('x-data="{ open: false }"', $html);
+            $this->assertStringContainsString('x-data="{ open: false, instant: false }"', $html);
             $this->assertMatchesRegularExpression('/<button[^>]*x-bind:aria-expanded="open"[^>]*aria-controls="project-brief-'.$one->id.'"/s', $html);
             $this->assertStringContainsString('cs-collapse', $html);
 

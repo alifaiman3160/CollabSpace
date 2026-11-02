@@ -25,6 +25,8 @@
 
     <div class="flex flex-col gap-[18px]">
 
+        <x-assessment-filter :assessments="$assessments" :current="$assessment?->id" route="lecturer.reports.show" :params="[$group]" />
+
         <section class="flex flex-col gap-[22px] rounded-panel border border-surface-line bg-surface-soft p-[22px]">
 
             {{-- Header --}}
@@ -42,7 +44,7 @@
                         {{ $report['generatedAt']->format('j M Y, g:ia') }}
                     </span>
 
-                    <x-button :href="route('lecturer.reports.export', $group)" class="!h-10 !py-0">
+                    <x-button :href="route('lecturer.reports.export', [$group] + ($assessments->count() > 1 ? ['assessment' => $assessment?->id] : []))" class="!h-10 !py-0">
                         <x-icon name="download" size="15" />
                         Export
                     </x-button>

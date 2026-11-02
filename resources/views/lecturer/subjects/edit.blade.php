@@ -1,36 +1,37 @@
 <x-layouts.app title="Edit subject — CollabSpace"
-               :heading="$subject->code"
-               :subtitle="$subject->name"
+               :heading="$subject->name"
                :back="route('lecturer.subjects')"
                back-label="My subjects">
 
-    <div class="mx-auto flex w-full max-w-xl flex-col gap-7">
+    {{-- The subject's code and sections, under the title. --}}
+    <x-slot:meta>
+        <x-subject-chip :subject="$subject" />
+        @foreach ($subject->sections as $section)
+            <x-section-chip :section="$section" :code="$subject->code" />
+        @endforeach
+    </x-slot:meta>
+
+    {{-- The same form as the Save button at the end of the settings card: nothing to scroll to. --}}
+    <x-slot:actions>
+        <x-button type="submit" form="subject-form" data-save-header>Save changes</x-button>
+        <x-button variant="secondary" :href="route('lecturer.subjects')">Cancel</x-button>
+    </x-slot:actions>
+
+    {{-- One full-width stack: the summary, the subject's settings, then the assessments. --}}
+    <div class="flex flex-col gap-[18px]" data-edit-stack>
 
         <x-flash />
 
-        <form method="POST" action="{{ route('lecturer.subjects.update', $subject) }}" class="flex flex-col gap-7">
+        @include('lecturer.subjects._summary', ['subject' => $subject, 'summary' => $summary])
+
+        <form id="subject-form" method="POST" action="{{ route('lecturer.subjects.update', $subject) }}" class="flex flex-col">
             @csrf
             @method('PUT')
 
             @include('lecturer.subjects._form', ['subject' => $subject])
-
-            <div class="flex flex-wrap items-center gap-3">
-                <x-button type="submit">Save changes</x-button>
-                <x-button variant="secondary" :href="route('lecturer.subjects')">Cancel</x-button>
-            </div>
         </form>
 
-        <section class="flex max-w-xl flex-col gap-3 rounded-panel border border-surface-line bg-surface shadow-subtle p-6">
-            <h2 class="text-h3 font-bold tracking-title">Groups</h2>
-            <p class="text-body text-ink-400">
-                This subject has {{ $subject->groups_count }} {{ Str::plural('group', $subject->groups_count) }}.
-            </p>
-            <div>
-                <x-button variant="secondary" :href="route('lecturer.groups', ['subject' => $subject->id])">
-                    Manage its groups
-                </x-button>
-            </div>
-        </section>
+        @include('lecturer.subjects._assessments', ['subject' => $subject])
     </div>
 
 </x-layouts.app>

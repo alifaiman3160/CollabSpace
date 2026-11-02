@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\SubjectController as AdminSubjectController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Account\AccountController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
+use App\Http\Controllers\Lecturer\AssessmentController;
 use App\Http\Controllers\Lecturer\ClassListController;
 use App\Http\Controllers\Lecturer\DashboardController as LecturerDashboardController;
 use App\Http\Controllers\Lecturer\AnnouncementController;
@@ -20,6 +22,9 @@ use App\Http\Controllers\Lecturer\StudentController as LecturerStudentController
 use App\Http\Controllers\Lecturer\SubjectController;
 use App\Http\Controllers\DocumentImageController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Student\SubjectFilesController as StudentSubjectFilesController;
+use App\Http\Controllers\SubjectFileDownloadController;
+use App\Http\Controllers\Lecturer\SubjectFileController;
 use App\Http\Controllers\Student\AnnouncementController as StudentAnnouncementController;
 use App\Http\Controllers\Student\BoardController;
 use App\Http\Controllers\Student\ChatController;
@@ -53,6 +58,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     // A picture inside a document. Shared by every role that can read documents; the controller decides who.
     Route::get('documents/images/{image}', [DocumentImageController::class, 'show'])->name('documents.images.show');
 
+    // A subject's file (project question, marking guide). Shared by the lecturer and the students; the controller decides who.
+    Route::get('subject-files/{file}', [SubjectFileDownloadController::class, 'show'])->whereNumber('file')->name('subject-files.download');
+
     Route::get('/dashboard', function () {
         return match (auth()->user()->role) {
             'admin' => redirect()->route('admin.dashboard'),
@@ -67,6 +75,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     */
     Route::middleware('role:student')->prefix('student')->name('student.')->group(function () {
         Route::get('dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
+
+        // A subject's files, read only (also how a student without a group reaches them).
+        Route::get('subjects/{subject}/files', [StudentSubjectFilesController::class, 'index'])->name('subject.files');
 
         Route::get('workspace', [WorkspaceController::class, 'index'])->name('workspace');
         Route::get('workspace/{group}', [WorkspaceController::class, 'show'])->name('workspace.show');
@@ -122,6 +133,14 @@ Route::middleware(['auth', 'password.changed', 'role:admin'])
         Route::put('users/{user}', [AdminUserController::class, 'update'])->name('users.update');
         Route::put('users/{user}/status', [AdminUserController::class, 'toggleStatus'])->name('users.status');
         Route::put('users/{user}/password', [AdminUserController::class, 'resetPassword'])->name('users.password');
+
+        // Subjects: created here, given to a lecturer, with their sections.
+        Route::get('subjects', [AdminSubjectController::class, 'index'])->name('subjects');
+        Route::get('subjects/create', [AdminSubjectController::class, 'create'])->name('subjects.create');
+        Route::post('subjects', [AdminSubjectController::class, 'store'])->name('subjects.store');
+        Route::get('subjects/{subject}/edit', [AdminSubjectController::class, 'edit'])->name('subjects.edit');
+        Route::put('subjects/{subject}', [AdminSubjectController::class, 'update'])->name('subjects.update');
+        Route::delete('subjects/{subject}', [AdminSubjectController::class, 'destroy'])->name('subjects.destroy');
     });
 
 /*
@@ -159,11 +178,19 @@ Route::middleware(['auth', 'password.changed', 'role:lecturer'])
 
         // My Subjects
         Route::get('subjects', [SubjectController::class, 'index'])->name('subjects');
-        Route::get('subjects/create', [SubjectController::class, 'create'])->name('subjects.create');
         Route::post('subjects', [SubjectController::class, 'store'])->name('subjects.store');
         Route::get('subjects/{subject}/edit', [SubjectController::class, 'edit'])->name('subjects.edit');
         Route::put('subjects/{subject}', [SubjectController::class, 'update'])->name('subjects.update');
         Route::delete('subjects/{subject}', [SubjectController::class, 'destroy'])->name('subjects.destroy');
+
+        // The subject's assessments (Assignment 1, Project ...).
+        Route::post('subjects/{subject}/assessments', [AssessmentController::class, 'store'])->name('subjects.assessments.store');
+        Route::put('subjects/{subject}/assessments/{assessment}', [AssessmentController::class, 'update'])->whereNumber('assessment')->name('subjects.assessments.update');
+        Route::delete('subjects/{subject}/assessments/{assessment}', [AssessmentController::class, 'destroy'])->whereNumber('assessment')->name('subjects.assessments.destroy');
+
+        // The subject's project files.
+        Route::post('subjects/{subject}/files', [SubjectFileController::class, 'store'])->name('subjects.files.store');
+        Route::delete('subjects/{subject}/files/{file}', [SubjectFileController::class, 'destroy'])->whereNumber('file')->name('subjects.files.destroy');
 
         // Announcements for a subject
         Route::get('subjects/{subject}/announcements', [AnnouncementController::class, 'index'])->name('announcements');

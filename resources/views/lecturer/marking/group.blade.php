@@ -8,6 +8,28 @@
 
         <x-flash />
 
+        {{-- Which assessment this is, beside the section; and a way to the same group's marking for the others. --}}
+        <div class="flex flex-wrap items-center gap-2" data-marking-context>
+            <x-assessment-chip :assessment="$rubric->assessment" />
+            <x-section-chip :section="$group->section" :code="$rubric->subject->code" />
+        </div>
+
+        @if ($assessments->count() > 1)
+            <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by assessment" data-assessment-filter>
+                <span class="text-label font-bold uppercase tracking-eyebrow text-ink/[.55]">Assessment</span>
+                @foreach ($assessments as $option)
+                    @php $target = $currentRubrics[$option->id] ?? null; @endphp
+                    @if ($target)
+                        <a href="{{ route('lecturer.marking.group', [$target, $group]) }}" wire:navigate data-assessment-option="{{ $option->id }}"
+                           @if ($option->id === $rubric->assessment_id) aria-current="page" @endif
+                           class="interactive flex h-9 items-center rounded-pill border px-4 text-meta font-bold motion-colors {{ $option->id === $rubric->assessment_id ? 'border-ink bg-ink text-white' : 'border-surface-line bg-surface text-ink-600 hover:bg-surface-hover hover:text-ink' }}">{{ $option->title }}</a>
+                    @else
+                        <span class="flex h-9 items-center rounded-pill border border-surface-line bg-surface-soft px-4 text-meta font-bold text-ink-300" data-tooltip="No rubric for this assessment yet" data-assessment-option="{{ $option->id }}">{{ $option->title }}</span>
+                    @endif
+                @endforeach
+            </div>
+        @endif
+
         {{--
             What suggestions have to work with, and the two things to do for the whole group.
 

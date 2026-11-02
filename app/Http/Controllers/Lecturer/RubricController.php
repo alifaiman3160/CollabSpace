@@ -44,13 +44,17 @@ class RubricController extends LecturerController
         protected FormationSession $drafts,
     ) {}
 
-    public function index(Subject $subject): View
+    public function index(Request $request, Subject $subject): View
     {
         $subject = $this->ownedSubject($subject);
+        $assessment = $this->assessmentFor($subject, $request->query('assessment'));
 
         return view('lecturer.rubrics.index', [
             'subject' => $subject,
+            'assessment' => $assessment,
+            'assessments' => $subject->assessments,
             'rubrics' => $subject->rubrics()
+                ->where('assessment_id', $assessment?->getKey())
                 ->withCount(['sections', 'criteria'])
                 ->with('creator')
                 ->orderByDesc('version')
@@ -80,6 +84,8 @@ class RubricController extends LecturerController
         }
 
         $draft['source'] = mb_substr($file->getClientOriginalName(), 0, 255);
+        // Which assessment this rubric is for: the one chosen on the page (a foreign id is ignored), else the active one.
+        $draft['assessment_id'] = $this->assessmentFor($subject, $request->input('assessment'))?->getKey();
 
         $token = $this->drafts->put(self::KIND, $subject->id, $draft);
 
@@ -106,7 +112,8 @@ class RubricController extends LecturerController
             'sections' => array_values($sections),
             'warnings' => $draft['warnings'],
             'source' => $draft['source'] ?? null,
-            'nextVersion' => ((int) $subject->rubrics()->max('version')) + 1,
+            'assessment' => $assessment = $this->assessmentFor($subject, $draft['assessment_id'] ?? null),
+            'nextVersion' => ((int) $subject->rubrics()->where('assessment_id', $assessment?->getKey())->max('version')) + 1,
         ]);
     }
 
@@ -120,12 +127,14 @@ class RubricController extends LecturerController
             return $this->expired($subject);
         }
 
-        $rubric = $this->store->create($subject, $this->lecturer(), $request->validated(), $draft['source'] ?? null);
+        $assessment = $this->assessmentFor($subject, $draft['assessment_id'] ?? null);
+
+        $rubric = $this->store->create($subject, $this->lecturer(), $request->validated(), $draft['source'] ?? null, $assessment);
 
         $this->drafts->forget(self::KIND, $token);
 
         return redirect()
-            ->route('lecturer.rubrics', $subject)
+            ->route('lecturer.rubrics', $subject->assessments()->count() > 1 ? [$subject, 'assessment' => $rubric->assessment_id] : [$subject])
             ->with('status', "{$rubric->name} is saved as version {$rubric->version} for {$subject->code}.");
     }
 
@@ -233,12 +242,21 @@ class RubricController extends LecturerController
 
         // Deleting the newest version hands "current" back to the one before it.
         if ($wasCurrent) {
-            $subject->rubrics()->orderByDesc('version')->first()?->update(['is_current' => true]);
+            $subject->rubrics()->where('assessment_id', $rubric->assessment_id)->orderByDesc('version')->first()?->update(['is_current' => true]);
         }
 
         return redirect()
             ->route('lecturer.rubrics', $subject)
             ->with('status', "{$label} was deleted.");
+    }
+
+    /**
+     * The assessment a page is about: the one asked for when it is one of this subject's (anything else is ignored, so
+     * another subject's or lecturer's id leaks nothing), otherwise the subject's active one. Null when it has none.
+     */
+    protected function assessmentFor(Subject $subject, mixed $id): ?\App\Models\Assessment
+    {
+        return (filled($id) ? $subject->assessments->firstWhere('id', (int) $id) : null) ?? $subject->activeAssessment();
     }
 
     /** A rubric that belongs to this subject, which belongs to this lecturer. */

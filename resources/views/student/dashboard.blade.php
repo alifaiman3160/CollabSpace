@@ -68,9 +68,10 @@
                            class="motion-colors flex flex-1 flex-col justify-between gap-4 rounded-panel p-5 hover:bg-white/50"
                            aria-label="Open {{ $g->name }} workspace, {{ $g->subject->code }}">
                             <span class="flex flex-wrap items-start justify-between gap-x-2 gap-y-1.5">
-                                <span class="flex min-w-0 items-center gap-1.5">
+                                <span class="flex min-w-0 flex-wrap items-center gap-1.5">
                                     <span class="rounded-pill px-2.5 py-0.5 text-nav font-extrabold tracking-[-0.02em]" style="background-color: {{ $colour['accent'] }};">{{ $g->subject->code }}</span>
                                     <x-section-chip :section="$g->section" :code="$g->subject->code" />
+                                    <x-week-chip :subject="$g->subject" />
                                 </span>
                                 <span class="ml-auto flex items-center gap-2">
                                     <x-deadline-chip :subject="$g->subject" />

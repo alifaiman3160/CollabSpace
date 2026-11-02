@@ -129,16 +129,16 @@ class SectionPagesTest extends TestCase
     {
         $other = User::factory()->lecturer()->create();
         $theirs = Subject::create(['lecturer_id' => $other->id, 'code' => 'OTH1', 'name' => 'Other', 'group_size' => 4]);
-        $foreign = Section::create(['subject_id' => $theirs->id, 'name' => '9Z']);
+        $foreign = Section::create(['subject_id' => $theirs->id, 'name' => 'ForeignSec']);
         $mine2 = Subject::create(['lecturer_id' => $this->lecturer->id, 'code' => 'MINE2', 'name' => 'Mine two', 'group_size' => 4]);
-        $stale = Section::create(['subject_id' => $mine2->id, 'name' => '5Q']);
+        $stale = Section::create(['subject_id' => $mine2->id, 'name' => 'StaleSec']);
 
         foreach ([$foreign->id, $stale->id] as $section) {
             $html = $this->page('lecturer.reports', ['subject' => $this->subject->id, 'section' => $section]);
 
             $this->assertSame(['Alpha', 'Beta', 'Gamma'], $this->namesOn($html), 'The whole subject shows, as if no section was asked for.');
-            $this->assertStringNotContainsString('9Z', $html);
-            $this->assertStringNotContainsString('5Q', $html);
+            $this->assertStringNotContainsString('ForeignSec', $html);
+            $this->assertStringNotContainsString('StaleSec', $html);
         }
     }
 
@@ -209,14 +209,14 @@ class SectionPagesTest extends TestCase
     {
         $other = User::factory()->lecturer()->create();
         $theirs = Subject::create(['lecturer_id' => $other->id, 'code' => 'OTH1', 'name' => 'Other', 'group_size' => 4]);
-        $foreign = Section::create(['subject_id' => $theirs->id, 'name' => '9Z']);
+        $foreign = Section::create(['subject_id' => $theirs->id, 'name' => 'ForeignSec']);
         Group::create(['subject_id' => $theirs->id, 'section_id' => $foreign->id, 'name' => 'Foreign group', 'group_size' => 4]);
 
         foreach (['lecturer.groups', 'lecturer.progress', 'lecturer.reports', 'lecturer.marking', 'lecturer.students'] as $route) {
             $html = $this->page($route, ['section' => $foreign->id]);
 
             $this->assertStringNotContainsString('Foreign group', $html, $route);
-            $this->assertStringNotContainsString('9Z', $html, $route);
+            $this->assertStringNotContainsString('ForeignSec', $html, $route);
             $this->assertStringContainsString($route === 'lecturer.students' ? 'Aina Alpha' : 'Alpha', $html, $route.' still shows the lecturer\'s own groups.');
         }
     }

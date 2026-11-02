@@ -2,46 +2,26 @@
                heading="My subjects"
                :subtitle="$subjects->count().' '.Str::plural('subject', $subjects->count()).' you teach.'">
 
-    <x-slot:actions>
-        <x-button :href="route('lecturer.subjects.create')" icon="plus">New subject</x-button>
-    </x-slot:actions>
-
     <div class="flex flex-col gap-[18px]" x-data="{ confirm: null }">
 
         <x-flash />
 
         @if ($subjects->isEmpty())
-            <div class="mx-auto flex w-full max-w-md flex-col items-center gap-4 py-6 text-center" data-subjects-empty>
-                <p class="text-body leading-[1.55] text-ink-400">No subjects yet. A subject holds the groups your students work in; create your first one to get started.</p>
-
-                <a href="{{ route('lecturer.subjects.create') }}" data-new-subject-tile
-                   class="cs-card-in cs-lift interactive flex min-h-[14rem] w-full flex-col items-center justify-center gap-3 rounded-panel border border-surface-strong bg-surface-soft px-6 py-8 text-center">
-                    <span class="flex size-14 items-center justify-center rounded-pill bg-surface text-ink shadow-subtle"><x-icon name="plus" size="24" /></span>
-                    <span class="text-nav font-extrabold tracking-title">New subject</span>
-                    <span class="text-label font-medium text-ink-400">Add a course you teach</span>
-                </a>
+            <div class="mx-auto flex w-full max-w-md flex-col items-center gap-3 py-10 text-center" data-subjects-empty>
+                <span class="flex size-14 items-center justify-center rounded-pill bg-surface-muted text-ink-300"><x-icon name="book" size="24" /></span>
+                <p class="text-body leading-[1.55] text-ink-400">No subjects assigned yet. The administrator assigns subjects to lecturers.</p>
             </div>
         @else
             <section class="grid grid-cols-[repeat(auto-fill,minmax(24rem,1fr))] gap-[18px]" aria-label="Subjects" data-subject-grid>
                 @foreach ($subjects as $i => $subject)
                     @php
                         // The project deadline, with the same flag the table gave it: overdue, or due within a week.
-                        $deadline = $subject->project_deadline ? \Illuminate\Support\Carbon::parse($subject->project_deadline) : null;
+                        $activeAssessment = $subject->activeAssessment();
+                        $several = $activeAssessment !== null && $subject->assessments->count() > 1;
+                        $deadline = $subject->projectDeadline() ? \Illuminate\Support\Carbon::parse($subject->projectDeadline()) : null;
                         $days = $deadline ? now()->startOfDay()->diffInDays($deadline->copy()->startOfDay(), false) : null;
                         $deadlinePill = $deadline === null ? null : ($days < 0 ? ['danger', 'Overdue'] : ($days <= 7 ? ['warning', $days === 0 ? 'Due today' : 'Due in '.$days.' '.Str::plural('day', $days)] : null));
 
-                        // Built here, then passed through Js::from below. Blade compiles
-                        // {{ }} echoes inside a component attribute but NOT @ directives,
-                        // so @js() there would render literally and break the payload.
-                        $deleteBody = "Deleting {$subject->code} removes the subject and everything "
-                            ."recorded under it. This cannot be undone.";
-                        $consequences = $subject->groups_count > 0
-                            ? [
-                                $subject->groups_count.' '.Str::plural('group', $subject->groups_count),
-                                $subject->group_members_count.' '.Str::plural('membership', $subject->group_members_count),
-                                'every task, document, chat message and contribution record in those groups',
-                            ]
-                            : [];
                     @endphp
 
                     <x-subject-card :subject="$subject" :i="$i" :href="route('lecturer.subjects.edit', $subject)"
@@ -49,8 +29,10 @@
                             ['label' => 'Groups', 'value' => $subject->groups_count, 'href' => $subject->groups_count > 0 ? route('lecturer.groups', ['subject' => $subject->id]) : null],
                             ['label' => 'Students', 'value' => $subject->group_members_count],
                             ['label' => 'Default size', 'value' => $subject->group_size],
-                            ['label' => 'Group project due', 'value' => $deadline ? $deadline->format('j M Y') : 'No deadline', 'pill' => $deadlinePill],
+                            ['label' => $several ? \Illuminate\Support\Str::limit($activeAssessment->title, 16).' due' : 'Group project due', 'value' => $deadline ? $deadline->format('j M Y') : 'No deadline', 'pill' => $deadlinePill],
                         ]">
+                        <x-slot:badge><x-week-chip :subject="$subject" /></x-slot:badge>
+
                         <x-slot:footer>
                             <x-button :href="route('lecturer.subjects.edit', $subject)" class="!px-4 !py-2 !text-meta">Edit</x-button>
 
@@ -59,31 +41,10 @@
                             <x-table.quiet-action tone="neutral" :href="route('lecturer.rubrics', $subject)">Rubric</x-table.quiet-action>
                             <x-table.quiet-action tone="neutral" :href="route('lecturer.announcements', $subject)">Announcements</x-table.quiet-action>
 
-                            {{-- Destructive: quiet, but always there. --}}
-                            <x-table.quiet-action icon="trash" class="ml-auto"
-                                aria-label="Delete {{ $subject->code }}"
-                                x-on:click="confirm = {
-                                    url: '{{ route('lecturer.subjects.destroy', $subject) }}',
-                                    method: 'DELETE',
-                                    title: 'Delete this subject?',
-                                    body: {{ Js::from($deleteBody) }},
-                                    consequences: {{ Js::from($consequences) }},
-                                    confirmText: {{ Js::from($subject->code) }},
-                                    action: 'Delete subject',
-                                    tone: 'danger',
-                                }">Delete</x-table.quiet-action>
                         </x-slot:footer>
                     </x-subject-card>
                 @endforeach
 
-                {{-- The last item: starts a subject, exactly like the New subject button above (same route, same permission). --}}
-                <a href="{{ route('lecturer.subjects.create') }}" data-new-subject-tile
-                   class="cs-card-in cs-lift interactive flex min-h-[18rem] flex-col items-center justify-center gap-3 rounded-panel border border-surface-strong bg-surface-soft px-6 py-8 text-center"
-                   style="--i: {{ min($subjects->count(), 12) }};">
-                    <span class="flex size-14 items-center justify-center rounded-pill bg-surface text-ink shadow-subtle"><x-icon name="plus" size="24" /></span>
-                    <span class="text-nav font-extrabold tracking-title">New subject</span>
-                    <span class="text-label font-medium text-ink-400">Add a course you teach</span>
-                </a>
             </section>
 
             {{-- Under the cards: what is coming, and what was last said. Two panels of one height, the dashboard's style. --}}
@@ -98,13 +59,16 @@
                     @forelse ($deadlines as $subject)
                         @php
                             $colour = \App\Support\SubjectPalette::for($subject->id);
-                            $date = \Illuminate\Support\Carbon::parse($subject->project_deadline)->startOfDay();
+                            $date = \Illuminate\Support\Carbon::parse($subject->projectDeadline())->startOfDay();
                             $days = (int) $today->diffInDays($date, false);
                         @endphp
                         <a href="{{ route('lecturer.subjects.edit', $subject) }}"
                            class="motion-colors interactive flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-card px-2 py-3 hover:bg-surface-soft" data-deadline-row>
                             <span class="shrink-0 rounded-pill px-2.5 py-0.5 text-label font-extrabold" style="background-color: {{ $colour['accent'] }};">{{ $subject->code }}</span>
                             <span class="min-w-0 flex-1 truncate text-nav font-bold" title="{{ $subject->name }}">{{ $subject->name }}</span>
+                            @if ($subject->assessments->count() > 1 && ($title = $subject->activeAssessment()?->title))
+                                <span class="max-w-[9rem] shrink-0 truncate rounded-pill bg-surface-muted px-2 py-px text-label font-bold text-ink-600" data-deadline-assessment title="{{ $title }}">{{ $title }}</span>
+                            @endif
                             <span class="shrink-0 text-meta font-medium tabular-nums text-ink-400">{{ $date->format('j M Y') }}</span>
                             @if ($days < 0)
                                 <x-table.dot-pill tone="danger">Overdue by {{ abs($days) }} {{ Str::plural('day', abs($days)) }}</x-table.dot-pill>

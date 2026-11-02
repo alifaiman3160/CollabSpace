@@ -106,7 +106,7 @@ class SidebarMenuTest extends TestCase
 
         $this->assertSame(self::LECTURER_ITEMS, $this->items($this->nav($this->page($this->lecturer, route('lecturer.dashboard')))));
         $this->assertSame(self::STUDENT_ITEMS, $this->items($this->nav($this->page($this->student(), route('student.dashboard')))));
-        $this->assertSame(['Dashboard', 'User accounts', 'Notifications', 'My account'], $this->items($this->nav($this->page($admin, route('admin.dashboard')))));
+        $this->assertSame(['Dashboard', 'User accounts', 'Subjects', 'Notifications', 'My account'], $this->items($this->nav($this->page($admin, route('admin.dashboard')))));
     }
 
     public function test_no_invented_section_headings_exist(): void
@@ -245,19 +245,62 @@ class SidebarMenuTest extends TestCase
         $this->assertStringNotContainsString(' data-parent-current>', $nav);
     }
 
-    public function test_sections_remembered_in_the_cookie_are_open_on_the_first_paint(): void
+    public function test_the_open_section_is_the_one_holding_the_page_and_the_cookie_does_not_add_more(): void
     {
         $this->group('Alpha');
 
-        $nav = $this->nav($this->page($this->lecturer, route('lecturer.dashboard'), [SidebarState::OPEN_COOKIE => 'marking,reports']));
+        // On the dashboard nothing holds the page: all closed, whatever an earlier visit left in the cookie.
+        $html = $this->page($this->lecturer, route('lecturer.dashboard'), [SidebarState::OPEN_COOKIE => 'marking,reports']);
+        $nav = $this->nav($html);
 
-        $this->assertMatchesRegularExpression('/id="nav-sub-marking" class="cs-subnav is-open"/', $nav);
-        $this->assertMatchesRegularExpression('/id="nav-sub-reports" class="cs-subnav is-open"/', $nav);
-        $this->assertMatchesRegularExpression('/id="nav-sub-progress" class="cs-subnav "/', $nav);
-        $this->assertMatchesRegularExpression('/aria-controls="nav-sub-marking"[^>]*aria-expanded="true"/', $nav);
-        $this->assertMatchesRegularExpression('/aria-controls="nav-sub-progress"[^>]*aria-expanded="false"/', $nav);
+        $this->assertSame(0, preg_match_all('/class="cs-subnav is-open"/', $nav));
+        $this->assertMatchesRegularExpression('/aria-controls="nav-sub-marking"[^>]*aria-expanded="false"/', $nav);
+        $this->assertStringContainsString('data-nav-current=""', $html);
+        $this->assertStringContainsString('data-open=""', $html);
     }
 
+    public function test_a_lecturer_page_opens_only_its_own_section(): void
+    {
+        $this->group('Alpha');
+
+        $html = $this->page($this->lecturer, route('lecturer.reports'), [SidebarState::OPEN_COOKIE => 'marking']);
+        $nav = $this->nav($html);
+
+        $this->assertSame(1, preg_match_all('/class="cs-subnav is-open"/', $nav));
+        $this->assertMatchesRegularExpression('/id="nav-sub-reports" class="cs-subnav is-open"/', $nav);
+        $this->assertMatchesRegularExpression('/aria-controls="nav-sub-reports"[^>]*aria-expanded="true"/', $nav);
+        $this->assertStringContainsString('data-nav-current="reports"', $html);
+        $this->assertStringContainsString('data-open="reports"', $html);
+    }
+
+    public function test_student_task_board_and_workspace_pages_mark_their_section_open(): void
+    {
+        $a = $this->group('Group A');
+        $b = $this->group('Group B');
+        $student = $this->student($a, $b);
+
+        $board = $this->page($student, route('student.board.show', $b), [SidebarState::OPEN_COOKIE => 'workspace']);
+        $this->assertStringContainsString('data-nav-current="board"', $board);
+        $this->assertSame(1, preg_match_all('/class="cs-subnav is-open"/', $this->nav($board)));
+        $this->assertMatchesRegularExpression('/id="nav-sub-board" class="cs-subnav is-open"/', $this->nav($board));
+
+        $workspace = $this->page($student, route('student.workspace.show', $a));
+        $this->assertStringContainsString('data-nav-current="workspace"', $workspace);
+        $this->assertSame(1, preg_match_all('/class="cs-subnav is-open"/', $this->nav($workspace)));
+        $this->assertMatchesRegularExpression('/id="nav-sub-workspace" class="cs-subnav is-open"/', $this->nav($workspace));
+
+        $dashboard = $this->page($student, route('student.dashboard'));
+        $this->assertStringContainsString('data-nav-current=""', $dashboard);
+        $this->assertSame(0, preg_match_all('/class="cs-subnav is-open"/', $this->nav($dashboard)));
+    }
+
+    public function test_one_shared_script_drives_the_accordion_for_every_role(): void
+    {
+        $js = file_get_contents(resource_path('js/sidebar.js'));
+
+        $this->assertStringContainsString('followPage()', $js);
+        $this->assertStringContainsString("data-nav-current", $js);
+    }
     public function test_the_sidebar_is_expanded_by_default_and_collapsed_from_the_cookie(): void
     {
         $student = $this->student();

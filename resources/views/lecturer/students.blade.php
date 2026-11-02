@@ -13,9 +13,7 @@
             <x-empty-state
                 icon="graduation"
                 title="No students yet"
-                body="Students appear here once you have a subject with a group and have assigned people to it."
-                cta="Create a subject"
-                :href="route('lecturer.subjects.create')" />
+                body="Students appear here once you have a subject with a group and have assigned people to it." />
         @else
             <x-subject-section-filter :filter="$filter" route="lecturer.students" />
 

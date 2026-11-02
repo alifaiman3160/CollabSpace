@@ -1,0 +1,20 @@
+{{-- The files of one block (an assessment's, or the whole subject's), with a delete each. Expects $subject and $files. --}}
+@if ($files->isEmpty())
+    <p class="text-meta text-ink-300" data-files-empty>No files yet.</p>
+@else
+    <ul class="flex flex-col gap-2" data-files-list>
+        @foreach ($files as $file)
+            <x-subject-file-row :file="$file" manage>
+                <x-table.quiet-action icon="trash" aria-label="Delete {{ $file->title }}"
+                    x-on:click="confirm = {
+                        url: '{{ route('lecturer.subjects.files.destroy', [$subject, $file]) }}',
+                        method: 'DELETE',
+                        title: 'Delete this file?',
+                        body: {{ Js::from('Students will no longer be able to open '.$file->title.'.') }},
+                        action: 'Delete file',
+                        tone: 'danger',
+                    }">Delete</x-table.quiet-action>
+            </x-subject-file-row>
+        @endforeach
+    </ul>
+@endif

@@ -83,9 +83,9 @@ class SendDeadlineReminders extends Command
             $sent += $notifier->taskDueSoon($task);
         }
 
-        // The subject's own deadline, which no task on any board represents.
-        foreach ($projects as $subject) {
-            $sent += $notifier->projectDueSoon($subject);
+        // The project deadlines, which no task on any board represents: the subject's own, or each assessment's.
+        foreach ($projects as $item) {
+            $sent += $notifier->projectDueSoon($item['subject'], $item['assessment']);
         }
 
         $notifyLecturer = (bool) config('notifications.notify_lecturer_on_overdue');
@@ -132,26 +132,40 @@ class SendDeadlineReminders extends Command
     {
         $lead = (int) config('notifications.project_reminder_days');
 
-        return Subject::query()
-            ->whereNotNull('project_deadline')
-            ->whereDate('project_deadline', '>=', $today->toDateString())
-            ->whereDate('project_deadline', '<=', $today->copy()->addDays($lead)->toDateString())
-            // A subject with no groups has nobody to tell.
-            ->whereHas('groups')
-            ->orderBy('project_deadline')
-            ->get();
+        $from = $today->copy()->startOfDay();
+        $to = $today->copy()->addDays($lead)->startOfDay();
+        $items = [];
+
+        // A subject with no groups has nobody to tell.
+        foreach (Subject::query()->with('assessments')->whereHas('groups')->get() as $subject) {
+            if ($subject->assessments->count() > 1) {
+                // Several assessments: every one with a due date gets its own reminder (and its own once-only record).
+                foreach ($subject->assessments as $assessment) {
+                    $items[] = ['subject' => $subject, 'assessment' => $assessment, 'due' => $assessment->due_on];
+                }
+            } else {
+                // One (or none): exactly as before, the subject's own project deadline.
+                $items[] = ['subject' => $subject, 'assessment' => null, 'due' => $subject->projectDeadline()];
+            }
+        }
+
+        // Undated and past ones are left out: the point is a warning, not a record of what was missed.
+        return collect($items)
+            ->filter(fn (array $i) => $i['due'] !== null && $i['due']->copy()->startOfDay()->gte($from) && $i['due']->copy()->startOfDay()->lte($to))
+            ->sortBy(fn (array $i) => $i['due']->timestamp)
+            ->values();
     }
 
     /** @param  \Illuminate\Support\Collection<int, Task>  $dueSoon */
     protected function report($dueSoon, $overdue, $projects): void
     {
-        $rows = $dueSoon->map(fn (Task $t) => ['Due soon', ...$this->row($t)])
+        $rows = $dueSoon->toBase()->map(fn (Task $t) => ['Due soon', ...$this->row($t)])
             ->merge($overdue->map(fn (Task $t) => ['Overdue', ...$this->row($t)]))
-            ->merge($projects->map(fn (Subject $s) => [
+            ->merge($projects->map(fn (array $i) => [
                 'Project',
-                $s->code,
-                str($s->name)->limit(40)->value(),
-                $s->project_deadline->format('Y-m-d'),
+                $i['subject']->code,
+                str(($i['assessment'] ? $i['assessment']->title.' · ' : '').$i['subject']->name)->limit(40)->value(),
+                $i['due']->format('Y-m-d'),
                 'Everyone in the subject',
             ]));
 

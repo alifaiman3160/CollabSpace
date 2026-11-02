@@ -81,7 +81,7 @@ class RevealRulesTest extends TestCase
 
         $html = $this->actingAs($lecturer)->get(route('lecturer.subjects'))->assertOk()->getContent();
 
-        foreach (['Groups', 'Auto-assign students', 'Edit', 'Delete'] as $label) {
+        foreach (['Groups', 'Auto-assign students', 'Edit'] as $label) {
             $this->assertStringContainsString($label, $html, $label);
         }
 
@@ -89,7 +89,7 @@ class RevealRulesTest extends TestCase
         $this->assertStringContainsString('Announcements', $html);
         $this->assertStringContainsString('Rubric', $html);
         $this->assertStringNotContainsString('<table', $html);
-        $this->assertMatchesRegularExpression('/<a[^>]*>\s*Edit\s*<\/a>.*?Auto-assign students.*?Delete subject/s', $html);
+        $this->assertMatchesRegularExpression('/<a[^>]*>\s*Edit\s*<\/a>.*?Auto-assign students.*?Announcements/s', $html);
 
         $admin = User::factory()->admin()->create(['must_change_password' => false]);
         $users = $this->actingAs($admin)->get(route('admin.users'))->assertOk()->getContent();

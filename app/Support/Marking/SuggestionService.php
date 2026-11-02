@@ -186,7 +186,7 @@ TXT;
 
         $rubric->load('sections.criteria.levels');
 
-        return [$this->criteria($rubric), $this->facts->forGroup($group)];
+        return [$this->criteria($rubric), $this->facts->forGroup($group, $rubric->assessment)];
     }
 
     /** @return array{0: string, 1: string}|null set when no provider is available at all */
@@ -429,7 +429,10 @@ TXT;
      */
     public function payload(Group $group, User $student, array $own, array $askable): array
     {
-        return [
+        return array_filter([
+            // Which assessment this is, as plain context (present only when the subject has several). It plays no part in
+            // the scoring: the levels and the facts below are all that is judged.
+            'assessment' => $own['assessment'] ?? null,
             'student' => $this->opaque($group, $student),
             // Plain booleans per evidence type. Not facts: they say which comparisons the group has too little behind.
             'insufficient_data' => $this->insufficientFlags($own),
@@ -449,7 +452,7 @@ TXT;
                     'description' => $l['descriptor'],
                 ], $c['levels']),
             ], $askable),
-        ];
+        ], fn ($value, $key) => $key !== 'assessment' || $value !== null, ARRAY_FILTER_USE_BOTH);
     }
 
     public function opaque(Group $group, User $student): string

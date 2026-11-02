@@ -17,9 +17,14 @@
     $subjectId = $filter['subjectId'];
     $sections = $filter['sections'];
     $sectionId = $filter['sectionId'];
+    $assessments = $filter['assessments'] ?? collect();
+    // The chosen assessment, or the active one of the chosen subject.
+    $assessmentId = $filter['assessmentId']
+        ?? ($assessments->isNotEmpty() ? \App\Support\Sections\SubjectSectionFilter::assessmentFor($subjects->firstWhere('id', $subjectId))?->id : null);
 
-    $whenSubjectChanges = request()->except('subject', 'section', 'group', 'page');
+    $whenSubjectChanges = request()->except('subject', 'section', 'assessment', 'group', 'page');
     $whenSectionChanges = request()->except('section', 'page');
+    $whenAssessmentChanges = request()->except('assessment', 'page');
     $pill = 'interactive flex h-9 items-center rounded-pill border px-4 text-meta font-bold motion-colors';
     $off = 'border-surface-line bg-surface text-ink-600 hover:bg-surface-hover hover:text-ink';
     $label = 'text-label font-bold uppercase tracking-eyebrow text-ink/[.55]';
@@ -68,6 +73,19 @@
                        @if ($on) aria-current="page" @endif data-section-option="{{ $option->id }}"
                        data-tooltip="Section {{ $option->name }} of {{ $option->subject->code }}"
                        class="{{ $pill }} {{ $on ? 'border-ink bg-ink text-white' : $off }}">Section {{ $option->name }}</a>
+                @endforeach
+            </div>
+        @endif
+
+        @if ($assessments->isNotEmpty())
+            <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by assessment" data-assessment-filter>
+                <span class="{{ $label }}">Assessment</span>
+                @foreach ($assessments as $option)
+                    @php($on = $assessmentId === $option->id)
+                    <a href="{{ route($route, $params + $whenAssessmentChanges + ['assessment' => $option->id]) }}" wire:navigate
+                       @if ($on) aria-current="page" @endif data-assessment-option="{{ $option->id }}"
+                       data-tooltip="{{ $option->typeLabel() }}"
+                       class="{{ $pill }} {{ $on ? 'border-ink bg-ink text-white' : $off }}">{{ $option->title }}</a>
                 @endforeach
             </div>
         @endif

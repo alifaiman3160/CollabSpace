@@ -68,40 +68,37 @@ class AssignmentBriefTest extends TestCase
     | The lecturer writing it
     */
 
-    public function test_a_subject_can_be_created_with_a_brief_and_a_deadline(): void
+    public function test_a_brief_and_a_deadline_can_be_written_on_a_subject_given_to_the_lecturer(): void
     {
-        $this->actingAs($this->lecturer)->post(route('lecturer.subjects.store'), [
-            'code' => 'SECV2113',
-            'name' => 'Web Programming',
+        $this->actingAs($this->lecturer)->put(route('lecturer.subjects.update', $this->subject), [
             'brief' => "Build a working web system in groups of four.\nMarked on the report and the demo.",
             'project_deadline' => '2026-12-05',
             'group_size' => 4,
         ])->assertSessionHasNoErrors()->assertRedirect(route('lecturer.subjects'));
 
-        $subject = Subject::where('code', 'SECV2113')->sole();
+        $subject = $this->subject->fresh();
 
         $this->assertStringContainsString('groups of four', $subject->brief);
         $this->assertSame('2026-12-05', $subject->project_deadline->toDateString());
     }
 
-    public function test_a_subject_can_be_created_without_either(): void
+    public function test_both_can_be_left_blank(): void
     {
-        $this->actingAs($this->lecturer)->post(route('lecturer.subjects.store'), [
-            'code' => 'SECV2113',
-            'name' => 'Web Programming',
+        $this->setAssignment('Something', '2026-12-05');
+
+        $this->actingAs($this->lecturer)->put(route('lecturer.subjects.update', $this->subject), [
             'brief' => '',
             'project_deadline' => '',
             'group_size' => 4,
         ])->assertSessionHasNoErrors();
 
-        $subject = Subject::where('code', 'SECV2113')->sole();
+        $subject = $this->subject->fresh();
 
         // Empty strings would later read as "there is a brief, and it is blank".
         $this->assertNull($subject->brief);
         $this->assertNull($subject->project_deadline);
         $this->assertFalse($subject->hasAssignment());
     }
-
     public function test_the_brief_and_deadline_can_be_edited_later(): void
     {
         $this->actingAs($this->lecturer)->put(route('lecturer.subjects.update', $this->subject), [

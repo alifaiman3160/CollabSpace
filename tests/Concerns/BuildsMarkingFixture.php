@@ -2,6 +2,7 @@
 
 namespace Tests\Concerns;
 
+use App\Models\Assessment;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\Message;
@@ -35,6 +36,9 @@ trait BuildsMarkingFixture
 
     protected Subject $subject;
 
+    /** The subject's default assessment ("Project"); the sample rubric belongs to it. */
+    protected Assessment $assessment;
+
     protected Group $group;
 
     /** @var array<string, User> */
@@ -54,6 +58,8 @@ trait BuildsMarkingFixture
         $this->subject = Subject::create([
             'lecturer_id' => $this->lecturer->id, 'code' => 'SECJ3104', 'name' => 'Application Development', 'group_size' => 4,
         ]);
+
+        $this->assessment = Assessment::defaultFor($this->subject);
 
         $this->group = Group::create(['subject_id' => $this->subject->id, 'name' => 'Group Falcon', 'group_size' => 4]);
 
@@ -139,7 +145,7 @@ trait BuildsMarkingFixture
      * The sample rubric, saved for the subject, with the teamwork section's
      * criteria given the evidence the wording suggests.
      */
-    protected function saveSampleRubric(?callable $edit = null): Rubric
+    protected function saveSampleRubric(?callable $edit = null, ?Assessment $assessment = null): Rubric
     {
         $draft = (new RubricParser)->parse(__DIR__.'/../../docs/samples/MarkingRubric.xlsx', 'MarkingRubric.xlsx');
         $data = ['name' => $draft['name'], 'sections' => $draft['sections']];
@@ -148,7 +154,7 @@ trait BuildsMarkingFixture
             $data = $edit($data);
         }
 
-        return app(RubricStore::class)->create($this->subject, $this->lecturer, $data, 'MarkingRubric.xlsx')
+        return app(RubricStore::class)->create($this->subject, $this->lecturer, $data, 'MarkingRubric.xlsx', $assessment ?? $this->assessment)
             ->load('sections.criteria.levels');
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Support\Rubric;
 
+use App\Models\Assessment;
 use App\Models\Rubric;
 use App\Models\RubricCriterion;
 use App\Models\RubricLevel;
@@ -11,7 +12,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Writes a reviewed rubric as the next version of a subject's rubric.
+ * Writes a reviewed rubric as the next version of an assessment's rubric (a subject's default assessment when none is
+ * named).
  *
  * Earlier versions are left exactly as they are, apart from no longer being the
  * current one. Nothing here edits a saved rubric: a correction is a new version,
@@ -20,18 +22,21 @@ use Illuminate\Support\Facades\DB;
 class RubricStore
 {
     /** @param  array<string, mixed>  $data  validated, see ConfirmRubricRequest */
-    public function create(Subject $subject, User $by, array $data, ?string $sourceFile): Rubric
+    public function create(Subject $subject, User $by, array $data, ?string $sourceFile, ?Assessment $assessment = null): Rubric
     {
-        return DB::transaction(function () use ($subject, $by, $data, $sourceFile): Rubric {
+        $assessment ??= Assessment::defaultFor($subject);
+
+        return DB::transaction(function () use ($subject, $by, $data, $sourceFile, $assessment): Rubric {
             // Serialise per subject so two confirmations cannot take the same number.
             Subject::query()->whereKey($subject->id)->lockForUpdate()->first();
 
-            $version = ((int) Rubric::where('subject_id', $subject->id)->max('version')) + 1;
+            $version = ((int) Rubric::where('assessment_id', $assessment->id)->max('version')) + 1;
 
-            Rubric::where('subject_id', $subject->id)->update(['is_current' => false]);
+            Rubric::where('assessment_id', $assessment->id)->update(['is_current' => false]);
 
             $rubric = Rubric::create([
                 'subject_id' => $subject->id,
+                'assessment_id' => $assessment->id,
                 'name' => $data['name'],
                 'version' => $version,
                 'is_current' => true,

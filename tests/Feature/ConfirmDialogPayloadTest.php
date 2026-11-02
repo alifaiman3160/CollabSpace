@@ -58,11 +58,12 @@ class ConfirmDialogPayloadTest extends TestCase
         $this->assertPayloadIsCompiled($this->actingAs($admin)->get(route('admin.users.edit', $user)));
     }
 
-    public function test_the_lecturer_subject_list_payload_is_compiled(): void
+    public function test_the_admin_subject_list_payload_is_compiled(): void
     {
-        [$lecturer, $subject, $group] = $this->cohort();
+        $this->cohort();
+        $admin = User::factory()->admin()->create(['must_change_password' => false]);
 
-        $this->assertPayloadIsCompiled($this->actingAs($lecturer)->get(route('lecturer.subjects')));
+        $this->assertPayloadIsCompiled($this->actingAs($admin)->get(route('admin.subjects')));
     }
 
     public function test_the_lecturer_group_list_payload_is_compiled(): void

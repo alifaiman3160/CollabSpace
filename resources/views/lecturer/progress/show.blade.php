@@ -33,6 +33,8 @@
 
         <x-flash />
 
+        <x-assessment-filter :assessments="$assessments" :current="$assessment?->id" route="lecturer.progress.show" :params="[$group]" />
+
         {{-- Five tiles of one component and one height; the first wears the group's own colour. --}}
         <section class="grid grid-cols-2 gap-3.5 min-[900px]:grid-cols-5" aria-label="This group" data-tiles>
             <x-stat-card size="sm" icon="users" icon-tone="neutral" :palette="$palette" class="cs-card-in" style="--i: 0"

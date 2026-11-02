@@ -69,7 +69,7 @@ class DashboardTest extends TestCase
 
     public function test_it_renders_for_a_lecturer_with_no_one_one_or_three_subjects(): void
     {
-        $this->page()->assertSee('No subjects yet')->assertDontSee('data-subject-card', false);
+        $this->page()->assertSee('No subjects assigned yet')->assertDontSee('data-subject-card', false);
 
         $one = $this->subject(code: 'AAA1111');
         $this->group($one, 'Group One');

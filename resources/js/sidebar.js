@@ -79,6 +79,7 @@ const component = () => ({
             document.addEventListener('livewire:navigated', () => {
                 this.closeFlyout()
                 this.refreshActive(false)
+                this.followPage()
                 this.paint()
             })
 
@@ -102,6 +103,7 @@ const component = () => ({
 
         this.paint()
         this.refreshActive(true)
+        this.followPage()
     },
 
     /** Everything that depends on the state and is drawn by attributes rather than by Alpine. */
@@ -163,6 +165,20 @@ const component = () => ({
         return this.collapsed ? this.flyout === key : this.isOpen(key)
     },
 
+    /**
+     * The page names the section that holds it (the server renders [data-nav-current] in the page, from the request).
+     * The sidebar is kept across wire:navigate, so this is read again on every navigation: that section opens, every
+     * other closes, and a page in none of them closes all.
+     */
+    followPage() {
+        const holder = document.querySelector('[data-nav-current]')
+
+        if (!holder) return
+
+        this.open = parseOpen(holder.getAttribute('data-nav-current'))
+        save(OPEN_KEY, serializeOpen(this.open))
+    },
+
     /* ----- The highlight follows the address, for the items that open ----- */
 
     refreshActive(first) {
@@ -185,7 +201,6 @@ const component = () => ({
                 if (i === index) { child.setAttribute('aria-current', 'page') } else { child.removeAttribute('aria-current') }
             })
 
-            if (index !== null && !first && !this.isOpen(group.dataset.navGroup)) this.setSection(group.dataset.navGroup, true)
         })
     },
 

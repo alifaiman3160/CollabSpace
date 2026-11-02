@@ -1440,3 +1440,26 @@ html {
 .cs-scroll::-webkit-scrollbar-track { background: transparent; }
 .cs-scroll::-webkit-scrollbar-thumb { background: #cbcbda; border-radius: 999px; }
 .cs-scroll::-webkit-scrollbar-thumb:hover { background: #b0b0c2; }
+
+/*
+ * The sidebar scrolls without showing a scrollbar (nor its arrow buttons): the nav list when the open sub-menus are long,
+ * and the flyout cards of the slim rail. Wheel, trackpad and keyboard scrolling are untouched, and scrolling it never
+ * carries on to the page behind. Only the sidebar: everywhere else keeps its scrollbars.
+ */
+.cs-sidebar,
+.cs-sidebar * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.cs-sidebar::-webkit-scrollbar,
+.cs-sidebar *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.cs-sidebar nav,
+.cs-sidebar .cs-subnav {
+    overscroll-behavior: contain;
+}

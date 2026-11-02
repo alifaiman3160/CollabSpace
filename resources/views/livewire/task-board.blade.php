@@ -138,14 +138,14 @@
 
                 {{-- A hint only: a task may be due after the group project is. Nothing is blocked or changed by it. --}}
                 <div class="flex flex-col gap-2"
-                     x-data="{ picked: '', limit: @js($group->subject->project_deadline?->format('Y-m-d')) }"
+                     x-data="{ picked: '', limit: @js($group->subject->projectDeadline()?->format('Y-m-d')) }"
                      x-effect="picked = $wire.deadline ?? ''">
                     <x-input-label for="task-deadline" value="Deadline" />
                     <x-text-input id="task-deadline" wire:model="deadline" type="date" x-on:input="picked = $event.target.value" />
-                    @if ($group->subject->project_deadline)
+                    @if ($group->subject->projectDeadline())
                         <p x-show="limit && picked && picked > limit" x-cloak role="status" data-task-after-project
                            class="text-label font-semibold text-warning-text">
-                            This is after the group project due date, {{ $group->subject->project_deadline->format('j M Y') }}.
+                            This is after the group project due date, {{ $group->subject->projectDeadline()->format('j M Y') }}.
                         </p>
                     @endif
                     <x-input-error :messages="$errors->get('deadline')" />

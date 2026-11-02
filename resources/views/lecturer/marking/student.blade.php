@@ -9,6 +9,11 @@
 
         <x-flash />
 
+        <div class="flex flex-wrap items-center gap-2" data-marking-context>
+            <x-assessment-chip :assessment="$rubric->assessment" />
+            <x-section-chip :section="$group->section" :code="$rubric->subject->code ?? null" />
+        </div>
+
         {{-- One look: where the totals stand, and the two things to do. --}}
         @php
             $pendingAccept = $approval ? 0 : count(app(\App\Support\Marking\SuggestionAcceptor::class)->pending($rubric, $group, $student));

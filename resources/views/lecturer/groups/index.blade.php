@@ -90,10 +90,8 @@
             <x-empty-state
                 class="!border-solid !border-surface-line"
                 icon="book"
-                title="No subjects yet"
-                body="Groups live inside a subject. Create a subject first."
-                cta="Create a subject"
-                :href="route('lecturer.subjects.create')" />
+                title="No subjects assigned yet"
+                body="Groups live inside a subject, and the administrator assigns subjects to lecturers." />
         @else
             {{-- Only for a subject that has several sections; a single-section subject has nothing to compare. --}}
             @if ($subjectId && $sections->isNotEmpty() && $sectionCounts->isNotEmpty())

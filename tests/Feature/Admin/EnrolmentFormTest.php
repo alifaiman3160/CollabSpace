@@ -32,6 +32,13 @@ class EnrolmentFormTest extends TestCase
 
         $this->one = $this->subject('Dr. Aminah', 'BCS3323', 'Software Engineering');
         $this->two = $this->subject('Dr. Zul', 'SECJ3104', 'Application Development');
+
+        // Sections are made on the Subjects screen now; the student form only picks one that exists.
+        foreach ([$this->one, $this->two] as $subject) {
+            foreach (['1A', '1B', '2A', '2B'] as $name) {
+                Section::create(['subject_id' => $subject->id, 'name' => $name]);
+            }
+        }
     }
 
     protected function subject(string $lecturerName, string $code, string $name): Subject
@@ -96,18 +103,38 @@ class EnrolmentFormTest extends TestCase
         $student = User::where('email', 'aina@student.test')->sole();
 
         $this->assertSame(['BCS3323' => '1A', 'SECJ3104' => '1B'], $this->rows($student));
-        $this->assertSame(1, Section::where('subject_id', $this->one->id)->count());
+        $this->assertSame(4, Section::where('subject_id', $this->one->id)->count(), 'Enrolling creates no section.');
     }
 
-    public function test_a_new_section_name_creates_the_section_and_an_existing_one_is_reused_whatever_its_capitals(): void
+    public function test_an_existing_section_is_matched_whatever_its_capitals(): void
     {
-        Section::create(['subject_id' => $this->one->id, 'name' => '1A']);
-
         $this->create(['enrolments_form' => 1, 'enrolments' => [['subject_id' => $this->one->id, 'section' => '1a']]]);
         $student = User::where('email', 'aina@student.test')->sole();
 
         $this->assertSame(['BCS3323' => '1A'], $this->rows($student));
-        $this->assertSame(1, Section::where('subject_id', $this->one->id)->count(), 'No second "1a".');
+        $this->assertSame(4, Section::where('subject_id', $this->one->id)->count(), 'No second "1a".');
+    }
+
+    public function test_a_section_that_does_not_exist_is_refused_and_nothing_is_created(): void
+    {
+        $this->create(['enrolments_form' => 1, 'enrolments' => [['subject_id' => $this->one->id, 'section' => '9Z']]])
+            ->assertSessionHasErrors('enrolments');
+
+        $this->assertStringContainsString('Add its sections under Subjects', session('errors')->first('enrolments'));
+        $this->assertSame(0, User::where('email', 'aina@student.test')->count(), 'The account was not created either.');
+        $this->assertSame(0, Section::where('name', '9Z')->count());
+    }
+
+    public function test_the_form_picks_a_section_from_a_dropdown_of_the_subjects_sections(): void
+    {
+        $html = $this->actingAs($this->admin)->get(route('admin.users.create'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-section-select', $html);
+        $this->assertStringContainsString('Manage sections in Subjects', $html);
+        $this->assertStringContainsString(route('admin.subjects'), $html);
+        $this->assertStringNotContainsString('<datalist', $html);
+        // The map the dropdown reads from: this subject's sections.
+        $this->assertStringContainsString('1A', $html);
     }
 
     public function test_a_student_can_be_created_with_no_enrolment_at_all(): void
@@ -121,6 +148,7 @@ class EnrolmentFormTest extends TestCase
     {
         $student = $this->student();
         $three = $this->subject('Dr. Third', 'XYZ9999', 'Third');
+        Section::create(['subject_id' => $three->id, 'name' => '2A']);
         $this->save($student, ['enrolments' => [
             ['subject_id' => $this->one->id, 'section' => '1A'],
             ['subject_id' => $this->two->id, 'section' => '1A'],
@@ -229,7 +257,7 @@ class EnrolmentFormTest extends TestCase
             ->assertSessionHasErrors('enrolments');
 
         $this->assertSame(['BCS3323' => '1A'], $this->rows($student));
-        $this->assertSame(1, Section::where('subject_id', $this->one->id)->count(), 'The rolled-back save created no section.');
+        $this->assertSame(4, Section::where('subject_id', $this->one->id)->count(), 'The rolled-back save created no section.');
 
         // The same section, or another subject, is fine.
         $this->save($student, ['enrolments' => [

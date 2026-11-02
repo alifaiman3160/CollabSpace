@@ -68,6 +68,7 @@ class UserController extends Controller
 
         $validated = $request->validated();
 
+        try {
         $user = DB::transaction(function () use ($request, $validated, $temporary) {
             $user = User::create([
             ...Arr::except($validated, ['enrolments']),
@@ -77,11 +78,15 @@ class UserController extends Controller
             ]);
 
             if ($user->role === 'student' && $request->boolean('enrolments_form')) {
-                Enrolments::sync($user, $validated['enrolments'] ?? []);
+                Enrolments::sync($user, $validated['enrolments'] ?? [], createMissing: false);
             }
 
             return $user;
         });
+        } catch (EnrolmentException $e) {
+            // Nothing was created.
+            return back()->withInput()->withErrors(['enrolments' => $e->getMessage()]);
+        }
 
         // The account notification: login instructions and the temporary
         // password, to the address the account was created with. Failure to
@@ -126,7 +131,7 @@ class UserController extends Controller
                 $user->update(Arr::except($validated, ['enrolments']));
 
                 if ($user->role === 'student' && $request->boolean('enrolments_form')) {
-                    Enrolments::sync($user, $validated['enrolments'] ?? []);
+                    Enrolments::sync($user, $validated['enrolments'] ?? [], createMissing: false);
                 }
             });
         } catch (EnrolmentException $e) {

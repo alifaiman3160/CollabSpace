@@ -130,6 +130,8 @@
     {{-- Soft page background: white cards are defined by contrast against it,
          which is what makes them read as cards at all. --}}
     <div data-page-content class="cs-page-content min-w-0 flex-1 bg-surface-soft {{ $fit ? 'min-[900px]:flex min-[900px]:min-h-0 min-[900px]:flex-col' : '' }}">
+        {{-- Which section of the sidebar holds this page, drawn from the request. The sidebar is kept across wire:navigate, so its script reads this again on every visit (sidebar.js, followPage). --}}
+        <span hidden data-nav-current="{{ $sidebar['current'] ?? '' }}"></span>
         <header class="flex flex-wrap items-center gap-4 px-7 pb-[18px] pt-6 {{ $fit ? 'shrink-0' : '' }}">
             <div class="min-w-0 flex-1">
                 @if($heading)
@@ -144,6 +146,9 @@
                         </a>
                     @endif
                     <h1 class="text-h1 font-extrabold tracking-title">{{ $heading }}</h1>
+                    @isset($meta)
+                        <div class="mt-2 flex flex-wrap items-center gap-1.5" data-header-meta>{{ $meta }}</div>
+                    @endisset
                 @endif
                 @if($subtitle)
                     <p class="mt-1 text-meta font-medium text-ink-400">{{ $subtitle }}</p>

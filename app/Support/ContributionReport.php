@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\ActivityLog;
+use App\Models\Assessment;
 use App\Models\Group;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -56,10 +57,11 @@ class ContributionReport
      *     generatedAt: \Illuminate\Support\Carbon,
      * }
      */
-    public function for(Group $group): array
+    public function for(Group $group, ?Assessment $assessment = null): array
     {
-        // One pass over the log, grouped by member and activity type.
-        $aggregate = ActivityLog::query()
+        // One pass over the log, grouped by member and activity type. For one assessment of a subject that has several,
+        // only the entries inside its dates (a read-side filter; the log itself is never touched).
+        $aggregate = Assessment::limit(ActivityLog::query(), $assessment)
             ->where('group_id', $group->getKey())
             ->selectRaw('user_id, activity_type, COUNT(*) AS entries, SUM(weight) AS points')
             ->groupBy('user_id', 'activity_type')
@@ -76,9 +78,9 @@ class ContributionReport
      * @param  Collection<int, Group>  $groups
      * @return Collection<int, array>
      */
-    public function forMany(Collection $groups): Collection
+    public function forMany(Collection $groups, ?Assessment $assessment = null): Collection
     {
-        $log = ActivityLog::query()
+        $log = Assessment::limit(ActivityLog::query(), $assessment)
             ->whereIn('group_id', $groups->modelKeys())
             ->selectRaw('group_id, user_id, activity_type, COUNT(*) AS entries, SUM(weight) AS points')
             ->groupBy('group_id', 'user_id', 'activity_type')
@@ -163,7 +165,7 @@ class ContributionReport
      *
      * @return list<list<string|int|float>>
      */
-    public function toCsvRows(array $report): array
+    public function toCsvRows(array $report, ?Assessment $assessment = null): array
     {
         $group = $report['group'];
         $subject = $group->subject;
@@ -173,6 +175,8 @@ class ContributionReport
             [],
             ['Group', $group->name],
             ['Subject', $subject->code.' - '.$subject->name],
+            // Which assessment's dates the figures are for, only where the subject has several.
+            ...($assessment !== null && $subject->assessments->count() > 1 ? [['Assessment', $assessment->title]] : []),
             ['Lecturer', $subject->lecturer?->name ?? 'Unknown'],
             ['Generated', $report['generatedAt']->format('Y-m-d H:i:s')],
             ['Members', $report['members']->count()],

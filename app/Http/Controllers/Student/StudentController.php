@@ -45,7 +45,7 @@ abstract class StudentController extends Controller
     protected function myGroups(): Collection
     {
         return $this->groups()
-            ->with(['subject', 'section'])
+            ->with(['subject.assessments', 'section'])
             ->select('groups.*')
             ->join('subjects', 'subjects.id', '=', 'groups.subject_id')
             ->orderBy('subjects.code')

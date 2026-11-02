@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Announcement;
+use App\Models\Assessment;
 use App\Models\AppNotification;
 use App\Models\Document;
 use App\Models\Group;
@@ -134,6 +135,24 @@ class Notifier
         );
     }
 
+    /** One assessment of a subject with several is coming up. Returns how many people were told. */
+    protected function assessmentDueSoon(Subject $subject, Assessment $assessment): int
+    {
+        $days = Subject::daysUntil($assessment->due_on);
+
+        if ($days === null || $days < 0) {
+            return 0;
+        }
+
+        return $this->writeOnce(
+            $this->studentsOf($subject),
+            'assessment_deadline',
+            $assessment->getKey(),
+            fn () => "{$assessment->title} for {$subject->code} is due on {$assessment->due_on->format('j M')}".($days === 0 ? ' (today)' : ($days === 1 ? ' (tomorrow)' : '')),
+            route('student.dashboard', absolute: false),
+        );
+    }
+
     /** A task is coming up. Returns how many people were told. */
     public function taskDueSoon(Task $task): int
     {
@@ -176,8 +195,14 @@ class Notifier
      * collide with a task reminder that happens to share the id — reference_id
      * is a plain column pointing at whichever table the type implies.
      */
-    public function projectDueSoon(Subject $subject): int
+    public function projectDueSoon(Subject $subject, ?Assessment $assessment = null): int
     {
+        // One of several assessments: its own date, its own text and its own once-only record (keyed on the assessment,
+        // so one assessment's reminder never stands in for another's).
+        if ($assessment !== null) {
+            return $this->assessmentDueSoon($subject, $assessment);
+        }
+
         $days = $subject->daysToProjectDeadline();
 
         if ($days === null || $days < 0) {
@@ -194,7 +219,7 @@ class Notifier
             $this->studentsOf($subject),
             'project_deadline',
             $subject->getKey(),
-            fn () => "{$subject->code} — the group project {$when} ({$subject->project_deadline->format('j M')})",
+            fn () => "{$subject->code} — the group project {$when} ({$subject->projectDeadline()->format('j M')})",
             // The dashboard, because that is where the brief and the countdown
             // are: a student following this link lands on what they have to do,
             // not merely on the fact that it is due.
@@ -285,6 +310,24 @@ class Notifier
             fn () => "{$user->name} has signed in and set their own password",
             route('admin.users.edit', $user->getKey(), false),
             $user->getKey(),
+        );
+    }
+
+    /** A subject has been given to a lecturer (when it is created, or moved to them). */
+    public function subjectAssigned(Subject $subject, User $actor): void
+    {
+        $subject->loadMissing('lecturer');
+
+        if ($subject->lecturer === null || $subject->lecturer->getKey() === $actor->getKey()) {
+            return;
+        }
+
+        $this->write(
+            $subject->lecturer_id,
+            'subject_assigned',
+            "You have been assigned {$subject->code} {$subject->name}",
+            route('lecturer.subjects', absolute: false),
+            $subject->getKey(),
         );
     }
 

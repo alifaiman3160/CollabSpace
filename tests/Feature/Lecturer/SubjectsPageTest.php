@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
- * My subjects: the cards, a New subject tile as the last one, and two panels underneath (deadlines, announcements).
+ * My subjects: the cards (no New subject tile: the administrator gives subjects out), and two panels underneath (deadlines, announcements).
  */
 class SubjectsPageTest extends TestCase
 {
@@ -44,8 +44,8 @@ class SubjectsPageTest extends TestCase
     public function test_it_renders_for_none_one_three_and_six_subjects(): void
     {
         $html = $this->page();
-        $this->assertStringContainsString('No subjects yet', $html);
-        $this->assertSame(1, substr_count($html, 'data-new-subject-tile'));
+        $this->assertStringContainsString('No subjects assigned yet. The administrator assigns subjects to lecturers.', $html);
+        $this->assertSame(0, substr_count($html, 'data-new-subject-tile'));
         $this->assertSame(0, substr_count($html, 'data-subject-card'));
         $this->assertStringNotContainsString('data-subject-panels', $html, 'No panels with no subjects.');
 
@@ -59,43 +59,30 @@ class SubjectsPageTest extends TestCase
             $html = $this->page();
 
             $this->assertSame($n, substr_count($html, 'data-subject-card'), "{$n} subjects");
-            $this->assertSame(1, substr_count($html, 'data-new-subject-tile'));
+            $this->assertSame(0, substr_count($html, 'data-new-subject-tile'));
             $this->assertSame(1, substr_count($html, 'data-subject-panels'));
         }
     }
 
-    public function test_the_new_subject_tile_is_last_and_goes_where_the_top_button_goes(): void
+    public function test_there_is_no_new_subject_button_or_tile_and_the_grid_keeps_its_width(): void
     {
         $this->subject('AAA1111');
         $this->subject('BBB2222');
 
         $html = $this->page();
-        $create = route('lecturer.subjects.create');
 
-        // Last in the grid, after the last card.
-        $this->assertGreaterThan(strrpos($html, 'data-subject-card'), strpos($html, 'data-new-subject-tile'));
-        $this->assertLessThan(strpos($html, '</section>', strpos($html, 'data-subject-grid')), strpos($html, 'data-new-subject-tile'));
-
-        // The same route as the header button; solid and quiet; keyboard reachable (it is a link).
-        preg_match('/<a[^>]*data-new-subject-tile[^>]*>/', $html, $tile);
-        $this->assertStringContainsString('href="'.$create.'"', $tile[0]);
-        $this->assertSame(2, substr_count($html, 'href="'.$create.'"'), 'The header button and the tile.');
-        $this->assertStringNotContainsString('dashed', $tile[0]);
-        $this->assertStringContainsString('cs-lift', $tile[0]);
-        $this->assertStringContainsString('Add a course you teach', $html);
-
-        // The grid keeps the card width it had.
+        $this->assertStringNotContainsString('New subject', $html);
+        $this->assertStringNotContainsString('Add a course you teach', $html);
         $this->assertStringContainsString('grid-cols-[repeat(auto-fill,minmax(24rem,1fr))]', $html);
     }
 
-    public function test_the_tile_has_the_same_permission_as_the_page(): void
+    public function test_the_page_has_the_same_permission_as_before(): void
     {
         $student = User::factory()->student()->create(['must_change_password' => false]);
 
         $this->actingAs($student)->get(route('lecturer.subjects'))->assertForbidden();
-        $this->actingAs($student)->get(route('lecturer.subjects.create'))->assertForbidden();
+        $this->actingAs($student)->post(route('lecturer.subjects.store'), [])->assertForbidden();
     }
-
     public function test_upcoming_deadlines_are_soonest_first_only_for_subjects_with_one_and_labelled(): void
     {
         $this->subject('NONE0000');

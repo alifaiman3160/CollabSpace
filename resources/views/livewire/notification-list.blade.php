@@ -11,9 +11,11 @@
         'deadline' => 'calendar',
         'mention' => 'chat',
         'project_deadline' => 'book',
+        'assessment_deadline' => 'book',
         'announcement' => 'inbox',
         // Lecturer
         'group_completed' => 'check',
+        'subject_assigned' => 'book',
         // Administrator
         'account_created' => 'user',
         'account_status' => 'shield',
@@ -33,7 +35,9 @@
         'account_activated' => 'bg-success-bg text-success-text',
         'account_created' => 'bg-periwinkle-soft text-periwinkle-link',
         'project_deadline' => 'bg-periwinkle-soft text-periwinkle-link',
+        'assessment_deadline' => 'bg-periwinkle-soft text-periwinkle-link',
         'announcement' => 'bg-periwinkle-soft text-periwinkle-link',
+        'subject_assigned' => 'bg-periwinkle-soft text-periwinkle-link',
     ];
 @endphp
 

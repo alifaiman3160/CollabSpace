@@ -133,3 +133,17 @@ php artisan migrate
 ```
 
 To undo it, restore the backup (the migration's `down()` drops the two tables and the two columns, and the enrolments with them).
+
+## Subject files (project question, marking guide)
+
+Files a lecturer attaches to a subject live in `storage/app/private/subject-files/{subject id}/`, under random names (the original name is only in the database). That folder is inside `storage/app/private`, so the **private-storage backup above already covers it**; back the database and that folder up together, because the table `subject_files` points at the files by path. Nothing is ever written under `public/` or `storage/app/public`. The migration `2026_11_12_000001_create_subject_files_table` is additive: take the usual backup, then `php artisan migrate`.
+
+PHP limits (XAMPP: `C:\xampp\php\php.ini`, then restart Apache): `file_uploads = On`, `upload_max_filesize` at least `12M`, `post_max_size` at least `12M` (a file is capped at 10 MB by the application), and the `fileinfo` and `zip` extensions enabled (`extension=fileinfo`, `extension=zip`), because the content of a file is checked, not only its name. A request over `post_max_size` shows a friendly "That file is too large" page instead of a blank error.
+
+## Before the assessments migration
+
+`2026_11_14_000001_create_assessments_table` adds the `assessments` table and `rubrics.assessment_id`, replaces the rubric version key `unique(subject_id, version)` with `unique(assessment_id, version)` (versions and "current" are now counted **per assessment**), and then **writes data**: every subject gets one assessment called "Project" (due on its `project_deadline`, no start date) and all of its existing rubrics move into it. Marks, approvals, suggestions and frozen snapshots hang off a rubric, so they follow it unchanged. `subjects.project_deadline` is kept, and nothing in `activity_logs` is ever touched. It is safe to run twice, but **take a backup first** (the dump above), then `php artisan migrate`. Going back means restoring the backup: the `down()` removes the table and the column but does not renumber rubric versions.
+
+## Before the per-assessment brief and files migration
+
+`2026_11_15_000001_add_brief_and_files_to_assessments` adds `assessments.brief` and `subject_files.assessment_id`, then **writes data once, with the columns**: each subject's existing brief is copied into its first assessment (only where that assessment has no brief yet), and its existing files are assigned to that assessment, so what students read stays the same. `subjects.brief` is kept: it is read only as the fallback while every assessment's brief is empty. A file with no assessment means "whole subject" and shows under every assessment; deleting an assessment turns its files into whole-subject files rather than deleting them. Take a backup first (the dump above, and the private storage folder), then `php artisan migrate`. To go back, restore the backup.

@@ -18,11 +18,21 @@
          data-subject-card data-waiting data-palette="{{ $colour['name'] }}">
         <div class="flex flex-1 flex-col justify-between gap-4 rounded-panel p-5">
             <span class="flex flex-wrap items-start justify-between gap-x-2 gap-y-1.5">
-                <span class="flex min-w-0 items-center gap-1.5">
+                <span class="flex min-w-0 flex-wrap items-center gap-1.5">
                     <span class="rounded-pill px-2.5 py-0.5 text-nav font-extrabold tracking-[-0.02em]" style="background-color: {{ $colour['accent'] }};">{{ $subject->code }}</span>
                     <x-section-chip :section="$enrolment->section" :code="$subject->code" />
+                    <x-week-chip :subject="$subject" />
                 </span>
-                <span class="ml-auto"><x-deadline-chip :subject="$subject" /></span>
+                <span class="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+                    @if ($n = (int) ($fileCounts[$subject->id] ?? 0))
+                        <a href="{{ route('student.subject.files', $subject) }}" wire:navigate data-files-chip
+                           data-tooltip="The questions and other files for {{ $subject->code }}"
+                           class="interactive inline-flex w-fit items-center gap-1.5 rounded-pill bg-white/70 px-2.5 py-1 text-label font-bold text-ink-600 hover:bg-white">
+                            <x-icon name="file" size="12" class="shrink-0" />Files ({{ $n }})
+                        </a>
+                    @endif
+                    <x-deadline-chip :subject="$subject" />
+                </span>
             </span>
 
             <span class="flex flex-col gap-1">

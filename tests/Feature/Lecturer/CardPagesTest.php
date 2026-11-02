@@ -63,9 +63,10 @@ class CardPagesTest extends TestCase
     public function test_my_subjects_renders_for_none_one_and_several_without_a_table(): void
     {
         $html = $this->pageOf('lecturer.subjects');
-        $this->assertStringContainsString('No subjects yet', $html);
+        $this->assertStringContainsString('No subjects assigned yet', $html);
+        $this->assertStringNotContainsString('New subject', $html, 'A lecturer no longer creates subjects.');
         $this->assertStringNotContainsString('<table', $html);
-        $this->assertStringContainsString('data-new-subject-tile', $html);
+        $this->assertStringNotContainsString('data-new-subject-tile', $html);
         $this->assertStringNotContainsString('border-dashed', $html);
 
         $one = $this->subject('AAA1111');
@@ -97,14 +98,15 @@ class CardPagesTest extends TestCase
         $this->assertStringContainsString('Default size 4', $text);
         $this->assertStringContainsString('Group project due No deadline', $text);
 
-        // The Groups number goes where it always went; all six actions and the confirmed delete are on the card.
+        // The Groups number goes where it always went; the actions are on the card, and there is no delete (the administrator deletes subjects).
         $this->assertStringContainsString(route('lecturer.groups', ['subject' => $subject->id]), $html);
-        foreach ([route('lecturer.subjects.edit', $subject), route('lecturer.formation', $subject), route('lecturer.rubrics', $subject), route('lecturer.announcements', $subject), route('lecturer.subjects.destroy', $subject)] as $url) {
+        foreach ([route('lecturer.subjects.edit', $subject), route('lecturer.formation', $subject), route('lecturer.rubrics', $subject), route('lecturer.announcements', $subject)] as $url) {
             $this->assertStringContainsString($url, $html);
         }
-        foreach (['Edit', 'Groups', 'Auto-assign students', 'Rubric', 'Announcements', 'Delete subject', 'aria-label="Delete SECJ3104"'] as $label) {
+        foreach (['Edit', 'Groups', 'Auto-assign students', 'Rubric', 'Announcements'] as $label) {
             $this->assertStringContainsString($label, $html, $label);
         }
+        $this->assertStringNotContainsString('Delete subject', $html);
         $this->assertStringContainsString('1 subject you teach.', $html);
     }
 
@@ -168,7 +170,7 @@ class CardPagesTest extends TestCase
 
     public function test_groups_empty_states_are_friendly_not_dashed(): void
     {
-        $this->assertStringContainsString('No subjects yet', $this->pageOf('lecturer.groups'));
+        $this->assertStringContainsString('No subjects assigned yet', $this->pageOf('lecturer.groups'));
 
         $this->subject('AAA1111');
         $html = $this->pageOf('lecturer.groups');
@@ -237,7 +239,8 @@ class CardPagesTest extends TestCase
     {
         $html = $this->pageOf('lecturer.marking');
 
-        $this->assertStringContainsString('No subjects yet', $html);
+        $this->assertStringContainsString('No subjects assigned yet', $html);
+        $this->assertStringNotContainsString('New subject', $html, 'A lecturer no longer creates subjects.');
         $this->assertStringContainsString('!border-solid', $html, 'No dashed box: the empty state is overridden to solid.');
     }
 

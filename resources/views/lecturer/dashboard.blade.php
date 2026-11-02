@@ -41,10 +41,8 @@
             <x-empty-state
                 class="!border-solid !border-surface-line"
                 icon="book"
-                title="No subjects yet"
-                body="Create a subject, then add groups to it. Students are assigned to a group once it exists."
-                cta="Create a subject"
-                :href="route('lecturer.subjects.create')" />
+                title="No subjects assigned yet"
+                body="The administrator assigns subjects to lecturers. Once you have one, you add groups to it and place students in them." />
         @else
             <section class="grid grid-cols-[repeat(auto-fit,minmax(15rem,1fr))] items-start gap-[18px]" aria-label="My subjects">
                 @foreach ($cards as $i => $card)
@@ -60,7 +58,10 @@
                            class="motion-colors flex min-h-[11.5rem] flex-col justify-between gap-4 rounded-panel p-5 hover:bg-white/50"
                            aria-label="Open {{ $subject->name }}, {{ $subject->code }}">
                             <span class="flex items-start justify-between gap-2">
-                                <span class="rounded-pill px-2.5 py-0.5 text-nav font-extrabold tracking-[-0.02em]" style="background-color: {{ $colour['accent'] }};">{{ $subject->code }}</span>
+                                <span class="flex min-w-0 flex-wrap items-center gap-1.5">
+                                    <span class="rounded-pill px-2.5 py-0.5 text-nav font-extrabold tracking-[-0.02em]" style="background-color: {{ $colour['accent'] }};">{{ $subject->code }}</span>
+                                    <x-week-chip :subject="$subject" />
+                                </span>
                                 <span class="flex size-[22px] items-center justify-center rounded-pill bg-white/80 text-meta font-bold text-ink-600" aria-hidden="true">›</span>
                             </span>
 

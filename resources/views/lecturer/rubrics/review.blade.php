@@ -20,7 +20,7 @@
             <p class="min-w-0 flex-1 text-body font-bold text-ink">
                 Nothing is saved yet.
                 <span class="font-medium text-ink-600">
-                    Check what was read from {{ $source ?? 'the file' }}, correct anything that is wrong, then save it as version {{ $nextVersion }}.
+                    Check what was read from {{ $source ?? 'the file' }}, correct anything that is wrong, then save it as version {{ $nextVersion }}@if ($assessment && $assessment->subject->assessments->count() > 1) of the rubric for {{ $assessment->title }}@endif.
                 </span>
             </p>
         </div>

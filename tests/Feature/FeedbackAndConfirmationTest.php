@@ -102,7 +102,7 @@ class FeedbackAndConfirmationTest extends TestCase
         // round trip or a status message vanished on them.
         $this->actingAs($lecturer)
             ->withSession(['status' => 'Saved that for you.'])
-            ->get(route('lecturer.subjects.create'))
+            ->get(route('lecturer.groups.create'))
             ->assertOk()
             ->assertSee('Saved that for you.');
 
@@ -185,11 +185,10 @@ class FeedbackAndConfirmationTest extends TestCase
     {
         [$lecturer, $subject] = $this->lecturerWithGroup();
 
-        $this->actingAs($lecturer)
-            ->get(route('lecturer.subjects'))
+        // The administrator deletes subjects now, and a delete gets a second, deliberate step.
+        $this->actingAs($this->admin())
+            ->get(route('admin.subjects'))
             ->assertOk()
-            // A cascading delete takes groups, tasks, documents, chat and the
-            // contribution record with it, so it gets a second, deliberate step.
             ->assertSee("confirmText: 'SECJ3104'", false);
     }
 

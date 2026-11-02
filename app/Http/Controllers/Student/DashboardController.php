@@ -16,7 +16,7 @@ class DashboardController extends StudentController
 
         // The subjects the administrator enrolled this student in that have no group of theirs yet: they still get
         // their subject card and its announcements.
-        $waiting = $me->enrolments()->with(['subject', 'section'])->get()
+        $waiting = $me->enrolments()->with(['subject.assessments', 'section'])->get()
             ->reject(fn ($enrolment) => $groups->contains('subject_id', $enrolment->subject_id))
             ->sortBy(fn ($enrolment) => $enrolment->subject->code)
             ->values();
@@ -29,6 +29,10 @@ class DashboardController extends StudentController
             ->get();
         $readIds = \App\Models\AnnouncementRead::query()->where('user_id', $me->id)->pluck('announcement_id')->all();
 
+        // How many files each of the waiting subjects has, for the "Files (N)" chip: one grouped count.
+        $fileCounts = \App\Models\SubjectFile::query()->whereIn('subject_id', $waiting->pluck('subject_id'))
+            ->groupBy('subject_id')->selectRaw('subject_id, count(*) as total')->pluck('total', 'subject_id');
+
         // A student with no group assignment yet gets a proper empty state
         // rather than a page full of zeroes and broken links.
         if ($groups->isEmpty()) {
@@ -36,6 +40,7 @@ class DashboardController extends StudentController
                 'groups' => $groups,
                 'hasGroup' => false,
                 'waiting' => $waiting,
+                'fileCounts' => $fileCounts,
                 'announcements' => $announcements,
                 'readAnnouncementIds' => $readIds,
             ]);
@@ -54,6 +59,7 @@ class DashboardController extends StudentController
             'hasGroup' => true,
             'groups' => $groups,
             'waiting' => $waiting,
+            'fileCounts' => $fileCounts,
 
             'pendingCount' => (clone $mine)->where('status', '!=', Task::STATUS_DONE)->count(),
             'completedCount' => (clone $mine)->where('status', Task::STATUS_DONE)->count(),

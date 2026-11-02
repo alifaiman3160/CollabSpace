@@ -27,7 +27,8 @@ class WorkspaceController extends StudentController
         $group = $this->ownedGroup($group);
 
         $group->load([
-            'subject',
+            'subject.files.assessment',
+            'subject.assessments',
             'members' => fn ($q) => $q->orderBy('name'),
         ])->loadCount([
             'tasks as tasks_total',

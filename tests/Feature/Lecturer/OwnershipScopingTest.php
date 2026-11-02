@@ -79,11 +79,15 @@ class OwnershipScopingTest extends TestCase
         $this->assertSame('THEIRS101', $this->theirSubject->fresh()->code);
     }
 
-    public function test_another_lecturers_subject_cannot_be_deleted(): void
+    public function test_no_lecturer_can_delete_a_subject_theirs_or_anybody_elses(): void
     {
         $this->actingAs($this->mine)
             ->delete(route('lecturer.subjects.destroy', $this->theirSubject))
-            ->assertNotFound();
+            ->assertForbidden();
+
+        $this->actingAs($this->mine)
+            ->delete(route('lecturer.subjects.destroy', $this->mySubject))
+            ->assertForbidden();
 
         $this->assertDatabaseHas('subjects', ['id' => $this->theirSubject->id]);
     }

@@ -45,6 +45,8 @@ class NavigationComposer
         $role = $user->role ?? 'student';
 
         $collapsed = SidebarState::collapsed(request());
+        $nav = $user ? $this->withGroups($this->navFor($role), $user, $role) : $this->navFor($role);
+        $current = $this->currentSection($nav);
 
         $view->with([
             'role' => $role,
@@ -53,14 +55,42 @@ class NavigationComposer
                 'lecturer' => 'Lecturer Portal',
                 default => 'Student Portal',
             },
-            'nav' => $user ? $this->withGroups($this->navFor($role), $user, $role) : $this->navFor($role),
+            'nav' => $nav,
             'sidebar' => [
                 'collapsed' => $collapsed === true,
                 // Nobody has chosen yet: the page script may start the rail collapsed on a narrow screen.
                 'auto' => $collapsed === null,
-                'open' => SidebarState::open(request()),
+                // One section at a time: the one that holds this page. The script keeps it so on every navigation.
+                'current' => $current,
+                'open' => $current !== null ? [$current] : [],
             ],
         ]);
+    }
+
+    /**
+     * The key of the item that opens and holds the current page (its own page, or one of its groups), or null when the
+     * page belongs to none (Dashboard, Notifications, My account, Groups, Students ...). The same test as x-nav-item's.
+     *
+     * @param  array<int, array<string, mixed>>  $nav
+     */
+    protected function currentSection(array $nav): ?string
+    {
+        foreach ($nav as $item) {
+            $children = $item['children'] ?? [];
+
+            if (empty($item['group']) || count($children) === 0) {
+                continue;
+            }
+
+            $href = \Illuminate\Support\Facades\Route::has($item['route']) ? route($item['route']) : (string) $item['route'];
+            $path = trim((string) parse_url($href, PHP_URL_PATH), '/');
+
+            if (($path !== '' && request()->is($path, $path.'/*')) || SidebarState::activeChild(request()->path(), $children) !== null) {
+                return $item['group'];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -72,6 +102,7 @@ class NavigationComposer
             'admin' => [
                 ['icon' => 'grid',       'label' => 'Dashboard',       'route' => 'admin.dashboard'],
                 ['icon' => 'users',      'label' => 'User accounts',   'route' => 'admin.users'],
+                ['icon' => 'book',       'label' => 'Subjects',        'route' => 'admin.subjects'],
                 ['icon' => 'bell',       'label' => 'Notifications',   'route' => 'admin.notifications', 'live' => true],
                 ['icon' => 'user',       'label' => 'My account',      'route' => 'account'],
             ],
@@ -111,10 +142,20 @@ class NavigationComposer
             $groups = $this->lecturerGroups($user);
 
             // Always the same two queries (the groups, and the current rubric of each subject for the marking links).
+            // A subject with several assessments has a current rubric for each: the marking links use the active one.
+            $assessments = \App\Models\Assessment::query()->whereIn('subject_id', $user->subjects()->select('id'))
+                ->orderBy('position')->orderBy('id')->get()->groupBy('subject_id');
+
             $rubrics = Rubric::query()
                 ->whereIn('subject_id', $user->subjects()->select('id'))
                 ->where('is_current', true)
-                ->pluck('id', 'subject_id');
+                ->get(['id', 'subject_id', 'assessment_id'])
+                ->groupBy('subject_id')
+                ->map(function ($rows, $subjectId) use ($assessments) {
+                    $active = \App\Models\Assessment::pickActive($assessments->get($subjectId, collect()))?->id;
+
+                    return ($rows->firstWhere('assessment_id', $active) ?? $rows->first())->id;
+                });
 
             if ($groups->isEmpty()) {
                 return $nav;

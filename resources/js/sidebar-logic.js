@@ -25,9 +25,8 @@ export const serializeOpen = (keys) => [...new Set(keys)].join(',')
 
 /** The open list with one section opened or closed. */
 export const withSection = (keys, key, open) => {
-    const rest = keys.filter((existing) => existing !== key)
-
-    return open ? [...rest, key] : rest
+    // One section at a time: opening one closes the others.
+    return open ? [key] : keys.filter((existing) => existing !== key)
 }
 
 const clean = (path) => `/${String(path ?? '').replace(/^\/+|\/+$/g, '')}`

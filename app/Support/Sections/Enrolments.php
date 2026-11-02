@@ -48,13 +48,16 @@ class Enrolments
      * while they are in a group of that subject: the group would then hold somebody who is not in its section. They
      * must be taken out of the group first.
      *
+     * With $createMissing false (the administrator's form) a section must already exist: sections are made on the
+     * Subjects screen. Internal callers that build data may still ask for a missing one to be created.
+     *
      * @param  list<array{subject_id: int|string, section: string}>  $rows
      *
      * @throws EnrolmentException
      */
-    public static function sync(User $student, array $rows): void
+    public static function sync(User $student, array $rows, bool $createMissing = true): void
     {
-        DB::transaction(function () use ($student, $rows) {
+        DB::transaction(function () use ($student, $rows, $createMissing) {
             $current = $student->enrolments()->with('section')->get()->keyBy('subject_id');
             $wanted = collect($rows)->keyBy(fn ($row) => (int) $row['subject_id']);
 
@@ -78,7 +81,8 @@ class Enrolments
             }
 
             foreach ($wanted as $subjectId => $row) {
-                $section = self::section(Subject::findOrFail($subjectId), $row['section']);
+                $subject = Subject::findOrFail($subjectId);
+                $section = self::section($subject, $row['section'], $createMissing);
 
                 Enrolment::updateOrCreate(
                     ['user_id' => $student->getKey(), 'subject_id' => $subjectId],
@@ -90,13 +94,27 @@ class Enrolments
         });
     }
 
-    /** The subject's section with this name (any capitals), created when it does not exist yet. */
-    public static function section(Subject $subject, string $name): Section
+    /**
+     * The subject's section with this name (any capitals). Created when it does not exist yet, unless $create is false,
+     * in which case a missing one is an error that points the administrator to the Subjects screen.
+     *
+     * @throws EnrolmentException
+     */
+    public static function section(Subject $subject, string $name, bool $create = true): Section
     {
         $name = self::clean($name);
 
-        return Section::query()->where('subject_id', $subject->getKey())->whereRaw('lower(name) = ?', [self::norm($name)])->first()
-            ?? Section::create(['subject_id' => $subject->getKey(), 'name' => $name]);
+        $found = Section::query()->where('subject_id', $subject->getKey())->whereRaw('lower(name) = ?', [self::norm($name)])->first();
+
+        if ($found !== null) {
+            return $found;
+        }
+
+        if (! $create) {
+            throw new EnrolmentException("{$subject->code} has no section called {$name}. Add its sections under Subjects first.");
+        }
+
+        return Section::create(['subject_id' => $subject->getKey(), 'name' => $name]);
     }
 
     public static function clean(string $name): string

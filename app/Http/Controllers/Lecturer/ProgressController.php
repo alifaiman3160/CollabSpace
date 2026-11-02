@@ -29,7 +29,7 @@ class ProgressController extends LecturerController
         $groups = $this->groups()
             ->when($filter['subjectId'], fn ($q, $id) => $q->where('subject_id', $id))
             ->when($filter['sectionId'], fn ($q, $id) => $q->where('section_id', $id))
-            ->with(['subject.lecturer', 'section', 'members:users.id,users.name'])
+            ->with(['subject.lecturer', 'subject.assessments', 'section', 'members:users.id,users.name'])
             ->withCount([
                 'groupMembers as members_count',
                 'tasks as tasks_total',
@@ -49,7 +49,7 @@ class ProgressController extends LecturerController
 
         // Members flagged for low participation: the contribution report's own rule and numbers, for all groups from
         // one read of the log (see ContributionReport::forMany).
-        $reports = $this->reports->forMany($groups);
+        $reports = $this->contributionFor($this->reports, $groups, $filter['subjectId'], $request->query('assessment'));
         $ratio = (float) config('contribution.low_participation_ratio');
 
         $flagged = $groups->flatMap(fn (Group $group) => $reports[$group->id]['flagged']->map(fn ($row) => [
@@ -74,7 +74,7 @@ class ProgressController extends LecturerController
         ]);
     }
 
-    public function show(Group $group): View
+    public function show(\Illuminate\Http\Request $request, Group $group): View
     {
         $group = $this->ownedGroup($group);
 
@@ -88,9 +88,12 @@ class ProgressController extends LecturerController
             ->orderBy('id')
             ->get();
 
-        $report = $this->reports->for($group);
+        $assessment = \App\Support\Sections\SubjectSectionFilter::assessmentFor($group->subject, $request->query('assessment'));
+        $report = $this->reports->for($group, $assessment);
 
         return view('lecturer.progress.show', [
+            'assessment' => $assessment,
+            'assessments' => $group->subject->assessments,
             'group' => $group,
             'groups' => $this->groups()->with(['subject', 'section'])->orderBy('name')->get(),
             'report' => $report,

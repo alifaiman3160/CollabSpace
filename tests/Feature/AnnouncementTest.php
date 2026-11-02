@@ -175,7 +175,12 @@ class AnnouncementTest extends TestCase
     {
         $this->post_();
 
-        $this->actingAs($this->lecturer)->delete(route('lecturer.subjects.destroy', $this->subject))->assertRedirect();
+        // The administrator deletes subjects, and only empty ones: nobody enrolled, no groups.
+        \App\Models\Group::query()->get()->each->delete();
+        \App\Models\Enrolment::query()->delete();
+
+        $admin = User::factory()->admin()->create(['must_change_password' => false]);
+        $this->actingAs($admin)->delete(route('admin.subjects.destroy', $this->subject))->assertRedirect(route('admin.subjects'));
 
         $this->assertSame(0, Announcement::count());
         $this->assertSame(0, AppNotification::where('type', 'announcement')->count());

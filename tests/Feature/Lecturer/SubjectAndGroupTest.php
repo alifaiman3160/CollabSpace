@@ -85,86 +85,48 @@ class SubjectAndGroupTest extends TestCase
     | Subjects
     */
 
-    public function test_a_lecturer_can_create_a_subject(): void
+    public function test_a_lecturer_cannot_create_a_subject(): void
     {
         $this->actingAs($this->lecturer)
-            ->post(route('lecturer.subjects.store'), [
-                'code' => 'secv2113',
-                'name' => 'Human Computer Interaction',
-                'group_size' => 3,
-            ])
-            ->assertRedirect(route('lecturer.subjects'));
+            ->post(route('lecturer.subjects.store'), ['code' => 'SECV2113', 'name' => 'Human Computer Interaction', 'group_size' => 3])
+            ->assertForbidden();
 
-        $this->assertDatabaseHas('subjects', [
-            'lecturer_id' => $this->lecturer->id,
-            'code' => 'SECV2113',   // upper-cased on the way in
-            'group_size' => 3,
-        ]);
-    }
-
-    public function test_a_lecturer_cannot_reuse_their_own_subject_code(): void
-    {
-        $this->subject();
-
-        $this->actingAs($this->lecturer)
-            ->post(route('lecturer.subjects.store'), [
-                'code' => 'SECJ3104', 'name' => 'Duplicate', 'group_size' => 4,
-            ])
-            ->assertSessionHasErrors('code');
-    }
-
-    public function test_two_lecturers_may_each_use_the_same_code(): void
-    {
-        $this->subject();
-
-        $other = User::factory()->lecturer()->create(['must_change_password' => false]);
-
-        $this->actingAs($other)
-            ->post(route('lecturer.subjects.store'), [
-                'code' => 'SECJ3104', 'name' => 'Their section', 'group_size' => 4,
-            ])
-            ->assertSessionHasNoErrors();
-
-        $this->assertSame(2, Subject::where('code', 'SECJ3104')->count());
+        $this->assertDatabaseMissing('subjects', ['code' => 'SECV2113']);
+        $this->actingAs($this->lecturer)->get('/lecturer/subjects/create')->assertMethodNotAllowed();
     }
 
     public function test_group_size_is_bounded(): void
     {
+        $subject = $this->subject();
+
         foreach ([1, 11] as $size) {
             $this->actingAs($this->lecturer)
-                ->post(route('lecturer.subjects.store'), [
-                    'code' => 'X'.$size, 'name' => 'Bad size', 'group_size' => $size,
-                ])
+                ->put(route('lecturer.subjects.update', $subject), ['group_size' => $size])
                 ->assertSessionHasErrors('group_size');
         }
     }
 
-    public function test_deleting_a_subject_cascades_to_its_groups(): void
+    public function test_a_lecturer_cannot_delete_a_subject_even_an_empty_one(): void
     {
         $subject = $this->subject();
         $group = Group::create(['subject_id' => $subject->id, 'name' => 'G1', 'group_size' => 4]);
 
-        $this->actingAs($this->lecturer)
-            ->delete(route('lecturer.subjects.destroy', $subject))
-            ->assertRedirect(route('lecturer.subjects'));
+        $this->actingAs($this->lecturer)->delete(route('lecturer.subjects.destroy', $subject))->assertForbidden();
 
-        $this->assertDatabaseMissing('subjects', ['id' => $subject->id]);
-        $this->assertDatabaseMissing('groups', ['id' => $group->id]);
+        $this->assertDatabaseHas('subjects', ['id' => $subject->id]);
+        $this->assertDatabaseHas('groups', ['id' => $group->id]);
     }
 
-    public function test_the_subject_list_warns_about_the_cascade(): void
+    public function test_the_subject_list_offers_no_new_or_delete(): void
     {
-        $subject = $this->subject();
-        Group::create(['subject_id' => $subject->id, 'name' => 'G1', 'group_size' => 4]);
+        $this->subject();
 
-        $this->actingAs($this->lecturer)
-            ->get(route('lecturer.subjects'))
-            ->assertOk()
-            // The confirm payload carries the cascade detail.
-            ->assertSee('consequences', escape: false)
-            ->assertSee('Delete this subject?', escape: false);
+        $html = $this->actingAs($this->lecturer)->get(route('lecturer.subjects'))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('New subject', $html);
+        $this->assertStringNotContainsString('data-new-subject-tile', $html);
+        $this->assertStringNotContainsString('Delete this subject?', $html);
     }
-
     /*
     | Groups
     */

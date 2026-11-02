@@ -51,14 +51,20 @@ class MarkingController extends LecturerController
         $filter = \App\Support\Sections\SubjectSectionFilter::for($request, $this->lecturer());
         $subjects = $this->subjects()
             ->when($filter['subjectId'], fn ($q, $id) => $q->where('id', $id))
-            ->with(['groups' => fn ($q) => $q->with('section')->withCount('groupMembers as members_count')
+            ->with(['assessments', 'groups' => fn ($q) => $q->with('section')->withCount('groupMembers as members_count')
                 ->when($filter['sectionId'], fn ($q, $id) => $q->where('section_id', $id))
                 ->orderBy('name')])
             ->orderBy('code')
             ->get();
 
+        // Each subject's rubric is the current one of the assessment the page is about: the one chosen (for the chosen
+        // subject), otherwise the subject's active assessment.
+        $chosen = $subjects->mapWithKeys(fn ($subject) => [$subject->id => \App\Support\Sections\SubjectSectionFilter::assessmentFor(
+            $subject, $filter['subjectId'] === $subject->id ? $request->query('assessment') : null,
+        )]);
+
         $rubrics = Rubric::query()
-            ->whereIn('subject_id', $subjects->pluck('id'))
+            ->whereIn('assessment_id', $chosen->filter()->map->getKey()->values())
             ->where('is_current', true)
             ->get()
             ->keyBy('subject_id');
@@ -74,6 +80,7 @@ class MarkingController extends LecturerController
         return view('lecturer.marking.index', [
             'filter' => $filter,
             'subjects' => $subjects,
+            'chosen' => $chosen,
             'rubrics' => $rubrics,
             'approved' => $approved,
             // A rubric version is locked while any approval against it is active (what Rubric::isLocked() asks, once for all).
@@ -98,8 +105,13 @@ class MarkingController extends LecturerController
             ];
         });
 
+        $rubric->load('subject', 'assessment');
+
         return view('lecturer.marking.group', [
-            'rubric' => $rubric->load('subject'),
+            // The other assessments of the subject, each with its current rubric, to move between them.
+            'assessments' => $rubric->subject->assessments()->get(),
+            'currentRubrics' => Rubric::query()->where('subject_id', $rubric->subject_id)->where('is_current', true)->pluck('id', 'assessment_id'),
+            'rubric' => $rubric,
             'group' => $group,
             'rows' => $rows,
             'ai' => $ai->status(),

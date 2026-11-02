@@ -19,7 +19,7 @@ class ReportController extends LecturerController
             ->when($filter['subjectId'], fn ($q, $id) => $q->where('subject_id', $id))
             ->when($filter['sectionId'], fn ($q, $id) => $q->where('section_id', $id))
             // Eager-loaded so building each summary below does not re-query.
-            ->with(['subject.lecturer', 'section', 'members'])
+            ->with(['subject.lecturer', 'subject.assessments', 'section', 'members'])
             ->withCount('groupMembers as members_count')
             ->orderBy('subject_id')
             ->orderBy('name')
@@ -27,7 +27,7 @@ class ReportController extends LecturerController
 
         // One read of the log for every group, then each group's own report numbers: the flag count, the total, and
         // each member's points (what the distribution bar is made of).
-        $reports = $this->reports->forMany($groups);
+        $reports = $this->contributionFor($this->reports, $groups, $filter['subjectId'], $request->query('assessment'));
 
         $summaries = $groups->mapWithKeys(function (Group $group) use ($reports) {
             $report = $reports[$group->id];
@@ -56,12 +56,15 @@ class ReportController extends LecturerController
             'filter' => $filter,
         ]);
     }
-    public function show(Group $group): View
+    public function show(\Illuminate\Http\Request $request, Group $group): View
     {
         $group = $this->ownedGroup($group)->load('section');
+        $assessment = \App\Support\Sections\SubjectSectionFilter::assessmentFor($group->subject, $request->query('assessment'));
 
         return view('lecturer.reports.show', [
-            'report' => $this->reports->for($group),
+            'assessment' => $assessment,
+            'assessments' => $group->subject->assessments,
+            'report' => $this->reports->for($group, $assessment),
             'groups' => $this->groups()->with(['subject', 'section'])->orderBy('name')->get(),
         ]);
     }
@@ -71,12 +74,13 @@ class ReportController extends LecturerController
      * and a spreadsheet is what a lecturer actually wants to keep alongside
      * their marks.
      */
-    public function export(Group $group): StreamedResponse
+    public function export(\Illuminate\Http\Request $request, Group $group): StreamedResponse
     {
         $group = $this->ownedGroup($group);
+        $assessment = \App\Support\Sections\SubjectSectionFilter::assessmentFor($group->subject, $request->query('assessment'));
 
-        $report = $this->reports->for($group);
-        $rows = $this->reports->toCsvRows($report);
+        $report = $this->reports->for($group, $assessment);
+        $rows = $this->reports->toCsvRows($report, $assessment);
 
         $filename = str($group->subject->code.' '.$group->name)->slug()->value().'-contribution.csv';
 

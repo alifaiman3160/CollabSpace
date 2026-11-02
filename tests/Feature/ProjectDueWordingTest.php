@@ -44,7 +44,10 @@ class ProjectDueWordingTest extends TestCase
 
     public function test_the_forms_label_and_explain_the_field(): void
     {
-        foreach ([route('lecturer.subjects.create'), route('lecturer.subjects.edit', $this->subject)] as $url) {
+        // Only a subject with no assessment (it should not happen) keeps the subject-level field.
+        \App\Models\Assessment::query()->where('subject_id', $this->subject->id)->delete();
+
+        foreach ([route('lecturer.subjects.edit', $this->subject)] as $url) {
             $html = $this->actingAs($this->lecturer)->get($url)->assertOk()->getContent();
 
             $this->assertStringContainsString('Group project due date', $html);
@@ -58,11 +61,11 @@ class ProjectDueWordingTest extends TestCase
 
     public function test_the_field_stays_optional(): void
     {
-        $this->actingAs($this->lecturer)->post(route('lecturer.subjects.store'), [
-            'code' => 'SECJ9999', 'name' => 'No date', 'group_size' => 4,
+        $this->actingAs($this->lecturer)->put(route('lecturer.subjects.update', $this->subject), [
+            'project_deadline' => '', 'group_size' => 4,
         ])->assertRedirect(route('lecturer.subjects'));
 
-        $this->assertNull(Subject::where('code', 'SECJ9999')->value('project_deadline'));
+        $this->assertNull($this->subject->fresh()->project_deadline);
     }
 
     public function test_the_lecturers_card_and_the_students_brief_use_the_same_words(): void
@@ -111,9 +114,12 @@ class ProjectDueWordingTest extends TestCase
         $task = Task::where('title', 'Polish the report')->sole();
         $this->assertSame('2027-02-01', $task->deadline->format('Y-m-d'));
     }
-    public function test_edit_and_new_subject_have_the_same_back_link_as_the_other_pages(): void
+    public function test_edit_has_the_same_back_link_as_the_other_pages(): void
     {
-        foreach ([route('lecturer.subjects.edit', $this->subject), route('lecturer.subjects.create')] as $url) {
+        // Only a subject with no assessment (it should not happen) keeps the subject-level field.
+        \App\Models\Assessment::query()->where('subject_id', $this->subject->id)->delete();
+
+        foreach ([route('lecturer.subjects.edit', $this->subject)] as $url) {
             $html = $this->actingAs($this->lecturer)->get($url)->assertOk()->getContent();
 
             $this->assertMatchesRegularExpression('/<a href="'.preg_quote(route('lecturer.subjects'), '/').'"[^>]*>\s*<svg.*?<\/svg>\s*My subjects\s*<\/a>/s', $html);

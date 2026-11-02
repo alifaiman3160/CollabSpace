@@ -27,7 +27,7 @@ class EnrolmentRules
             'enrolments.*.subject_id.required' => 'Choose a subject for every row, or remove the row.',
             'enrolments.*.subject_id.distinct' => 'Each subject can appear only once: a student has one section per subject.',
             'enrolments.*.subject_id.exists' => 'That subject does not exist.',
-            'enrolments.*.section.required' => 'Give the section for every subject, for example 1A.',
+            'enrolments.*.section.required' => 'Choose a section for every subject. If a subject has none yet, add its sections under Subjects first.',
             'enrolments.*.section.max' => 'A section name is at most '.Enrolments::NAME_MAX.' characters.',
         ];
     }

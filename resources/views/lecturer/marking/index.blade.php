@@ -12,10 +12,8 @@
             <x-empty-state
                 class="!border-solid !border-surface-line"
                 icon="book"
-                title="No subjects yet"
-                body="Marking uses a rubric for a subject. Create a subject, then upload its rubric."
-                cta="Create a subject"
-                :href="route('lecturer.subjects.create')" />
+                title="No subjects assigned yet"
+                body="Marking uses a rubric for a subject, and the administrator assigns subjects to lecturers." />
         @else
             {{-- Rubrics --}}
             <section class="flex flex-col gap-3">
@@ -23,11 +21,18 @@
 
                 <div class="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-[18px]" data-rubric-grid>
                     @foreach ($subjects as $i => $subject)
-                        @php $rubric = $rubrics->get($subject->id); @endphp
+                        @php
+                            $rubric = $rubrics->get($subject->id);
+                            $assessment = $chosen->get($subject->id);
+                        @endphp
 
                         <x-subject-card :subject="$subject" :i="$i">
                             @if ($rubric && $locked->has($rubric->id))
                                 <x-slot:badge><x-table.dot-pill tone="warning">Locked</x-table.dot-pill></x-slot:badge>
+                            @endif
+
+                            @if ($subject->assessments->count() > 1 && $assessment)
+                                <x-assessment-chip :assessment="$assessment" class="mt-1 w-fit" />
                             @endif
 
                             @if ($rubric)
@@ -42,10 +47,10 @@
                             <x-slot:footer>
                                 @if ($rubric)
                                     <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
-                                              :href="route('lecturer.rubrics', $subject)">Upload or manage</x-button>
+                                              :href="route('lecturer.rubrics', [$subject] + ($subject->assessments->count() > 1 ? ['assessment' => $assessment?->id] : []))">Upload or manage</x-button>
                                 @else
                                     <x-button class="!px-4 !py-2 !text-meta"
-                                              :href="route('lecturer.rubrics', $subject)">Upload a rubric</x-button>
+                                              :href="route('lecturer.rubrics', [$subject] + ($subject->assessments->count() > 1 ? ['assessment' => $assessment?->id] : []))">Upload a rubric</x-button>
                                 @endif
                             </x-slot:footer>
                         </x-subject-card>
@@ -64,7 +69,10 @@
                     <div class="grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-[18px]" data-group-grid>
                         @php $n = 0; @endphp
                         @foreach ($subjects as $subject)
-                            @php $rubric = $rubrics->get($subject->id); @endphp
+                            @php
+                            $rubric = $rubrics->get($subject->id);
+                            $assessment = $chosen->get($subject->id);
+                        @endphp
 
                             @foreach ($subject->groups as $group)
                                 @php
@@ -99,7 +107,7 @@
                                                       :href="route('lecturer.marking.group', [$rubric, $group])">Mark</x-button>
                                         @else
                                             <x-button variant="secondary" class="!px-4 !py-2 !text-meta"
-                                                      :href="route('lecturer.rubrics', $subject)">Upload a rubric</x-button>
+                                                      :href="route('lecturer.rubrics', [$subject] + ($subject->assessments->count() > 1 ? ['assessment' => $assessment?->id] : []))">Upload a rubric</x-button>
                                         @endif
                                     </x-slot:footer>
                                 </x-group-card>

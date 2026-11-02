@@ -8,14 +8,17 @@
 
         <x-flash />
 
+        <x-assessment-filter :assessments="$assessments" :current="$assessment?->id" route="lecturer.rubrics" :params="[$subject]" />
+
         {{-- Upload --}}
         <form method="POST" action="{{ route('lecturer.rubrics.store', $subject) }}" enctype="multipart/form-data"
               class="flex flex-col gap-4 rounded-panel border border-surface-line bg-surface p-6 shadow-subtle">
             @csrf
+            <input type="hidden" name="assessment" value="{{ $assessment?->id }}">
 
             <div class="flex flex-col gap-1">
                 <h2 class="text-h3 font-bold tracking-title">
-                    {{ $rubrics->isEmpty() ? 'Upload a rubric' : 'Upload a new version' }}
+                    {{ $rubrics->isEmpty() ? 'Upload a rubric' : 'Upload a new version' }}@if ($assessments->count() > 1) for {{ $assessment?->title }}@endif
                 </h2>
                 <p class="text-body leading-[1.55] text-ink-400">
                     An .xlsx file with one or more tables, each with a header row of performance levels such as
