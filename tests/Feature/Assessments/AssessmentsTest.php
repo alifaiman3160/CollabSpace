@@ -271,7 +271,7 @@ class AssessmentsTest extends TestCase
         $this->assertSame(1, preg_match_all('/<span[^>]*data-assessment-active[^>]*>/', $html), 'Only the Project is on today.');
         $this->assertStringContainsString(route('lecturer.subjects.assessments.update', [$this->subject, $a]), $html);
         $this->assertStringContainsString(route('lecturer.subjects.assessments.destroy', [$this->subject, $b]), $html);
-        $this->assertStringContainsString('counts toward none of them', $html);
+        $this->assertStringContainsString('none of it counts between them', $html);
         $this->assertStringNotContainsString('data-due-per-assessment', $html);
     }
 

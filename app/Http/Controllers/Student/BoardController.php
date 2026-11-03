@@ -31,7 +31,7 @@ class BoardController extends StudentController
 
         return view('student.board', [
             'hasGroup' => true,
-            'group' => $group->load('subject.files.assessment', 'subject.assessments'),
+            'group' => $group->load('subject.files.assessment', 'subject.files.targets', 'subject.assessments'),
             // Without this the board had no switcher, so a student in two
             // subjects could only ever reach the board of whichever group
             // sorted first — the other one was unreachable from the sidebar.

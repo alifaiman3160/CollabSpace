@@ -151,3 +151,7 @@ PHP limits (XAMPP: `C:\xampp\php\php.ini`, then restart Apache): `file_uploads =
 ## Group submissions (PDF of the report)
 
 A group's submission is one frozen PDF, kept in `storage/app/private/submissions/{group id}/` under a random name. That folder is inside `storage/app/private`, so the **private-storage backup above covers it**, but the PDF is the only copy of what was handed in (the documents can change or be deleted later): back the database and `storage/app/private` up **together**, because the `submissions` table points at the files by path. `documents:purge-deleted` and the document delete never touch these files. The migration `2026_11_16_000001_create_submissions_tables` is additive (two new tables): take the usual backup, then `php artisan migrate`.
+
+## Course materials per assessment
+
+`2026_11_17_000001_create_subject_file_assessment_table` adds one small table, `subject_file_assessment`, listing which assessments a shared file (Course materials) is shown under. A shared file with no row there is shown under every assessment, as before, so nothing existing changes. Deleting an assessment removes its rows; a file left with none is shown under all remaining assessments (the file itself is never deleted). Take the usual backup, then `php artisan migrate`.

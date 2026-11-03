@@ -24,13 +24,10 @@
     <div class="flex flex-col gap-1">
         <h2 class="text-h3 font-bold tracking-title">Assessments</h2>
         <p class="text-meta leading-[1.5] text-ink-400" data-assessment-help>
-            Each assessment has its own dates, brief, files and marking rubric, and is marked for the same groups. When a subject has
-            more than one, a student's contribution for an assessment counts only the activity from its start date to the end of
-            its due date. Activity between two assessments, or after the last due date, counts toward none of them. Dates cannot
-            overlap. With a single assessment everything counts, whatever its dates.
+            Dates cannot overlap. With more than one assessment, activity counts only inside an assessment's dates, and none of it counts between them.
         </p>
         <p class="text-meta leading-[1.5] text-ink-400" data-files-help>
-            Files are questions and marking guides for students to read and download. PDF, Word, PowerPoint or Excel, up to 10 MB each, {{ \App\Support\SubjectFiles::MAX_PER_SUBJECT }} files per subject.
+            Files: PDF, Word, PowerPoint or Excel, up to 10 MB each, {{ \App\Support\SubjectFiles::MAX_PER_SUBJECT }} per subject.
         </p>
     </div>
 
@@ -81,7 +78,7 @@
                                 url: '{{ route('lecturer.subjects.assessments.destroy', [$subject, $assessment]) }}',
                                 method: 'DELETE',
                                 title: 'Delete this assessment?',
-                                body: {{ Js::from('Its rubrics go with it. '.($fileCount > 0 ? $fileCount.' '.str('file')->plural($fileCount).' for it will stay, as whole-subject '.str('file')->plural($fileCount).'. ' : '').($block ? 'It cannot be deleted while '.$block.'.' : 'Nothing has been marked for it.')) }},
+                                body: {{ Js::from('Its rubrics go with it. '.($fileCount > 0 ? $fileCount.' '.str('file')->plural($fileCount).' for it will stay, under Course materials. ' : '').($block ? 'It cannot be deleted while '.$block.'.' : 'Nothing has been marked for it.')) }},
                                 action: 'Delete assessment',
                                 tone: 'danger',
                             }">Delete</x-table.quiet-action>
@@ -150,7 +147,7 @@
     <div id="assessment-shared" class="flex min-w-0 scroll-mt-6 flex-col gap-3 rounded-card border border-surface-line bg-surface px-4 py-3.5"
          x-data="{ uploading: {{ $uploadTo === 'subject' ? 'true' : 'false' }}, shown: {{ $sharedOpen ? 'true' : 'false' }} }" data-whole-subject>
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <span class="min-w-0 flex-1 truncate text-nav font-bold">Whole subject</span>
+            <span class="min-w-0 flex-1 truncate text-nav font-bold">Course materials</span>
             @if ($sharedFiles->isNotEmpty())
                 <x-table.quiet-action tone="neutral" icon="plus" x-on:click="uploading = ! uploading" x-bind:aria-expanded="uploading ? 'true' : 'false'">Upload file</x-table.quiet-action>
             @endif
@@ -162,13 +159,13 @@
                         x-on:click="shown = true; uploading = true" data-add-shared>+ Add a shared file</button>
             </div>
             <div class="flex flex-col gap-3" x-show="shown" x-cloak>
-                <p class="text-meta text-ink-400">Shown to the students under every assessment.</p>
-                @include('lecturer.subjects._file-list', ['subject' => $subject, 'files' => $sharedFiles])
+                <p class="text-meta text-ink-400">Shown under every assessment, or only the ones you tick when uploading.</p>
+                @include('lecturer.subjects._file-list', ['subject' => $subject, 'files' => $sharedFiles, 'shared' => true])
             </div>
         @else
             <div class="flex flex-col gap-1.5" data-assessment-files>
-                <p class="text-meta text-ink-400">Shown to the students under every assessment.</p>
-                @include('lecturer.subjects._file-list', ['subject' => $subject, 'files' => $sharedFiles])
+                <p class="text-meta text-ink-400">Shown under every assessment, or only the ones you tick when uploading.</p>
+                @include('lecturer.subjects._file-list', ['subject' => $subject, 'files' => $sharedFiles, 'shared' => true])
             </div>
         @endif
 

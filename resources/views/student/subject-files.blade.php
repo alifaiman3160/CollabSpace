@@ -20,7 +20,7 @@
 
                         <ul class="flex flex-col gap-2" data-files-list>
                             @foreach ($group['files'] as $file)
-                                <x-subject-file-row :file="$file" />
+                                <x-subject-file-row :file="$file" :scope="$group['title'] === 'Course materials' && $subject->assessments->count() > 1 ? $file->audienceLabel() : null" />
                             @endforeach
                         </ul>
                     </div>

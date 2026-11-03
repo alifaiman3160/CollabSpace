@@ -12,6 +12,8 @@ class SubjectFile extends Model
     public const KINDS = [
         'question' => 'Question',
         'marking_guide' => 'Marking guide',
+        'notes' => 'Notes',
+        'slides' => 'Slides',
         'other' => 'Other',
     ];
 
@@ -33,10 +35,38 @@ class SubjectFile extends Model
         return $this->belongsTo(Assessment::class);
     }
 
-    /** "Assignment 1", or "Whole subject". */
+    /**
+     * For a shared file (no assessment of its own): the assessments it is shown under. Empty means every assessment.
+     */
+    public function targets(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Assessment::class, 'subject_file_assessment');
+    }
+
+    /** Whether a student reading this assessment's page should see the file. With no assessment (a subject with none) all show. */
+    public function reaches(?Assessment $assessment): bool
+    {
+        if ($this->assessment_id !== null) {
+            return $assessment === null || $this->assessment_id === $assessment->getKey();
+        }
+
+        if ($assessment === null || $this->targets->isEmpty()) {
+            return true;
+        }
+
+        return $this->targets->contains('id', $assessment->getKey());
+    }
+
+    /** For a shared file: "All assessments", or the titles it is shown under. */
+    public function audienceLabel(): string
+    {
+        return $this->targets->isEmpty() ? 'All assessments' : $this->targets->sortBy('position')->pluck('title')->implode(', ');
+    }
+
+    /** "Assignment 1", or "Course materials". */
     public function assessmentLabel(): string
     {
-        return $this->assessment_id === null ? 'Whole subject' : ($this->relationLoaded('assessment') ? ($this->assessment?->title ?? 'Whole subject') : $this->assessment()->value('title') ?? 'Whole subject');
+        return $this->assessment_id === null ? 'Course materials' : ($this->relationLoaded('assessment') ? ($this->assessment?->title ?? 'Course materials') : $this->assessment()->value('title') ?? 'Course materials');
     }
 
     public function uploader(): BelongsTo

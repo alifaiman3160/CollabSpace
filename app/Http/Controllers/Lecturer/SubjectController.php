@@ -58,7 +58,7 @@ class SubjectController extends LecturerController
     {
         $subject = $this->ownedSubject($subject);
 
-        $subject->loadCount('groups')->load(['assessments', 'files' => fn ($q) => $q->with('assessment:id,title')->orderBy('assessment_id')->orderBy('kind')->orderBy('title'), 'lecturer:id,name', 'sections' => fn ($q) => $q->withCount('enrolments')->orderBy('name')]);
+        $subject->loadCount('groups')->load(['assessments', 'files' => fn ($q) => $q->with('assessment:id,title', 'targets:assessments.id,assessments.title,assessments.position')->orderBy('assessment_id')->orderBy('kind')->orderBy('title'), 'lecturer:id,name', 'sections' => fn ($q) => $q->withCount('enrolments')->orderBy('name')]);
 
         // The numbers of the summary strip, from three small queries: enrolments (with their section), groups per
         // section, and who is already in a group of this subject.

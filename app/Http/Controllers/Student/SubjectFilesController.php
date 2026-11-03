@@ -16,11 +16,11 @@ class SubjectFilesController extends StudentController
     {
         abort_unless(SubjectFiles::canRead($this->student(), $subject), 404);
 
-        $files = $subject->files()->orderBy('kind')->orderBy('title')->get();
+        $files = $subject->files()->with('targets:assessments.id,assessments.title,assessments.position')->orderBy('kind')->orderBy('title')->get();
 
         // Grouped by assessment in the order the lecturer set, the whole-subject files last.
         $groups = $subject->assessments->map(fn ($assessment) => ['title' => $assessment->title, 'files' => $files->where('assessment_id', $assessment->id)->values()])
-            ->push(['title' => 'Whole subject', 'files' => $files->whereNull('assessment_id')->values()])
+            ->push(['title' => 'Course materials', 'files' => $files->whereNull('assessment_id')->values()])
             ->filter(fn ($group) => $group['files']->isNotEmpty())
             ->values();
 

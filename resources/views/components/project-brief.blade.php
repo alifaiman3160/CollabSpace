@@ -23,7 +23,7 @@
 
     $everything = $subject->relationLoaded('files') ? $subject->files : collect();
     // This assessment's files, and the whole-subject ones. (A subject with no assessments shows all of its files.)
-    $files = $everything->filter(fn ($f) => $f->assessment_id === null || $assessment === null || $f->assessment_id === $assessment->id)->values();
+    $files = $everything->filter(fn ($f) => $f->reaches($assessment))->values();
 
     $brief = $subject->briefOf($assessment);
     $due = $subject->dueOf($assessment);
@@ -120,7 +120,7 @@
                     @if ($files->isNotEmpty())
                         <ul class="mt-3 flex flex-col gap-2" aria-label="Files" data-brief-files>
                             @foreach ($files as $file)
-                                <x-subject-file-row :file="$file" :scope="$file->assessment_id === null && $several ? 'Whole subject' : null" />
+                                <x-subject-file-row :file="$file" :scope="$file->assessment_id === null && $several ? 'Course materials' : null" />
                             @endforeach
                         </ul>
                     @endif

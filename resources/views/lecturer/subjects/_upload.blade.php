@@ -33,6 +33,8 @@
                     class="h-[52px] w-full rounded-[16px] bg-surface border border-surface-line px-[18px] text-[14px] font-medium text-ink focus:outline-none focus:ring-2 focus:ring-ink/10">
                 <option value="question">Question</option>
                 <option value="marking_guide">Marking guide (file)</option>
+                <option value="notes">Notes</option>
+                <option value="slides">Slides</option>
                 <option value="other">Other</option>
             </select>
             @if ($mine)<x-input-error :messages="$errors->get('kind')" />@endif
@@ -41,6 +43,28 @@
         <p class="text-meta text-ink-400 sm:col-span-2" x-show="kind === 'marking_guide'" x-cloak data-marking-guide-help>
             For students to read. Marks are calculated from the rubric set up in the system, not from this file.
         </p>
+        {{-- Course materials only: every assessment, or exactly one of them. --}}
+        @if ($assessmentId === null && $subject->assessments->count() > 1)
+            @php($pickedTarget = $mine ? (string) old('show_under', 'all') : 'all')
+            <fieldset class="flex flex-col gap-2 sm:col-span-2" data-file-targets>
+                <legend class="mb-1 text-label font-bold uppercase tracking-eyebrow text-ink-400">Show under</legend>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <label class="flex items-center gap-2 text-meta font-bold text-ink">
+                        <input type="radio" name="show_under" value="all" @checked($pickedTarget === 'all')
+                               class="size-4 border-surface-strong text-ink focus:ring-ink/20">
+                        All assessments
+                    </label>
+                    @foreach ($subject->assessments as $target)
+                        <label class="flex items-center gap-2 text-meta font-semibold text-ink-600">
+                            <input type="radio" name="show_under" value="{{ $target->id }}" @checked($pickedTarget === (string) $target->id)
+                                   class="size-4 border-surface-strong text-ink focus:ring-ink/20">
+                            {{ $target->title }}
+                        </label>
+                    @endforeach
+                </div>
+                <p class="text-meta text-ink-400">Choose All assessments, or the one assessment it is for.</p>
+            </fieldset>
+        @endif
     </div>
 
     {{-- Everything the server refuses about the file itself (type, size, how many) lands here. --}}

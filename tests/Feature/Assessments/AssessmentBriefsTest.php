@@ -298,7 +298,7 @@ class AssessmentBriefsTest extends TestCase
         $html = $this->actingAs($this->lecturer)->get(route('lecturer.subjects.edit', $this->subject))->getContent();
         $this->assertStringNotContainsString('data-file-assessment', $html, 'The block is the assessment: no select.');
         $this->assertStringContainsString('name="assessment_id" value="'.$b->id.'"', $html);
-        $this->assertStringContainsString('Whole subject', $html);
+        $this->assertStringContainsString('Course materials', $html);
         $this->assertSame(1, preg_match('/data-assessment="'.$a->id.'".*?Question 1/s', $html), 'Its file is in its own block.');
         $this->assertSame(0, preg_match('/data-assessment="'.$a->id.'"(?:(?!data-assessment=).)*?Handbook/s', $html), 'The shared file is not in an assessment block.');
     }
@@ -322,7 +322,7 @@ class AssessmentBriefsTest extends TestCase
         $project = $this->page();
         $this->assertStringContainsString('File of project', $project);
         $this->assertStringContainsString('File of all', $project);
-        $this->assertStringContainsString('Whole subject', $project);
+        $this->assertStringContainsString('Course materials', $project);
         $this->assertStringNotContainsString('File of one', $project);
 
         $first = $this->page($a->id);
@@ -345,12 +345,12 @@ class AssessmentBriefsTest extends TestCase
 
         $page = $this->actingAs($this->student)->get(route('student.subject.files', $this->subject))->assertOk()->getContent();
 
-        foreach (['Assignment 1', 'Project', 'Whole subject'] as $heading) {
+        foreach (['Assignment 1', 'Project', 'Course materials'] as $heading) {
             $this->assertStringContainsString('data-files-group="'.$heading.'"', $page);
         }
 
         $this->assertLessThan(strpos($page, 'data-files-group="Project"'), strpos($page, 'data-files-group="Assignment 1"'));
-        $this->assertLessThan(strpos($page, 'data-files-group="Whole subject"'), strpos($page, 'data-files-group="Project"'));
+        $this->assertLessThan(strpos($page, 'data-files-group="Course materials"'), strpos($page, 'data-files-group="Project"'));
         $this->assertStringNotContainsString('Assignment 2"', substr($page, strpos($page, 'data-files-group')), 'No heading for an assessment with no file.');
     }
 
@@ -361,7 +361,7 @@ class AssessmentBriefsTest extends TestCase
         $file = SubjectFile::sole();
 
         $page = $this->actingAs($this->lecturer)->get(route('lecturer.subjects.edit', $this->subject))->getContent();
-        $this->assertStringContainsString('will stay, as whole-subject file', $page);
+        $this->assertStringContainsString('will stay, under Course materials', $page);
 
         $this->actingAs($this->lecturer)->delete(route('lecturer.subjects.assessments.destroy', [$this->subject, $a]))->assertSessionHasNoErrors();
 

@@ -111,14 +111,14 @@ class SubjectFiles
     }
 
     /** Stores a verified file and records it. */
-    public static function store(Subject $subject, UploadedFile $file, string $mime, string $title, string $kind, User $by, ?int $assessmentId = null): SubjectFile
+    public static function store(Subject $subject, UploadedFile $file, string $mime, string $title, string $kind, User $by, ?int $assessmentId = null, array $targetIds = []): SubjectFile
     {
         $extension = strtolower($file->getClientOriginalExtension());
         $name = Str::random(40).'.'.$extension;
 
         Storage::disk(self::DISK)->putFileAs(self::directory($subject), $file, $name);
 
-        return $subject->files()->create([
+        $created = $subject->files()->create([
             'assessment_id' => $assessmentId,
             'uploaded_by' => $by->getKey(),
             'kind' => $kind,
@@ -128,6 +128,13 @@ class SubjectFiles
             'mime' => $mime,
             'size' => $file->getSize(),
         ]);
+
+        // A shared file may be shown under only some of the assessments; none chosen means all of them.
+        if ($assessmentId === null && $targetIds !== []) {
+            $created->targets()->sync($targetIds);
+        }
+
+        return $created;
     }
 
     /** Removes the row and the file; a file already missing from the disk is not an error. */

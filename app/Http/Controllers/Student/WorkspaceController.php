@@ -28,6 +28,7 @@ class WorkspaceController extends StudentController
 
         $group->load([
             'subject.files.assessment',
+            'subject.files.targets',
             'subject.assessments',
             'members' => fn ($q) => $q->orderBy('name'),
         ])->loadCount([

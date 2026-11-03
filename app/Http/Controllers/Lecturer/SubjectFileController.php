@@ -26,6 +26,10 @@ class SubjectFileController extends LecturerController
             'kind' => ['required', Rule::in(array_keys(SubjectFile::KINDS))],
             // The assessment it is for; empty means the whole subject. Only this subject's own assessments are accepted.
             'assessment_id' => ['nullable', 'integer', Rule::exists('assessments', 'id')->where('subject_id', $subject->getKey())],
+            // For a shared file: "all" (every assessment) or the one assessment it is shown under. Only this subject's own.
+            'show_under' => ['nullable', Rule::in(array_merge(['all'], $subject->assessments()->pluck('id')->map(fn ($id) => (string) $id)->all()))],
+            'assessment_ids' => ['nullable', 'array'],
+            'assessment_ids.*' => ['integer', Rule::exists('assessments', 'id')->where('subject_id', $subject->getKey())],
         ], [
             'file.required' => 'Choose a file to upload.',
             'file.uploaded' => 'The file did not arrive. It may be bigger than this server accepts (the limit is set by upload_max_filesize and post_max_size in php.ini).',
@@ -34,7 +38,9 @@ class SubjectFileController extends LecturerController
             'title.max' => 'Keep the title to 120 characters.',
             'kind.required' => 'Say what kind of file it is.',
             'kind.in' => 'Choose one of the kinds in the list.',
-            'assessment_id.exists' => 'Choose one of this subject\'s assessments, or the whole subject.',
+            'assessment_id.exists' => 'Choose one of this subject\'s assessments, or the course materials.',
+            'assessment_ids.*.exists' => 'Choose only this subject\'s own assessments.',
+            'show_under.in' => 'Choose All assessments, or one of this subject\'s assessments.',
         ]);
 
         $file = $request->file('file');
@@ -53,7 +59,7 @@ class SubjectFileController extends LecturerController
             ])->withInput();
         }
 
-        SubjectFiles::store($subject, $file, $mime, trim($validated['title']), $validated['kind'], $request->user(), filled($validated['assessment_id'] ?? null) ? (int) $validated['assessment_id'] : null);
+        SubjectFiles::store($subject, $file, $mime, trim($validated['title']), $validated['kind'], $request->user(), filled($validated['assessment_id'] ?? null) ? (int) $validated['assessment_id'] : null, collect($validated['assessment_ids'] ?? [])->when(ctype_digit((string) ($validated['show_under'] ?? '')), fn ($c) => $c->push((int) $validated['show_under']))->map(fn ($id) => (int) $id)->unique()->values()->all());
 
         return $back->with('status', 'File uploaded.');
     }
