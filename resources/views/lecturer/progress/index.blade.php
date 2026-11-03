@@ -56,6 +56,9 @@
                         <x-group-card :group="$group" :i="$n++" :href="route('lecturer.progress.show', $group)"
                                       data-pg data-subject="{{ $group->subject_id }}" data-overdue="{{ $group->tasks_overdue }}"
                                       data-progress="{{ $group->tasks_total > 0 ? (int) round($group->tasks_done / $group->tasks_total * 100) : 0 }}">
+                            @if ($submissionMap !== null && ($chipAssessment = $chosenAssessments->get($group->subject_id)))
+                                <x-slot:chip><x-submission-chip :submission="$submissionMap->get($group->id.'-'.$chipAssessment->id)" /></x-slot:chip>
+                            @endif
                             <x-slot:footer>
                                 <x-table.quiet-action tone="neutral" :href="route('lecturer.reports.show', $group)">Report</x-table.quiet-action>
                                 <x-button :href="route('lecturer.progress.show', $group)" class="!px-4 !py-2 !text-meta">Monitor</x-button>

@@ -14,6 +14,10 @@
             <x-section-chip :section="$group->section" :code="$rubric->subject->code" />
         </div>
 
+        @if ($rubric->assessment)
+            <x-lecturer.submission-card :group="$group" :assessment="$rubric->assessment" />
+        @endif
+
         @if ($assessments->count() > 1)
             <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Filter by assessment" data-assessment-filter>
                 <span class="text-label font-bold uppercase tracking-eyebrow text-ink/[.55]">Assessment</span>

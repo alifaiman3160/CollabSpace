@@ -44,6 +44,7 @@
                 {{-- Only where the page loaded the section with its groups (no query per card). --}}
                 @if ($group->relationLoaded('section'))<x-section-chip :section="$group->section" :code="$group->subject->code" class="shrink-0" />@endif
                 <span class="truncate text-label font-semibold text-ink-600" title="{{ $group->subject->name }}">{{ $group->subject->name }}</span>
+                @isset($chip)<span class="ml-auto shrink-0">{{ $chip }}</span>@endisset
             </div>
         </div>
 

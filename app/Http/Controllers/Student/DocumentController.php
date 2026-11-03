@@ -86,6 +86,7 @@ class DocumentController extends StudentController
             'group' => $group->load('subject'),
             'secondary' => $this->groupSecondary($groups, 'documents'),
             'documents' => \App\Support\DocumentCards::forGroup($group),
+            'submissions' => $group->submissions()->with('submitter:id,name', 'documents')->orderByDesc('submitted_at')->orderByDesc('id')->get()->groupBy('assessment_id'),
         ]);
     }
 

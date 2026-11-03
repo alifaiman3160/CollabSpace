@@ -81,6 +81,8 @@ class MarkingController extends LecturerController
             'filter' => $filter,
             'subjects' => $subjects,
             'chosen' => $chosen,
+            // The submission chips only when one subject is chosen (so an assessment is meant), from one query.
+            'submissionMap' => $filter['subjectId'] === null ? null : \App\Models\Submission::latestMap($subjects->flatMap->groups->pluck("id")->all(), $chosen->filter()->map->getKey()->values()->all()),
             'rubrics' => $rubrics,
             'approved' => $approved,
             // A rubric version is locked while any approval against it is active (what Rubric::isLocked() asks, once for all).

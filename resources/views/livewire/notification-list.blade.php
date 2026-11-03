@@ -4,6 +4,8 @@
         'task_overdue' => 'clock',
         'chat_message' => 'chat',
         'document_created' => 'file',
+        'submission_made' => 'check',
+        'submission_withdrawn' => 'trash',
         'document_edited' => 'edit',
         'group_assigned' => 'users',
         'group_removed' => 'users',

@@ -83,6 +83,9 @@
                                 @endphp
 
                                 <x-group-card :group="$group->setRelation('subject', $subject)" :i="$n++" variant="light">
+                                    @if ($submissionMap !== null && $assessment)
+                                        <x-slot:chip><x-submission-chip :submission="$submissionMap->get($group->id.'-'.$assessment->id)" /></x-slot:chip>
+                                    @endif
                                     <div class="mt-auto flex flex-col gap-2 rounded-card bg-white/60 p-3" data-approval>
                                         <div class="flex items-center justify-between gap-2">
                                             <span class="text-meta font-semibold text-ink-600">{{ $students }} {{ Str::plural('student', $students) }}</span>

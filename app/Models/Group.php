@@ -108,6 +108,11 @@ class Group extends Model
         return $this->hasMany(Task::class);
     }
 
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(Submission::class);
+    }
+
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);

@@ -1055,3 +1055,14 @@ known expected failure) is a defect — capture the console output with it.
 - Clicking the open item's chevron closes it, leaving none open. The nav list does not jump to the top when the page changes.
 - As a lecturer: Marking, Contribution and Monitor progress behave the same way (opening one closes the other; going to Contribution opens only Contribution; Dashboard, Groups and Students close all).
 - Slim rail and the collapse toggle behave as before (hover cards, click to open a card).
+
+## Group submissions (PDF of the report)
+
+Back up, then `php artisan migrate` (new tables `submissions` and `submission_documents`).
+
+- As a student with a group (subject with an assessment due in the future and two documents): open Documents. Above the cards there is "Submit for assessment". Pick the assessment (the active one is chosen), tick both documents, reorder them with the arrows, add a note, press Submit: an inline step explains the PDF; "Yes, submit". The card shows "Submitted · On time", who, when, pages, Download PDF, Withdraw and no History yet. Open the PDF: a cover page (subject, assessment, group, section, members, submitted by, date and time, On time), then each document on a new page in your order, page numbers running on.
+- Submit again with one document: the newest is current, History (1) shows the earlier one with a download. Another member sees the same card and got a notification ("<name> submitted <assessment> for <group>"); so did the lecturer.
+- Withdraw (confirm): the card says Not submitted, the PDF stays in History. Change the assessment's due date to yesterday and reload: the Withdraw button is gone, and submitting still works but is marked Late.
+- A group with no documents sees "Write a document first"; a subject with no assessment says there is nothing to submit for.
+- As the lecturer: Monitor progress > the group, and Marking > the group, show a "Submission" card for the selected assessment (status chip, submitted by, date, pages, note, Open PDF in the browser, Download, History). With one subject chosen, the Marking and Monitor progress group cards show a small chip (Submitted, Late, Not submitted, Withdrawn) beside the subject name; in "All subjects" there is no chip. The evidence CSV has "Submitted" and "Submission" lines after "Assessment". A different lecturer, or a student outside the group, cannot open the PDF address.
+- Delete a submitted document afterwards: the submission and its PDF are unaffected.

@@ -13,6 +13,9 @@ class ActivityLabels
         'document_created' => 'created a document',
         'document_edited' => 'edited a document',
         'document_deleted' => 'removed a document',
+        'submission_submitted' => 'submitted the report',
+        'submission_resubmitted' => 'submitted the report again',
+        'submission_withdrawn' => 'withdrew the submission',
     ];
 
     public const ICONS = [
@@ -23,6 +26,9 @@ class ActivityLabels
         'document_created' => 'file',
         'document_edited' => 'edit',
         'document_deleted' => 'trash',
+        'submission_submitted' => 'check',
+        'submission_resubmitted' => 'check',
+        'submission_withdrawn' => 'trash',
     ];
 
     public static function label(string $type): string

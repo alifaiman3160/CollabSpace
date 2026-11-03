@@ -25,6 +25,8 @@
 
             <x-flash />
 
+            @include('student.documents._submit', ['group' => $group, 'documents' => $documents, 'submissions' => $submissions])
+
             @php
                 $palette = \App\Support\SubjectPalette::for($group->subject_id);
                 $previews = app(\App\Support\DocumentPreview::class);

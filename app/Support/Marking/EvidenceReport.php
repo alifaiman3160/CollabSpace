@@ -41,6 +41,8 @@ class EvidenceReport
             ->where('rubric_id', $rubric->id)->where('group_id', $group->id)
             ->with('approver')->get()->keyBy('student_id');
 
+        $submission = $rubric->assessment_id ? \App\Models\Submission::currentFor($group->id, $rubric->assessment_id) : null;
+
         $rows = [
             ['CollabSpace marking evidence report'],
             [],
@@ -50,6 +52,9 @@ class EvidenceReport
             ['Class section', $this->text($group->section?->name ?? '')],
             // Which assessment's rubric and dates these marks are for.
             ['Assessment', $this->text($rubric->assessment?->title ?? '')],
+            // Display only: what the group handed in for this assessment. It never feeds the levels or the marks.
+            ['Submitted', $submission && ! $submission->isWithdrawn() ? $submission->submitted_at->format('Y-m-d H:i:s') : 'Not submitted'],
+            ['Submission', $submission && ! $submission->isWithdrawn() ? $submission->timingLabel() : 'Not submitted'],
             ['Rubric', $this->text($rubric->name)],
             ['Rubric version', $rubric->version],
             ['Generated', now()->format('Y-m-d H:i:s')],

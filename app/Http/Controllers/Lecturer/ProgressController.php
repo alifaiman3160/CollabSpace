@@ -58,7 +58,13 @@ class ProgressController extends LecturerController
             'score' => (int) $row['score'],
         ]))->values();
 
+        // The submission chips only when a subject is chosen: one query for the groups shown, for that subject's assessment.
+        $chosenAssessments = $filter['subjectId'] === null ? collect() : $groups->pluck('subject')->unique('id')->mapWithKeys(fn ($subject) => [$subject->id => \App\Support\Sections\SubjectSectionFilter::assessmentFor($subject, $request->query('assessment'))]);
+        $submissionMap = $filter['subjectId'] === null ? null : \App\Models\Submission::latestMap($groups->modelKeys(), $chosenAssessments->filter()->map->getKey()->values()->all());
+
         return view('lecturer.progress.index', [
+            'chosenAssessments' => $chosenAssessments,
+            'submissionMap' => $submissionMap,
             'filter' => $filter,
             'groups' => $groups,
             'subjects' => $groups->pluck('subject')->unique('id')->sortBy('code')->values(),

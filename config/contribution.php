@@ -20,6 +20,10 @@ return [
         'document_edited'  => 3,
         // The audit trail of a deletion: worth nothing, and not evidence (GroupFacts counts only created and edited).
         'document_deleted' => 0,
+        // Handing a report in is evidence for display only: worth nothing, never counted as contribution.
+        'submission_submitted'   => 0,
+        'submission_resubmitted' => 0,
+        'submission_withdrawn'   => 0,
         'file_uploaded'    => 2,
         'message_sent'     => 1,
     ],

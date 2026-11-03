@@ -61,6 +61,35 @@ class Notifier
         );
     }
 
+    /** A group handed in a report: the other members and the owning lecturer are told. */
+    public function submissionMade(\App\Models\Submission $submission, User $actor): void
+    {
+        $title = $submission->assessment->title;
+        $group = $submission->group;
+        $message = "{$actor->name} submitted {$title} for {$group->name}".($submission->is_late ? ' (late)' : '');
+
+        $this->fanOut($group->getKey(), $actor, 'submission_made', fn () => $message, route('student.documents.group', $group->getKey(), false));
+        $this->toLecturer($group, 'submission_made', $message, $submission->getKey());
+    }
+
+    /** A submission was withdrawn: the other members are told. */
+    public function submissionWithdrawn(\App\Models\Submission $submission, User $actor): void
+    {
+        $submission->loadMissing('assessment', 'group');
+        $message = "{$actor->name} withdrew the {$submission->assessment->title} submission for {$submission->group->name}";
+
+        $this->fanOut($submission->group_id, $actor, 'submission_withdrawn', fn () => $message, route('student.documents.group', $submission->group_id, false));
+    }
+
+    protected function toLecturer(Group $group, string $type, string $message, int $referenceId): void
+    {
+        $group->loadMissing('subject');
+
+        if ($group->subject?->lecturer_id) {
+            $this->write($group->subject->lecturer_id, $type, $message, route('lecturer.progress.show', $group->getKey(), false), $referenceId);
+        }
+    }
+
     /** A chat message. The preview is trimmed so the row stays readable. */
     public function messagePosted(Message $message, User $actor): void
     {

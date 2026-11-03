@@ -61,6 +61,9 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
     // A subject's file (project question, marking guide). Shared by the lecturer and the students; the controller decides who.
     Route::get('subject-files/{file}', [SubjectFileDownloadController::class, 'show'])->whereNumber('file')->name('subject-files.download');
 
+    // A submission's PDF. Members of its group and the owning lecturer; the controller decides who.
+    Route::get('submissions/{submission}/pdf', [\App\Http\Controllers\SubmissionDownloadController::class, 'show'])->whereNumber('submission')->name('submissions.pdf');
+
     Route::get('/dashboard', function () {
         return match (auth()->user()->role) {
             'admin' => redirect()->route('admin.dashboard'),
@@ -100,6 +103,10 @@ Route::middleware(['auth', 'password.changed'])->group(function () {
         Route::put('documents/d/{document}', [DocumentController::class, 'update'])->name('documents.update');
         Route::delete('documents/d/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
         Route::get('documents/d/{document}/pdf', [DocumentController::class, 'pdf'])->name('documents.pdf');
+
+        // Handing in the group's report for an assessment (a PDF of chosen documents), and withdrawing it.
+        Route::post('documents/g/{group}/submit', [\App\Http\Controllers\Student\SubmissionController::class, 'store'])->name('submissions.store');
+        Route::post('submissions/{submission}/withdraw', [\App\Http\Controllers\Student\SubmissionController::class, 'withdraw'])->whereNumber('submission')->name('submissions.withdraw');
         Route::post('documents/d/{document}/images', [DocumentController::class, 'storeImage'])->name('documents.images.store');
         Route::get('documents/d/{document}/v/{version}', [DocumentController::class, 'version'])->name('documents.version');
         Route::post('documents/d/{document}/v/{version}/restore', [DocumentController::class, 'restore'])->name('documents.restore');
