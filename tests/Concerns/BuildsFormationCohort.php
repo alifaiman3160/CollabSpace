@@ -84,6 +84,9 @@ trait BuildsFormationCohort
             GroupMember::create(['group_id' => $group->id, 'user_id' => $member->id, 'joined_at' => now()]);
         }
 
+        // Every group has a leader, the way formation leaves it: the member with the highest CGPA.
+        app(\App\Support\GroupLeader\GroupLeader::class)->assignDefault($group);
+
         return $group;
     }
 

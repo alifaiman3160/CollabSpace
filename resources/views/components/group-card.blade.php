@@ -51,7 +51,7 @@
         @if ($variant !== 'light')
             <div class="flex items-center gap-2.5" data-group-members>
                 @if ($count > 0)
-                    <x-table.avatar-stack :names="$group->members->pluck('name')" />
+                    <x-table.avatar-stack :names="$group->members->pluck('name')" :leader="$group->members->firstWhere('id', $group->leader_id)?->name" />
                 @endif
                 <span class="text-meta font-semibold tabular-nums">{{ $count }}/{{ $size }}</span>
                 @if ($variant === 'full')

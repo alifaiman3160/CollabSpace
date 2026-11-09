@@ -61,6 +61,17 @@ class Notifier
         );
     }
 
+    /** The group has a new leader: the new leader and the other members are told. */
+    public function leaderChanged(Group $group, User $leader): void
+    {
+        $link = route('student.workspace.show', $group->getKey(), false);
+
+        $this->write($leader->getKey(), 'leader_changed', "You are now the leader of {$group->name}", $link);
+
+        $others = $group->groupMembers()->where('user_id', '!=', $leader->getKey())->pluck('user_id')->all();
+        $this->writeMany($others, 'leader_changed', fn () => "{$leader->name} is now the leader of {$group->name}", $link);
+    }
+
     /** A group handed in a report: the other members and the owning lecturer are told. */
     public function submissionMade(\App\Models\Submission $submission, User $actor): void
     {

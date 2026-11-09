@@ -87,6 +87,34 @@ class TaskBoard extends Component
         return $task;
     }
 
+    /**
+     * Whether the signed-in member may give work to other members: the group's leader, or anyone while the group has no
+     * leader (so it never gets stuck). Read fresh on every action, because the lecturer can change the leader at any time.
+     */
+    protected function canAssignOthers(): bool
+    {
+        $this->group->refresh();
+
+        return $this->group->leader_id === null || $this->group->leader_id === auth()->id();
+    }
+
+    /** The leader manages every task; any other member only the ones they made for themselves. */
+    protected function canManage(Task $task): bool
+    {
+        return $this->canAssignOthers()
+            || ($task->created_by === auth()->id() && $task->assigned_to === auth()->id());
+    }
+
+    protected function refuseAssign(): void
+    {
+        $this->addError('assignedTo', 'Only the group leader can assign tasks to other members.');
+    }
+
+    protected function refuseManage(): void
+    {
+        $this->dispatch('toast', message: 'Only the group leader can change or delete tasks that are not your own.', tone: 'danger');
+    }
+
     protected function recorder(): ActivityRecorder
     {
         return app(ActivityRecorder::class);
@@ -250,6 +278,17 @@ class TaskBoard extends Component
             'assignedTo' => 'assignee',
         ]);
 
+        // A member who is not the leader can only give a task to themselves.
+        if (! $this->canAssignOthers()) {
+            if ($this->assignedTo !== null && $this->assignedTo !== auth()->id()) {
+                $this->refuseAssign();
+
+                return;
+            }
+
+            $this->assignedTo = auth()->id();
+        }
+
         $task = Task::create([
             'group_id' => $this->group->id,
             'created_by' => auth()->id(),
@@ -260,7 +299,11 @@ class TaskBoard extends Component
             'deadline' => $this->deadline ?: null,
         ]);
 
-        $this->recorder()->taskCreated($task, auth()->id());
+        // Creating a task earns its creator points only when it is their own. Giving work to someone else, or leaving it
+        // unassigned, is worth nothing: being the leader is not a way to score.
+        if ($task->assigned_to === auth()->id()) {
+            $this->recorder()->taskCreated($task, auth()->id());
+        }
 
         app(Notifier::class)->taskAssigned($task, auth()->user());
 
@@ -283,6 +326,12 @@ class TaskBoard extends Component
         $this->authorizedGroup($this->group);
 
         $task = $this->taskInGroup($taskId);
+
+        if (! $this->canManage($task)) {
+            $this->refuseManage();
+
+            return;
+        }
 
         $this->editingTask = $task->getKey();
         $this->title = $task->title;
@@ -317,9 +366,26 @@ class TaskBoard extends Component
 
         $task = $this->taskInGroup($this->editingTask);
 
+        if (! $this->canManage($task)) {
+            $this->refuseManage();
+
+            return;
+        }
+
         $this->validate($this->formRules(), [], [
             'assignedTo' => 'assignee',
         ]);
+
+        if (! $this->canAssignOthers()) {
+            // Their own task stays their own.
+            if ($this->assignedTo !== null && $this->assignedTo !== auth()->id()) {
+                $this->refuseAssign();
+
+                return;
+            }
+
+            $this->assignedTo = auth()->id();
+        }
 
         $previousAssignee = $task->assigned_to;
 
@@ -351,7 +417,11 @@ class TaskBoard extends Component
 
     public function confirmDelete(int $taskId): void
     {
-        $this->taskInGroup($taskId);
+        if (! $this->canManage($this->taskInGroup($taskId))) {
+            $this->refuseManage();
+
+            return;
+        }
 
         $this->confirmingDelete = $taskId;
     }
@@ -372,6 +442,13 @@ class TaskBoard extends Component
 
         $task = $this->taskInGroup($this->confirmingDelete);
 
+        if (! $this->canManage($task)) {
+            $this->confirmingDelete = null;
+            $this->refuseManage();
+
+            return;
+        }
+
         $this->recorder()->taskDeleted($task);
         $task->delete();
 
@@ -387,6 +464,8 @@ class TaskBoard extends Component
         if (! $this->showForm) {
             $this->reset(['title', 'description', 'assignedTo', 'deadline', 'editingTask']);
             $this->resetValidation();
+            // A member who is not the leader can only give the task to themselves: it starts on them.
+            $this->assignedTo = $this->canAssignOthers() ? null : auth()->id();
             $this->showForm = true;
 
             return;
@@ -429,6 +508,8 @@ class TaskBoard extends Component
                 Task::STATUS_INPROGRESS => $byStatus->get(Task::STATUS_INPROGRESS, collect()),
                 Task::STATUS_DONE => $done,
             ],
+            'canAssignOthers' => $this->canAssignOthers(),
+            'leaderId' => $this->group->leader_id,
             'total' => $tasks->count(),
             'doneCount' => $byStatus->get(Task::STATUS_DONE, collect())->count(),
             'doingCount' => $byStatus->get(Task::STATUS_INPROGRESS, collect())->count(),

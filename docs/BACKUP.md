@@ -155,3 +155,7 @@ A group's submission is one frozen PDF, kept in `storage/app/private/submissions
 ## Course materials per assessment
 
 `2026_11_17_000001_create_subject_file_assessment_table` adds one small table, `subject_file_assessment`, listing which assessments a shared file (Course materials) is shown under. A shared file with no row there is shown under every assessment, as before, so nothing existing changes. Deleting an assessment removes its rows; a file left with none is shown under all remaining assessments (the file itself is never deleted). Take the usual backup, then `php artisan migrate`.
+
+## Group leader
+
+`2026_11_18_000001_add_leader_id_to_groups_table` adds `groups.leader_id` and **writes data once**: every group that has members gets a leader, the member with the highest CGPA (a tie, or a missing CGPA, goes to the lowest user id). Groups with no members stay empty, and a group that already has a leader is never touched, so running it twice is harmless. The leader is a label and a permission only: it changes no contribution point and no mark. **Run it after a backup** (the database dump above); to go back, restore the backup (the down step only drops the column).

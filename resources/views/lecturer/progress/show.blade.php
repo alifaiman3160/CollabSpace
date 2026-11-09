@@ -142,7 +142,7 @@
                                 <x-avatar :name="$member['user']->name" size="sm" />
 
                                 <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                                    <span class="truncate text-nav font-bold">{{ $member['user']->name }}</span>
+                                    <span class="flex min-w-0 items-center gap-1.5"><span class="truncate text-nav font-bold">{{ $member['user']->name }}</span>@if ($group->isLeader($member['user']))<x-leader-badge />@endif</span>
                                     <span class="text-label text-ink-400">
                                         {{ $member['counts']['tasks_done'] }} done ·
                                         {{ $member['counts']['messages'] }} messages ·

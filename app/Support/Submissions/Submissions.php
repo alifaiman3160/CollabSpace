@@ -47,6 +47,27 @@ class Submissions
     }
 
     /**
+     * Who may submit, submit again and withdraw: the group's leader always (and anyone while the group has no leader, so
+     * it never gets stuck). Another member only from 00:00 on the due date, in the application's timezone, onward (a late
+     * submission stays allowed and is flagged Late). With no due date, only the leader. The one place the rule lives:
+     * the page and the server both ask here.
+     */
+    public static function memberMaySubmit(Group $group, Assessment $assessment, User $user): bool
+    {
+        if ($group->leader_id === null || $group->leader_id === $user->getKey()) {
+            return true;
+        }
+
+        if ($assessment->due_on === null) {
+            return false;
+        }
+
+        $opens = \Carbon\Carbon::parse($assessment->due_on->format('Y-m-d'), config('app.timezone'))->startOfDay();
+
+        return now()->gte($opens);
+    }
+
+    /**
      * @param  list<int>  $documentIds  in the order they go into the PDF
      */
     public function submit(Group $group, Assessment $assessment, array $documentIds, ?string $note, User $by): Submission
@@ -56,6 +77,10 @@ class Submissions
         // Only an assessment of the group's own subject.
         if ($assessment->subject_id !== $group->subject_id) {
             throw new SubmissionException('Choose one of this subject\'s assessments.');
+        }
+
+        if (! self::memberMaySubmit($group, $assessment, $by)) {
+            throw new SubmissionException('Only the group leader can submit. Members can submit during the last day before the deadline.');
         }
 
         $ids = collect($documentIds)->map(fn ($id) => (int) $id)->filter()->unique()->values();
@@ -144,6 +169,10 @@ class Submissions
 
         if ($submission->isWithdrawn()) {
             throw new SubmissionException('That submission is already withdrawn.');
+        }
+
+        if (! self::memberMaySubmit($submission->group, $submission->assessment, $by)) {
+            throw new SubmissionException('Only the group leader can withdraw a submission. Members can during the last day before the deadline.');
         }
 
         if (Submission::currentFor($submission->group_id, $submission->assessment_id)?->getKey() !== $submission->getKey()) {

@@ -36,6 +36,8 @@ class ClassListController extends LecturerController
             'sections' => $sections,
             'bySection' => $enrolments->groupBy('section_id')->map(fn ($rows) => $rows->sortBy(fn ($e) => mb_strtolower($e->user->name))->values()),
             'groupOf' => $groupOf,
+            // Who leads a group of this subject: the badge beside their group.
+            'leaders' => \App\Models\Group::query()->where('subject_id', $subject->getKey())->whereNotNull('leader_id')->pluck('leader_id')->flip(),
             'total' => $enrolments->count(),
             'ungrouped' => $enrolments->reject(fn ($e) => $groupOf->has($e->user_id))->count(),
         ]);

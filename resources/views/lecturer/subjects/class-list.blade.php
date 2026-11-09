@@ -44,7 +44,7 @@
                                 <td class="text-meta font-semibold text-ink-400">{{ $enrolment->user->matric_no ?? '—' }}</td>
                                 <td>
                                     @if ($groupOf->has($enrolment->user_id))
-                                        <span class="text-meta font-semibold">{{ $groupOf[$enrolment->user_id] }}</span>
+                                        <span class="inline-flex items-center gap-1.5 text-meta font-semibold">{{ $groupOf[$enrolment->user_id] }}@if ($leaders->has($enrolment->user_id))<x-leader-badge />@endif</span>
                                     @else
                                         <x-table.dot-pill tone="warning" data-no-group>No group yet</x-table.dot-pill>
                                     @endif

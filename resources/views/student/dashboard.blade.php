@@ -88,6 +88,7 @@
 
                             <span class="flex flex-wrap items-center justify-between gap-1.5 text-label font-semibold text-ink-600">
                                 <span class="min-w-0 truncate">{{ $g->name }}</span>
+                                @if ($g->leader_id === auth()->id())<span class="ml-auto inline-flex shrink-0 items-center gap-1 rounded-pill bg-white/70 px-2 py-px text-label font-bold text-ink-600" data-you-lead><x-icon name="star" size="11" />You are the leader</span>@endif
                                 <span>{{ $g->tasks_done }} done</span>
                             </span>
                         </a>

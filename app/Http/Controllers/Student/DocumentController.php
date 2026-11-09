@@ -83,7 +83,7 @@ class DocumentController extends StudentController
         return view('student.documents.index', [
             'hasGroup' => true,
             'groups' => $groups,
-            'group' => $group->load('subject'),
+            'group' => $group->load('subject', 'leader:id,name'),
             'secondary' => $this->groupSecondary($groups, 'documents'),
             'documents' => \App\Support\DocumentCards::forGroup($group),
             'submissions' => $group->submissions()->with('submitter:id,name', 'documents')->orderByDesc('submitted_at')->orderByDesc('id')->get()->groupBy('assessment_id'),

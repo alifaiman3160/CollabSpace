@@ -28,7 +28,7 @@ class EvidenceReport
     public function rows(Rubric $rubric, Group $group): array
     {
         $rubric->loadMissing('sections.criteria.levels', 'subject', 'assessment');
-        $group->loadMissing('members', 'subject', 'section');
+        $group->loadMissing('members', 'subject', 'section', 'leader');
 
         $criterionIds = $rubric->criteria()->pluck('rubric_criteria.id');
 
@@ -55,6 +55,8 @@ class EvidenceReport
             // Display only: what the group handed in for this assessment. It never feeds the levels or the marks.
             ['Submitted', $submission && ! $submission->isWithdrawn() ? $submission->submitted_at->format('Y-m-d H:i:s') : 'Not submitted'],
             ['Submission', $submission && ! $submission->isWithdrawn() ? $submission->timingLabel() : 'Not submitted'],
+            // A label only: the leader's name. It never feeds a level, a mark or a fallback.
+            ['Leader', $this->text($group->leader?->name ?? '')],
             ['Rubric', $this->text($rubric->name)],
             ['Rubric version', $rubric->version],
             ['Generated', now()->format('Y-m-d H:i:s')],

@@ -410,7 +410,7 @@ class TaskBoardTest extends TestCase
         Livewire::actingAs($this->me)
             ->test(TaskBoard::class, ['group' => $this->group])
             ->set('title', 'Draft chapter 1')
-            ->set('assignedTo', $this->mate->id)
+            ->set('assignedTo', $this->me->id)
             ->set('deadline', now()->addWeek()->toDateString())
             ->call('createTask')
             ->assertHasNoErrors();
@@ -418,14 +418,15 @@ class TaskBoardTest extends TestCase
         $task = Task::where('title', 'Draft chapter 1')->firstOrFail();
 
         $this->assertSame(Task::STATUS_TODO, $task->status);
-        $this->assertSame($this->mate->id, $task->assigned_to);
+        $this->assertSame($this->me->id, $task->assigned_to);
         $this->assertSame($this->me->id, $task->created_by);
 
         $log = ActivityLog::where('activity_type', 'task_created')
             ->where('reference_id', $task->id)
             ->sole();
 
-        // Credited to the creator, not the assignee, at the configured weight.
+        // A task made for oneself is credited to its creator at the configured weight (a task made for someone else is
+        // worth nothing: see GroupLeaderTest).
         $this->assertSame($this->me->id, $log->user_id);
         $this->assertSame($this->group->id, $log->group_id);
         $this->assertSame(config('contribution.weights.task_created'), $log->weight);

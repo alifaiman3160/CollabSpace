@@ -102,6 +102,14 @@
         <section class="flex flex-col gap-3">
             <h2 class="text-h3 font-extrabold tracking-title">Members</h2>
 
+            @if ($group->leader)
+                <p class="flex flex-wrap items-center gap-2 text-meta font-semibold text-ink-600" data-current-leader>
+                    <x-leader-badge :name="$group->leader->name" /> {{ $group->leader->name }} leads this group. Only the leader assigns tasks to other members and normally submits the report.
+                </p>
+            @elseif ($memberCount > 0)
+                <p class="text-meta text-ink-400" data-current-leader>This group has no leader yet. Make one of its members the leader below.</p>
+            @endif
+
             <x-data-table :headings="['Student', 'Matric no.', 'Joined', '']"
                           empty="No students have been assigned to this group yet.">
                 @foreach ($group->members as $member)
@@ -113,6 +121,7 @@
                     <tr>
                         <td>
                             <x-table.person :name="$member->name">
+                                <x-slot:suffix>@if ($group->isLeader($member))<x-leader-badge class="ml-1.5 align-middle" />@endif</x-slot:suffix>
                                 <span class="truncate">{{ $member->email }}</span>
                             </x-table.person>
                         </td>
@@ -124,7 +133,18 @@
                         </td>
 
                         <td>
-                            <div class="flex justify-end">
+                            <div class="flex items-center justify-end gap-1">
+                                @unless ($group->isLeader($member))
+                                    <x-table.quiet-action tone="neutral" icon="star" aria-label="Make {{ $member->name }} the leader" data-make-leader
+                                        x-on:click="confirm = {
+                                            url: '{{ route('lecturer.groups.leader', $group) }}',
+                                            method: 'PUT',
+                                            fields: { user_id: {{ $member->id }} },
+                                            title: 'Make this student the leader?',
+                                            body: {{ Js::from($member->name.' will lead '.$group->name.'. Only the leader assigns tasks to other members and normally submits the report. The old leader stays a member.') }},
+                                            action: 'Make leader',
+                                        }">Make leader</x-table.quiet-action>
+                                @endunless
                                 <x-table.quiet-action icon="trash" aria-label="Remove {{ $member->name }}"
                                     x-on:click="confirm = {
                                         url: '{{ route('lecturer.groups.members.destroy', [$group, $member]) }}',

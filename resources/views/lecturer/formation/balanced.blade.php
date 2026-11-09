@@ -91,12 +91,13 @@
                         </div>
                     @endif
 
+                    @php($previewLeader = collect($group['members'])->sort(fn ($a, $b) => [$b['cgpa'] ?? -1, $a['id']] <=> [$a['cgpa'] ?? -1, $b['id']])->first())
                     <ul class="flex flex-col gap-1.5">
                         @foreach ($group['members'] as $member)
                             <li class="flex items-center gap-3 rounded-[12px] bg-surface-soft px-3 py-2">
                                 <x-avatar :name="$member['name']" size="sm" />
                                 <span class="flex min-w-0 flex-1 flex-col">
-                                    <span class="truncate text-meta font-bold">{{ $member['name'] }}</span>
+                                    <span class="flex min-w-0 items-center gap-1.5"><span class="truncate text-meta font-bold">{{ $member['name'] }}</span>@if ($previewLeader && $previewLeader['id'] === $member['id'])<x-leader-badge />@endif</span>
                                     <span class="truncate text-label text-ink-400">{{ $member['matric_no'] ?? '—' }}</span>
                                 </span>
                                 @if ($member['cgpa'] !== null)

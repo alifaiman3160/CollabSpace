@@ -32,6 +32,9 @@ class ImportBuilder
 
     public const ROLE_MEMBER = 'member';
 
+    /** Optional: marks the group's leader in a one-row-per-student file (Leader, Ketua: yes, y, 1, true, ya, leader, ketua). */
+    public const ROLE_LEADER = 'leader';
+
     protected const EMAIL = '/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i';
 
     /**
@@ -48,6 +51,7 @@ class ImportBuilder
     {
         $roles = [];
         $haveGroup = false;
+        $haveLeader = false;
 
         foreach ($headers as $header) {
             $h = mb_strtolower($header);
@@ -57,6 +61,9 @@ class ImportBuilder
 
             if (preg_match('/timestamp|cap masa|\bdate\b|tarikh|score|skor/u', $h)) {
                 $roles[] = self::ROLE_IGNORE;
+            } elseif (! $haveLeader && preg_match('/^\s*(is\s+)?(group\s+|team\s+)?(leader|ketua)(\s+kumpulan)?\s*\??\s*$/u', $h)) {
+                $roles[] = self::ROLE_LEADER;
+                $haveLeader = true;
             } elseif (! $haveGroup
                 && preg_match('/\b(group|team|kumpulan|pasukan)\b/u', $h)
                 && ! preg_match('/member|ahli|leader|ketua|matric|matrik|e-?mail|mail|student|pelajar|\bid\b/u', $h)) {
@@ -84,6 +91,7 @@ class ImportBuilder
     {
         $groupCol = array_search(self::ROLE_GROUP, $roles, true);
         $memberCols = array_keys(array_filter($roles, fn ($r) => $r === self::ROLE_MEMBER));
+        $leaderCol = array_search(self::ROLE_LEADER, $roles, true);
 
         $groups = [];
         $notes = [];
@@ -98,6 +106,11 @@ class ImportBuilder
             $people = $layout === self::LAYOUT_STUDENT_ROWS
                 ? $this->studentRowPeople($cells, $memberCols, $n, $counter)
                 : $this->groupRowPeople($cells, $memberCols, $n, $counter);
+
+            // A leader column only means something when each row is one student.
+            if ($layout === self::LAYOUT_STUDENT_ROWS && $leaderCol !== false && count($people) === 1) {
+                $people[0]['leader'] = $this->truthy($cells[$leaderCol] ?? '');
+            }
 
             if ($name === '' && $people === []) {
                 continue;
@@ -170,7 +183,14 @@ class ImportBuilder
             'user_id' => null,
             'matched_by' => null,
             'conflict' => null,
+            'leader' => false,
         ];
+    }
+
+    /** yes, y, 1, true, ya, leader, ketua (any case) mark the leader; empty or anything else does not. */
+    protected function truthy(string $value): bool
+    {
+        return in_array(mb_strtolower(trim($value)), ['yes', 'y', '1', 'true', 'ya', 'leader', 'ketua'], true);
     }
 
     /**

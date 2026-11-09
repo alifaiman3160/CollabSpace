@@ -93,6 +93,12 @@
                 <span class="text-label font-semibold">New task</span>
             </div>
 
+            @if ($leaderId && ($boardLeader = $members->firstWhere('id', $leaderId)))
+                <div class="flex items-center gap-2 rounded-pill bg-surface-muted px-4 py-2.5 text-label font-bold text-ink-600" data-board-leader>
+                    <x-leader-badge :name="$boardLeader->name" /> {{ $boardLeader->id === auth()->id() ? 'You lead this group' : $boardLeader->name }}
+                </div>
+            @endif
+
             @if ($overdueCount > 0)
                 <div class="flex items-center gap-2 rounded-pill bg-danger-bg px-4 py-2.5 text-label font-bold text-danger-text">
                     <x-icon name="clock" size="14" />
@@ -124,15 +130,19 @@
 
                 <div class="flex flex-col gap-2">
                     <x-input-label for="task-assignee" value="Assign to" />
-                    <select id="task-assignee" wire:model="assignedTo"
+                    <select id="task-assignee" wire:model="assignedTo" @disabled(! $canAssignOthers)
                             class="h-[52px] w-full rounded-[16px] bg-surface border border-surface-line px-[18px] text-[14px] font-medium text-ink focus:outline-none focus:ring-2 focus:ring-ink/10">
-                        <option value="">Nobody yet</option>
+                        @if ($canAssignOthers)<option value="">Nobody yet</option>@endif
                         @foreach ($members as $member)
+                            @continue(! $canAssignOthers && ! $member->is(auth()->user()))
                             <option value="{{ $member->id }}">
-                                {{ $member->name }}{{ $member->is(auth()->user()) ? ' (you)' : '' }}
+                                {{ $member->name }}{{ $member->is(auth()->user()) ? ' (you)' : '' }}{{ $member->id === $leaderId ? ' · Leader' : '' }}
                             </option>
                         @endforeach
                     </select>
+                    @unless ($canAssignOthers)
+                        <p class="text-meta text-ink-400" data-assign-self-only>Only the group leader can assign tasks to other members.</p>
+                    @endunless
                     <x-input-error :messages="$errors->get('assignedTo')" />
                 </div>
 
@@ -234,6 +244,7 @@
                                 @endforeach
                             </select>
 
+                            @if ($canAssignOthers || ($task->created_by === auth()->id() && $task->assigned_to === auth()->id()))
                             <button type="button" wire:click="startEdit({{ $task->id }})"
                                     class="flex size-9 shrink-0 items-center justify-center rounded-pill bg-surface-muted text-ink-400 interactive hover:bg-periwinkle-soft hover:text-periwinkle-link"
                                     aria-label="Edit {{ $task->title }}">
@@ -245,6 +256,7 @@
                                     aria-label="Delete {{ $task->title }}">
                                 <x-icon name="trash" size="15" />
                             </button>
+                            @endif
                         </div>
                                 </x-slot:controls>
                             </x-task-done-row>
@@ -291,6 +303,7 @@
                                         <span class="truncate text-meta font-semibold text-ink-600">
                                             {{ $mine ? 'You' : $task->assignee->name }}
                                         </span>
+                                        @if ($task->assigned_to === $leaderId)<x-leader-badge :name="$task->assignee->name" />@endif
                                         @unless ($mine)
                                             {{-- Says whose card it is before anyone tries to move it. --}}
                                             <span class="flex shrink-0 items-center text-ink-300"
@@ -329,6 +342,7 @@
                                     @endforeach
                                 </select>
 
+                                @if ($canAssignOthers || ($task->created_by === auth()->id() && $task->assigned_to === auth()->id()))
                                 <button type="button"
                                         wire:click="startEdit({{ $task->id }})"
                                         class="flex size-9 shrink-0 items-center justify-center rounded-pill bg-surface-muted text-ink-400 interactive hover:bg-periwinkle-soft hover:text-periwinkle-link"
@@ -342,6 +356,7 @@
                                         aria-label="Delete {{ $task->title }}">
                                     <x-icon name="trash" size="15" />
                                 </button>
+                                @endif
                             </div>
                         </article>
                         @endif

@@ -5,6 +5,7 @@
         'chat_message' => 'chat',
         'document_created' => 'file',
         'submission_made' => 'check',
+        'leader_changed' => 'users',
         'submission_withdrawn' => 'trash',
         'document_edited' => 'edit',
         'group_assigned' => 'users',

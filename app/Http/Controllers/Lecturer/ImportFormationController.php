@@ -177,10 +177,22 @@ class ImportFormationController extends LecturerController
         }
 
         $roles = array_map(
-            fn ($r) => in_array($r, [ImportBuilder::ROLE_GROUP, ImportBuilder::ROLE_MEMBER], true) ? $r : ImportBuilder::ROLE_IGNORE,
+            fn ($r) => in_array($r, [ImportBuilder::ROLE_GROUP, ImportBuilder::ROLE_MEMBER, ImportBuilder::ROLE_LEADER], true) ? $r : ImportBuilder::ROLE_IGNORE,
             array_replace(array_fill(0, count($held['headers']), ImportBuilder::ROLE_IGNORE), (array) $request->input('roles', [])),
         );
         $roles = array_slice(array_values($roles), 0, count($held['headers']));
+
+        // At most one leader column: a second one is ignored.
+        $seenLeader = false;
+        foreach ($roles as $i => $role) {
+            if ($role === ImportBuilder::ROLE_LEADER) {
+                if ($seenLeader) {
+                    $roles[$i] = ImportBuilder::ROLE_IGNORE;
+                }
+
+                $seenLeader = true;
+            }
+        }
 
         $groupCols = count(array_filter($roles, fn ($r) => $r === ImportBuilder::ROLE_GROUP));
         $memberCols = count(array_filter($roles, fn ($r) => $r === ImportBuilder::ROLE_MEMBER));
@@ -374,7 +386,7 @@ class ImportFormationController extends LecturerController
 
         $groups = $draft['groups'];
 
-        $decisions = $existing + ['remove' => [], 'assign' => [], 'keep' => [], 'rename' => [], 'raise' => [], 'skip' => []];
+        $decisions = $existing + ['remove' => [], 'assign' => [], 'keep' => [], 'rename' => [], 'raise' => [], 'skip' => [], 'leader' => []];
 
         // Checkboxes: only those whose marker came back are touched.
         $targets = ['remove' => $people, 'raise' => $groups, 'skip' => $groups];
@@ -392,6 +404,15 @@ class ImportFormationController extends LecturerController
                 } else {
                     unset($decisions[$kind][$key]);
                 }
+            }
+        }
+
+        // Which of several people marked as the leader of a group leads it.
+        foreach ((array) $request->input('leader', []) as $gkey => $pkey) {
+            if (isset($groups[$gkey], $people[$pkey])) {
+                $decisions['leader'][$gkey] = $pkey;
+            } else {
+                unset($decisions['leader'][$gkey]);
             }
         }
 

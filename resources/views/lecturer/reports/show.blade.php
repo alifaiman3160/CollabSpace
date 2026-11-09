@@ -126,7 +126,7 @@
                         <div class="flex min-w-[170px] flex-[1_1_190px] items-center gap-2.5">
                             <x-avatar :name="$member['user']->name" size="sm" class="!size-[34px]" />
                             <div class="flex min-w-0 flex-col gap-1">
-                                <span class="truncate text-body font-bold tracking-[-0.015em]">{{ $member['user']->name }}</span>
+                                <span class="flex min-w-0 items-center gap-1.5"><span class="truncate text-body font-bold tracking-[-0.015em]">{{ $member['user']->name }}</span>@if ($group->isLeader($member['user']))<x-leader-badge />@endif</span>
                                 <div class="flex flex-wrap gap-1.5">
                                     @if ($member['flagged'])
                                         <x-badge tone="danger">Low participation</x-badge>
@@ -172,6 +172,7 @@
                         <tr>
                             <td>
                                 <x-table.person :name="$member['user']->name">
+                                    <x-slot:suffix>@if ($group->isLeader($member['user']))<x-leader-badge class="ml-1.5 align-middle" />@endif</x-slot:suffix>
                                     @if ($member['flagged'])
                                         <x-table.dot-pill tone="danger">Free rider</x-table.dot-pill>
                                     @endif

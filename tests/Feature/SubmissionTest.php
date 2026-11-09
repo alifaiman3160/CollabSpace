@@ -287,6 +287,11 @@ class SubmissionTest extends TestCase
         $this->assertSame('Late', $lines['Submission']);
         $this->assertSame('Assessment', $rows[5][0], 'The new lines follow Assessment.');
         $this->assertSame('Submitted', $rows[6][0]);
+        $this->assertSame('Submission', $rows[7][0]);
+        $this->assertSame(['Leader', ''], $rows[8], 'A group with no leader: an empty name.');
+
+        $this->group->forceFill(['leader_id' => $this->students['s2']->id])->save();
+        $this->assertSame(['Leader', 'Bakri Bin Hamdan'], app(EvidenceReport::class)->rows($this->rubric, $this->group->fresh())[8], 'The leader is a label: the line names them.');
     }
 
     public function test_deleting_a_document_later_and_purging_leave_the_submission_alone(): void

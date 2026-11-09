@@ -27,6 +27,7 @@ class Group extends Model
         'formation_meta',
         'formed_by',
         'formed_at',
+        'leader_id',
     ];
 
     protected function casts(): array
@@ -36,6 +37,19 @@ class Group extends Model
             'formation_meta' => 'array',
             'formed_at' => 'datetime',
         ];
+    }
+
+    /** Its leader: one current member, set at formation and changed only by the owning lecturer. */
+    public function leader(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'leader_id');
+    }
+
+    public function isLeader(User|int|null $user): bool
+    {
+        $id = $user instanceof User ? $user->getKey() : $user;
+
+        return $id !== null && $this->leader_id !== null && $this->leader_id === (int) $id;
     }
 
     /** The lecturer who formed it, when that account still exists. */

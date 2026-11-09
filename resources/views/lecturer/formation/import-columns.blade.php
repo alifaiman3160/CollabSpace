@@ -49,7 +49,7 @@
 
                         <td class="align-top">
                             <div class="flex flex-wrap gap-1.5" role="radiogroup" aria-label="What column {{ $header }} holds">
-                                @foreach ([\App\Support\Formation\ImportBuilder::ROLE_IGNORE => 'Ignore', \App\Support\Formation\ImportBuilder::ROLE_GROUP => 'Group name', \App\Support\Formation\ImportBuilder::ROLE_MEMBER => $memberLabel] as $value => $label)
+                                @foreach ([\App\Support\Formation\ImportBuilder::ROLE_IGNORE => 'Ignore', \App\Support\Formation\ImportBuilder::ROLE_GROUP => 'Group name', \App\Support\Formation\ImportBuilder::ROLE_MEMBER => $memberLabel, \App\Support\Formation\ImportBuilder::ROLE_LEADER => 'Leader (optional)'] as $value => $label)
                                     <label class="cursor-pointer">
                                         <input type="radio" name="roles[{{ $i }}]" value="{{ $value }}"
                                                @checked(($roles[$i] ?? \App\Support\Formation\ImportBuilder::ROLE_IGNORE) === $value)

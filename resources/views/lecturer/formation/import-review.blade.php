@@ -42,7 +42,7 @@
         ];
 
         $overGroups = array_filter($groups, fn ($g) => ! $g['skipped'] && $g['problems']['over_size']);
-        $namedGroups = array_filter($groups, fn ($g) => ! $g['skipped'] && ($g['problems']['name'] !== null || $g['problems']['empty']));
+        $namedGroups = array_filter($groups, fn ($g) => ! $g['skipped'] && ($g['problems']['name'] !== null || $g['problems']['empty'] || $g['problems']['multi_leader']));
         $skippedGroups = array_filter($groups, fn ($g) => $g['skipped']);
         $problemGroups = array_filter($groups, fn ($g) => ! $g['skipped'] && ! $g['clean']);
         $cleanGroups = array_filter($groups, fn ($g) => $g['clean']);
@@ -133,7 +133,7 @@
                                     @foreach ($group['members'] as $person)
                                         @if ($person['state'] === 'ok')
                                             <li class="flex items-center gap-2 text-meta">
-                                                <span class="min-w-0 flex-1 truncate font-semibold">{{ $person['user']->name }}</span>
+                                                <span class="flex min-w-0 flex-1 items-center gap-1.5"><span class="truncate font-semibold">{{ $person['user']->name }}</span>@if (($group['leader_preview_id'] ?? null) === $person['user']->id)<x-leader-badge />@endif</span>
                                                 <span class="shrink-0 text-label text-ink-400">
                                                     {{ $person['matched_by_hand'] ? 'matched by you' : 'by '.$person['matched_by'] }}
                                                 </span>
@@ -337,6 +337,17 @@
                                     <span class="text-label text-ink-400">Row {{ implode(', ', $group['rows']) }}</span>
                                     @if ($group['problems']['name'])
                                         <span class="text-meta font-semibold text-danger-text">{{ $nameProblems[$group['problems']['name']] }}</span>
+                                    @endif
+                                    @if ($group['problems']['multi_leader'])
+                                        <div class="flex w-full flex-col gap-1.5" data-multi-leader>
+                                            <span class="text-meta font-semibold text-danger-text">More than one student is marked as the leader. Choose who leads this group:</span>
+                                            @foreach ($group['leader_marked'] as $cand)
+                                                <label class="flex items-center gap-2 text-meta font-semibold text-ink-600">
+                                                    <input type="radio" name="leader[{{ $gkey }}]" value="{{ $cand['key'] }}" @checked(($decisions['leader'][$gkey] ?? null) === $cand['key']) class="size-4 border-surface-strong text-ink focus:ring-ink/20">
+                                                    {{ $cand['user']->name }}
+                                                </label>
+                                            @endforeach
+                                        </div>
                                     @endif
                                     @if ($group['problems']['empty'])
                                         <span class="text-meta font-semibold text-danger-text">

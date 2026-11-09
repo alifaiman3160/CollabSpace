@@ -125,7 +125,7 @@ class GroupController extends LecturerController
     {
         $group = $this->ownedGroup($group);
 
-        $group->load(['subject', 'section', 'members' => fn ($q) => $q->orderBy('name')])
+        $group->load(['subject', 'section', 'leader:id,name', 'members' => fn ($q) => $q->orderBy('name')])
             ->loadCount([
                 'tasks as tasks_total',
                 'tasks as tasks_done' => fn ($q) => $q->where('status', Task::STATUS_DONE),
@@ -221,9 +221,34 @@ class GroupController extends LecturerController
             $group->update(['section_id' => $enrolled->id]);
         }
 
+        // The first member of a group is its leader.
+        app(\App\Support\GroupLeader\GroupLeader::class)->onMemberAdded($group, $student);
+
         app(Notifier::class)->addedToGroup($student, $group, $request->user());
 
         return back()->with('status', "{$student->name} has been added to {$group->name}.");
+    }
+
+    /** Only the lecturer who owns the subject changes the leader, and only to a current member. */
+    public function setLeader(Request $request, Group $group): RedirectResponse
+    {
+        $group = $this->ownedGroup($group);
+
+        $validated = $request->validate(['user_id' => ['required', 'integer']], [], ['user_id' => 'student']);
+
+        $member = $group->members()->whereKey($validated['user_id'])->first();
+
+        if ($member === null) {
+            return back()->withErrors(['user_id' => 'The leader has to be a member of this group.']);
+        }
+
+        if ($group->isLeader($member)) {
+            return back()->with('status', "{$member->name} already leads {$group->name}.");
+        }
+
+        app(\App\Support\GroupLeader\GroupLeader::class)->setLeader($group, $member, $request->user());
+
+        return back()->with('status', "{$member->name} is now the leader of {$group->name}.");
     }
 
     public function removeMember(Group $group, User $user): RedirectResponse
@@ -235,6 +260,9 @@ class GroupController extends LecturerController
         abort_if($membership === null, 404);
 
         $membership->delete();
+
+        // When the leader goes, the member with the highest CGPA takes over (and is told).
+        app(\App\Support\GroupLeader\GroupLeader::class)->onMemberRemoved($group, $user, auth()->user());
 
         app(Notifier::class)->removedFromGroup($user, $group, auth()->user());
 

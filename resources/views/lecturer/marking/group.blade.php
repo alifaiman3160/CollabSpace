@@ -12,6 +12,9 @@
         <div class="flex flex-wrap items-center gap-2" data-marking-context>
             <x-assessment-chip :assessment="$rubric->assessment" />
             <x-section-chip :section="$group->section" :code="$rubric->subject->code" />
+            @if ($group->leader_id && ($leader = $rows->pluck('student')->firstWhere('id', $group->leader_id)))
+                <span class="inline-flex items-center gap-1.5 text-meta font-semibold text-ink-600" data-group-leader><x-leader-badge :name="$leader->name" /> {{ $leader->name }}</span>
+            @endif
         </div>
 
         @if ($rubric->assessment)
@@ -177,6 +180,7 @@
                 <tr>
                     <td>
                         <x-table.person :name="$student->name">
+                            <x-slot:suffix>@if ($group->isLeader($student))<x-leader-badge class="ml-1.5 align-middle" />@endif</x-slot:suffix>
                             <span class="truncate">{{ $student->matric_no ?? $student->email }}</span>
                         </x-table.person>
                     </td>

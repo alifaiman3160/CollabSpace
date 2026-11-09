@@ -125,6 +125,10 @@
                     @csrf
                     {{-- Spoofed verb comes from the payload; PUT unless it says otherwise. --}}
                     <input type="hidden" name="_method" :value="{{ $on }}.method || 'PUT'">
+                    {{-- Extra fields the payload wants posted (a student's id, say). --}}
+                    <template x-for="(value, key) in ({{ $on }}.fields || {})" :key="key">
+                        <input type="hidden" :name="key" :value="value">
+                    </template>
 
                     <button type="submit"
                             :disabled="locked({{ $on }})"

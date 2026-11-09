@@ -219,6 +219,8 @@ Route::middleware(['auth', 'password.changed', 'role:lecturer'])
         Route::delete('groups/{group}', [GroupController::class, 'destroy'])->name('groups.destroy');
         Route::post('groups/{group}/members', [GroupController::class, 'addMember'])->name('groups.members.store');
         Route::delete('groups/{group}/members/{user}', [GroupController::class, 'removeMember'])->name('groups.members.destroy');
+        // Only the owning lecturer changes who leads a group.
+        Route::put('groups/{group}/leader', [GroupController::class, 'setLeader'])->name('groups.leader');
 
         /*
         | Group formation. Two ways of forming groups for a subject, and a screen

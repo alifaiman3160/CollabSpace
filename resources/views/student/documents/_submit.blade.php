@@ -36,6 +36,11 @@
     })->all();
     $hasPicked = (bool) ($info[$picked]['has'] ?? false);
     $canSubmit = $assessments->isNotEmpty() && $documents->isNotEmpty();
+    // Who may hand in: the leader, or any member in the last day. Per assessment (the window is its due date).
+    $may = $assessments->mapWithKeys(fn ($a) => [$a->id => \App\Support\Submissions\Submissions::memberMaySubmit($group, $a, auth()->user())])->all();
+    $info = collect($info)->map(fn ($row, $id) => $row + ['may' => $may[$id] ?? false])->all();
+    $mayPicked = (bool) ($may[$picked] ?? false);
+    $leaderName = $group->leader?->name;
 @endphp
 
 <section id="submit" class="flex scroll-mt-6 flex-col gap-4 rounded-panel border border-surface-line bg-surface p-5 shadow-subtle" aria-label="Submit for assessment" data-submit-card
@@ -44,7 +49,7 @@
                    info: {{ Js::from($info) }},
                    items: {{ Js::from($items) }},
                    get chosen() { return this.items.filter(i => i.checked) },
-                   get now() { return this.info[this.assessment] ?? { title: '', due: null, late: false, has: false } },
+                   get now() { return this.info[this.assessment] ?? { title: '', due: null, late: false, has: false, may: false } },
                    move(i, d) { const j = i + d; if (j < 0 || j >= this.items.length) return; const t = this.items[i]; this.items[i] = this.items[j]; this.items[j] = t },
                    toggle() { this.open = ! this.open; if (! this.open) this.confirming = false },
                  }"
@@ -60,12 +65,18 @@
         @if ($canSubmit)
             {{-- One button at a time: primary to start, secondary once something is handed in, Cancel while open. --}}
             <div class="shrink-0" data-submit-toggle>
-                <x-button type="button" icon="check" x-show="! open && ! now.has" x-on:click="toggle()" x-bind:aria-expanded="open ? 'true' : 'false'" aria-controls="submit-form-area" data-submit-open :x-cloak="($startOpen || $hasPicked) ?: null">Submit report</x-button>
-                <x-button type="button" variant="secondary" x-show="! open && now.has" x-on:click="toggle()" x-bind:aria-expanded="open ? 'true' : 'false'" aria-controls="submit-form-area" data-submit-again :x-cloak="($startOpen || ! $hasPicked) ?: null">Submit again</x-button>
+                <x-button type="button" icon="check" x-show="! open && ! now.has && now.may" x-on:click="toggle()" x-bind:aria-expanded="open ? 'true' : 'false'" aria-controls="submit-form-area" data-submit-open :x-cloak="($startOpen || $hasPicked || ! $mayPicked) ?: null">Submit report</x-button>
+                <x-button type="button" variant="secondary" x-show="! open && now.has && now.may" x-on:click="toggle()" x-bind:aria-expanded="open ? 'true' : 'false'" aria-controls="submit-form-area" data-submit-again :x-cloak="($startOpen || ! $hasPicked || ! $mayPicked) ?: null">Submit again</x-button>
                 <x-button type="button" variant="secondary" x-show="open" x-on:click="toggle()" aria-controls="submit-form-area" data-submit-cancel :x-cloak="! $startOpen ?: null">Cancel</x-button>
             </div>
         @endif
     </div>
+
+    @if ($canSubmit)
+        <p class="text-meta text-ink-400" data-leader-only-note x-show="! now.may" @if ($mayPicked) x-cloak @endif>
+            Only the group leader can submit. Members can submit during the last day before the deadline.@if ($leaderName) Leader: {{ $leaderName }}.@endif
+        </p>
+    @endif
 
     @if ($bag)
         <div class="rounded-card bg-danger-bg px-4 py-3" role="alert" data-submission-error>
@@ -98,7 +109,7 @@
                             {{ $current->submitter?->name ?? 'A former member' }} · {{ $current->submitted_at->format('j M Y, g:i a') }}@if ($current->page_count) · {{ $current->page_count }} {{ Str::plural('page', $current->page_count) }}@endif
                         </span>
                         <x-button variant="secondary" class="!px-4 !py-1.5 !text-meta" :href="route('submissions.pdf', $current)">Download PDF</x-button>
-                        @if ($open)
+                        @if ($open && ($may[$assessment->id] ?? false))
                             <x-table.quiet-action icon="trash" x-on:click="wd = { url: '{{ route('student.submissions.withdraw', $current) }}', method: 'POST', title: 'Withdraw this submission?', body: 'It stops being your current submission. Its PDF is kept as history, and you can submit again until the due date.', action: 'Withdraw', tone: 'danger' }">Withdraw</x-table.quiet-action>
                         @endif
                     </div>

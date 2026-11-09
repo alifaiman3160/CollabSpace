@@ -74,6 +74,11 @@ class GroupFormation
                     ]);
                 }
 
+                // The leader: the one the CSV marked, otherwise the member with the highest CGPA.
+                isset($plan['leader_id']) && $plan['leader_id']
+                    ? app(\App\Support\GroupLeader\GroupLeader::class)->assignChosen($group, (int) $plan['leader_id'])
+                    : app(\App\Support\GroupLeader\GroupLeader::class)->assignDefault($group);
+
                 $created[] = $group;
             }
 

@@ -49,6 +49,7 @@ class ImportReview
         $rename = $decisions['rename'] ?? [];
         $raise = $decisions['raise'] ?? [];
         $skip = $decisions['skip'] ?? [];
+        $pickedLeader = $decisions['leader'] ?? [];
 
         $users = $this->users($draft, $assign);
         $inSubject = $this->alreadyInSubject($subject);
@@ -203,7 +204,28 @@ class ImportReview
                 default => null,
             };
 
+            // The leader: the one student marked in the file. Two or more marked in one group stop it until the lecturer
+            // says which one leads. None marked: the highest CGPA leads, at formation.
+            $marked = array_values(array_filter($group['members'], fn ($p) => $p['state'] === 'ok' && ! empty($p['leader'])));
+            $leaderPerson = null;
+            $manyMarked = false;
+
+            if (count($marked) === 1) {
+                $leaderPerson = $marked[0];
+            } elseif (count($marked) > 1) {
+                $leaderPerson = collect($marked)->firstWhere('key', $pickedLeader[$gkey] ?? null);
+                $manyMarked = $leaderPerson === null;
+            }
+
+            $groups[$gkey]['leader_marked'] = $marked;
+            $groups[$gkey]['leader_user_id'] = $leaderPerson['user']->id ?? null;
+            // What the screen shows as the leader: the marked one, or else the highest CGPA (the default at formation).
+            $byCgpa = collect($group['members'])->filter(fn ($p) => $p['state'] === 'ok')->map(fn ($p) => $p['user'])
+                ->sort(fn ($a, $b) => [$b->cgpa === null ? -1 : (float) $b->cgpa, $a->id] <=> [$a->cgpa === null ? -1 : (float) $a->cgpa, $b->id])->first();
+            $groups[$gkey]['leader_preview_id'] = $groups[$gkey]['leader_user_id'] ?? $byCgpa?->id;
+
             $problems = [
+                'multi_leader' => $manyMarked,
                 'not_found' => array_keys(array_filter($group['members'], fn ($p) => in_array($p['state'], ['not_found', 'conflict'], true))),
                 'ineligible' => array_keys(array_filter($group['members'], fn ($p) => $p['state'] === 'ineligible')),
                 'multi' => array_values(array_filter(array_keys($multi), fn ($uid) => in_array($gkey, $multi[$uid]['groups'], true))),
@@ -213,7 +235,7 @@ class ImportReview
                 'empty' => $count === 0,
             ];
 
-            $hasProblem = $problems['not_found'] || $problems['ineligible'] || $problems['multi']
+            $hasProblem = $problems['multi_leader'] || $problems['not_found'] || $problems['ineligible'] || $problems['multi']
                 || $problems['over_size'] || $problems['name'] !== null || $problems['empty'];
 
             $groups[$gkey]['count'] = $count;
@@ -308,6 +330,7 @@ class ImportReview
                 'name' => $group['name'],
                 'size' => max(2, $group['limit']),
                 'member_ids' => $ids,
+                'leader_id' => $group['leader_user_id'] ?? null,
                 'meta' => [
                     'source' => $filename,
                     'rows' => $group['rows'],
